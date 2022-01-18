@@ -141,11 +141,11 @@ def convert_c2_detectron_names(weights):
         norm = ".norm" if "norm" in splits else ""
         if name.startswith("fpn.inner."):
             # splits example: ['fpn', 'inner', 'res2', '2', 'sum', 'lateral', 'weight']
-            stage = int(splits[2][len("res") :])
+            stage = int(splits[2][len("res"):])
             return "fpn_lateral{}{}.{}".format(stage, norm, splits[-1])
         elif name.startswith("fpn.res"):
             # splits example: ['fpn', 'res2', '2', 'sum', 'weight']
-            stage = int(splits[1][len("res") :])
+            stage = int(splits[1][len("res"):])
             return "fpn_output{}{}.{}".format(stage, norm, splits[-1])
         return name
 
@@ -309,7 +309,7 @@ def align_and_update_state_dicts(model_state_dict, ckpt_state_dict, c2_conversio
             shapes = [tuple(model_state_dict[k].shape) for k in group]
             table.append(
                 (
-                    _longest_common_prefix([k[len(common_prefix) :] for k in group]) + "*",
+                    _longest_common_prefix([k[len(common_prefix):] for k in group]) + "*",
                     _group_str([original_keys[k] for k in group]),
                     " ".join([str(x).replace(" ", "") for x in shapes]),
                 )
@@ -317,7 +317,7 @@ def align_and_update_state_dicts(model_state_dict, ckpt_state_dict, c2_conversio
         else:
             key_checkpoint = original_keys[key_model]
             shape = str(tuple(model_state_dict[key_model].shape))
-            table.append((key_model[len(common_prefix) :], key_checkpoint, shape))
+            table.append((key_model[len(common_prefix):], key_checkpoint, shape))
     table_str = tabulate(
         table, tablefmt="pipe", headers=["Names in Model", "Names in Checkpoint", "Shapes"]
     )
@@ -396,7 +396,7 @@ def _group_str(names: List[str]) -> str:
     Turn "common1", "common2", "common3" into "common{1,2,3}"
     """
     lcp = _longest_common_prefix_str(names)
-    rest = [x[len(lcp) :] for x in names]
+    rest = [x[len(lcp):] for x in names]
     rest = "{" + ",".join(rest) + "}"
     ret = lcp + rest
 

@@ -15,6 +15,8 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
+import detectron2  # isort: skip
+from recommonmark.parser import CommonMarkParser
 import os
 import sys
 from unittest import mock
@@ -58,7 +60,6 @@ class GithubURLDomain(Domain):
 
 
 # to support markdown
-from recommonmark.parser import CommonMarkParser
 
 sys.path.insert(0, os.path.abspath("../"))
 os.environ["_DOC_BUILDING"] = "True"
@@ -96,7 +97,6 @@ for m in [
 # fmt: on
 sys.modules["cv2"].__version__ = "3.4"
 
-import detectron2  # isort: skip
 
 if HAS_TORCH:
     from detectron2.utils.env import fixup_module_metadata

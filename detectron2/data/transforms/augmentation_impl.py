@@ -428,7 +428,7 @@ class RandomCrop_CategoryAreaConstraint(Augmentation):
             crop_size = self.crop_aug.get_crop_size((h, w))
             y0 = np.random.randint(h - crop_size[0] + 1)
             x0 = np.random.randint(w - crop_size[1] + 1)
-            sem_seg_temp = sem_seg[y0 : y0 + crop_size[0], x0 : x0 + crop_size[1]]
+            sem_seg_temp = sem_seg[y0: y0 + crop_size[0], x0: x0 + crop_size[1]]
             labels, cnt = np.unique(sem_seg_temp, return_counts=True)
             if self.ignored_category is not None:
                 cnt = cnt[labels != self.ignored_category]

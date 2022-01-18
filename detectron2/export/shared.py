@@ -833,7 +833,7 @@ def _get_dependency_chain(ssa, versioned_target, versioned_source):
     end_op = (
         producer_map[versioned_target][0] + 15 if versioned_target in producer_map else start_op
     )
-    sub_graph_ssa = ssa[start_op : end_op + 1]
+    sub_graph_ssa = ssa[start_op: end_op + 1]
     if len(sub_graph_ssa) > 30:
         logger.warning(
             "Subgraph bebetween {} and {} is large (from op#{} to op#{}), it"

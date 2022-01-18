@@ -65,13 +65,13 @@ class ModelCatalog(object):
     @staticmethod
     def _get_c2_imagenet_pretrained(name):
         prefix = ModelCatalog.S3_C2_DETECTRON_PREFIX
-        name = name[len("ImageNetPretrained/") :]
+        name = name[len("ImageNetPretrained/"):]
         name = ModelCatalog.C2_IMAGENET_MODELS[name]
         return "/".join([prefix, name])
 
     @staticmethod
     def _get_c2_detectron_baseline(name):
-        name = name[len("Caffe2Detectron/COCO/") :]
+        name = name[len("Caffe2Detectron/COCO/"):]
         url = ModelCatalog.C2_DETECTRON_MODELS[name]
         if "keypoint_rcnn" in name:
             dataset = ModelCatalog.C2_DATASET_COCO_KEYPOINTS
@@ -98,7 +98,7 @@ class ModelCatalogHandler(PathHandler):
 
     def _get_local_path(self, path, **kwargs):
         logger = logging.getLogger(__name__)
-        catalog_path = ModelCatalog.get(path[len(self.PREFIX) :])
+        catalog_path = ModelCatalog.get(path[len(self.PREFIX):])
         logger.info("Catalog entry {} points to {}".format(path, catalog_path))
         return PathManager.get_local_path(catalog_path, **kwargs)
 

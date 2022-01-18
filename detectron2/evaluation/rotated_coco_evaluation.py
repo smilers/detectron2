@@ -180,7 +180,6 @@ class RotatedCOCOEvaluator(COCOEvaluator):
             else None
         )
 
-
         task = "bbox"
         res = self._derive_coco_results(
             coco_eval, task, class_names=self._metadata.get("thing_classes")

@@ -404,12 +404,12 @@ def combine_detection_dataset_dicts(
         dataset_name_to_dicts[dataset_name] = dataset_dicts
 
     return [
-            d
-            for d in itertools.chain.from_iterable(dataset_name_to_dicts.values())
-            if keep_instance_predicate(d)
-        ] if keep_instance_predicate is not None else list(
-            itertools.chain.from_iterable(dataset_name_to_dicts.values())
-        )
+        d
+        for d in itertools.chain.from_iterable(dataset_name_to_dicts.values())
+        if keep_instance_predicate(d)
+    ] if keep_instance_predicate is not None else list(
+        itertools.chain.from_iterable(dataset_name_to_dicts.values())
+    )
 
 
 def build_detection_train_loader(cfg: CfgNode, mapper=None):

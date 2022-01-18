@@ -108,7 +108,7 @@ def predictor_output_with_coarse_segm_to_mask(
         box_xywh = make_int_box(boxes_xywh_abs[i])
         box_mask = resample_coarse_segm_tensor_to_bbox(predictor_output[i].coarse_segm, box_xywh)
         x, y, w, h = box_xywh
-        masks[i, y : y + h, x : x + w] = box_mask
+        masks[i, y: y + h, x: x + w] = box_mask
 
     return BitMasks(masks)
 
@@ -144,5 +144,5 @@ def predictor_output_with_fine_and_coarse_segm_to_mask(
         box_xywh = make_int_box(boxes_xywh_abs[i])
         labels_i = resample_fine_and_coarse_segm_to_bbox(predictor_output[i], box_xywh)
         x, y, w, h = box_xywh
-        masks[i, y : y + h, x : x + w] = labels_i > 0
+        masks[i, y: y + h, x: x + w] = labels_i > 0
     return BitMasks(masks)
