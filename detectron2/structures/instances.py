@@ -1,8 +1,12 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
-import torch
-
 import itertools
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Tuple
+from typing import Union
+
+import torch
 
 
 class Instances:

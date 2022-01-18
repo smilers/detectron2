@@ -1,53 +1,60 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
+import itertools
+import logging
+from collections import defaultdict
+from collections import UserDict
+from dataclasses import dataclass
+from typing import Any
+from typing import Callable
+from typing import Collection
+from typing import Dict
+from typing import Iterable
+from typing import List
+from typing import Optional
+from typing import Sequence
+from typing import Tuple
 
 import numpy as np
 import torch
+from densepose.config import get_bootstrap_dataset_config
+from densepose.modeling import build_densepose_embedder
 from torch.utils.data.dataset import Dataset
 
+from .combined_loader import CombinedDataLoader
+from .combined_loader import Loader
+from .dataset_mapper import DatasetMapper
+from .datasets.coco import DENSEPOSE_CSE_KEYS_WITHOUT_MASK
+from .datasets.coco import DENSEPOSE_IUV_KEYS_WITHOUT_MASK
+from .datasets.dataset_type import DatasetType
+from .inference_based_loader import InferenceBasedLoader
+from .inference_based_loader import ScoreBasedFilter
+from .samplers import DensePoseConfidenceBasedSampler
+from .samplers import DensePoseCSEConfidenceBasedSampler
+from .samplers import DensePoseCSEUniformSampler
+from .samplers import DensePoseUniformSampler
+from .samplers import MaskFromDensePoseSampler
+from .samplers import PredictionToGroundTruthSampler
+from .transform import ImageResizeTransform
+from .utils import get_category_to_class_mapping
+from .utils import get_class_to_mesh_name_mapping
+from .video import FirstKFramesSelector
+from .video import FrameSelectionStrategy
+from .video import LastKFramesSelector
+from .video import RandomKFramesSelector
+from .video import video_list_from_file
+from .video import VideoKeyframeDataset
 from detectron2.config import CfgNode
 from detectron2.data.build import build_detection_test_loader as d2_build_detection_test_loader
 from detectron2.data.build import build_detection_train_loader as d2_build_detection_train_loader
-from detectron2.data.build import (
-    load_proposals_into_dataset,
-    print_instances_class_histogram,
-    trivial_batch_collator,
-    worker_init_reset_seed,
-)
-from detectron2.data.catalog import DatasetCatalog, Metadata, MetadataCatalog
+from detectron2.data.build import load_proposals_into_dataset
+from detectron2.data.build import print_instances_class_histogram
+from detectron2.data.build import trivial_batch_collator
+from detectron2.data.build import worker_init_reset_seed
+from detectron2.data.catalog import DatasetCatalog
+from detectron2.data.catalog import Metadata
+from detectron2.data.catalog import MetadataCatalog
 from detectron2.data.samplers import TrainingSampler
 from detectron2.utils.comm import get_world_size
-
-import itertools
-import logging
-from collections import UserDict, defaultdict
-from dataclasses import dataclass
-from densepose.config import get_bootstrap_dataset_config
-from densepose.modeling import build_densepose_embedder
-from typing import Any, Callable, Collection, Dict, Iterable, List, Optional, Sequence, Tuple
-
-from .combined_loader import CombinedDataLoader, Loader
-from .dataset_mapper import DatasetMapper
-from .datasets.coco import DENSEPOSE_CSE_KEYS_WITHOUT_MASK, DENSEPOSE_IUV_KEYS_WITHOUT_MASK
-from .datasets.dataset_type import DatasetType
-from .inference_based_loader import InferenceBasedLoader, ScoreBasedFilter
-from .samplers import (
-    DensePoseConfidenceBasedSampler,
-    DensePoseCSEConfidenceBasedSampler,
-    DensePoseCSEUniformSampler,
-    DensePoseUniformSampler,
-    MaskFromDensePoseSampler,
-    PredictionToGroundTruthSampler,
-)
-from .transform import ImageResizeTransform
-from .utils import get_category_to_class_mapping, get_class_to_mesh_name_mapping
-from .video import (
-    FirstKFramesSelector,
-    FrameSelectionStrategy,
-    LastKFramesSelector,
-    RandomKFramesSelector,
-    VideoKeyframeDataset,
-    video_list_from_file,
-)
 
 __all__ = ["build_detection_train_loader", "build_detection_test_loader"]
 

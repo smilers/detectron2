@@ -1,31 +1,31 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Facebook, Inc. and its affiliates.
-
 # flake8: noqa
-
 # Configuration file for the Sphinx documentation builder.
 #
 # This file does only contain a selection of the most common options. For a
 # full list see the documentation:
 # http://www.sphinx-doc.org/en/master/config
-
 # -- Path setup --------------------------------------------------------------
-
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-import detectron2  # isort: skip
 import os
+import sys
+from typing import Dict
+from typing import List
+from typing import Tuple
+from unittest import mock
+
+import sphinx_rtd_theme
+from recommonmark.parser import CommonMarkParser
+from sphinx.domains import Domain
+
+import detectron2  # isort: skip
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-import sphinx_rtd_theme
-import sys
-from recommonmark.parser import CommonMarkParser
-from sphinx.domains import Domain
-from typing import Dict, List, Tuple
-from unittest import mock
 
 
 class GithubURLDomain(Domain):

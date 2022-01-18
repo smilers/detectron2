@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Facebook, Inc. and its affiliates.
-
-
 """
 This file registers pre-defined datasets at hard-coded paths, and their metadata.
 
@@ -16,19 +14,22 @@ exist in "./datasets/".
 Users SHOULD NOT use this file to create new dataset / metadata for new dataset.
 To add new dataset, refer to the tutorial "docs/DATASETS.md".
 """
-
-
-from detectron2.data import DatasetCatalog, MetadataCatalog
-
 import os
 
-from .builtin_meta import ADE20K_SEM_SEG_CATEGORIES, _get_builtin_metadata
-from .cityscapes import load_cityscapes_instances, load_cityscapes_semantic
+from .builtin_meta import _get_builtin_metadata
+from .builtin_meta import ADE20K_SEM_SEG_CATEGORIES
+from .cityscapes import load_cityscapes_instances
+from .cityscapes import load_cityscapes_semantic
 from .cityscapes_panoptic import register_all_cityscapes_panoptic
-from .coco import load_sem_seg, register_coco_instances
-from .coco_panoptic import register_coco_panoptic, register_coco_panoptic_separated
-from .lvis import get_lvis_instances_meta, register_lvis_instances
+from .coco import load_sem_seg
+from .coco import register_coco_instances
+from .coco_panoptic import register_coco_panoptic
+from .coco_panoptic import register_coco_panoptic_separated
+from .lvis import get_lvis_instances_meta
+from .lvis import register_lvis_instances
 from .pascal_voc import register_pascal_voc
+from detectron2.data import DatasetCatalog
+from detectron2.data import MetadataCatalog
 
 # ==== Predefined datasets and splits for COCO ==========
 

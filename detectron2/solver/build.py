@@ -1,16 +1,25 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
-import torch
-from fvcore.common.param_scheduler import CosineParamScheduler, MultiStepParamScheduler
-
-from detectron2.config import CfgNode
-
 import copy
 import itertools
 import logging
 from enum import Enum
-from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Type, Union
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import Iterable
+from typing import List
+from typing import Optional
+from typing import Set
+from typing import Type
+from typing import Union
 
-from .lr_scheduler import LRMultiplier, WarmupParamScheduler
+import torch
+from fvcore.common.param_scheduler import CosineParamScheduler
+from fvcore.common.param_scheduler import MultiStepParamScheduler
+
+from .lr_scheduler import LRMultiplier
+from .lr_scheduler import WarmupParamScheduler
+from detectron2.config import CfgNode
 
 _GradientClipperInput = Union[torch.Tensor, Iterable[torch.Tensor]]
 _GradientClipper = Callable[[_GradientClipperInput], None]

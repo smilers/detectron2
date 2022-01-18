@@ -1,13 +1,12 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
+import os
 
 import torch
 
+from .torchscript_patch import freeze_training_mode
+from .torchscript_patch import patch_instances
 from detectron2.utils.env import TORCH_VERSION
 from detectron2.utils.file_io import PathManager
-
-import os
-
-from .torchscript_patch import freeze_training_mode, patch_instances
 
 __all__ = ["scripting_with_instances", "dump_torchscript_IR"]
 

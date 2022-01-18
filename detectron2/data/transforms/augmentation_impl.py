@@ -3,24 +3,25 @@
 """
 Implement many useful :class:`Augmentation`.
 """
-import numpy as np
-from fvcore.transforms.transform import (
-    BlendTransform,
-    CropTransform,
-    HFlipTransform,
-    NoOpTransform,
-    PadTransform,
-    Transform,
-    TransformList,
-    VFlipTransform,
-)
-from PIL import Image
-
 import sys
 from typing import Tuple
 
-from .augmentation import Augmentation, _transform_to_aug
-from .transform import ExtentTransform, ResizeTransform, RotationTransform
+import numpy as np
+from fvcore.transforms.transform import BlendTransform
+from fvcore.transforms.transform import CropTransform
+from fvcore.transforms.transform import HFlipTransform
+from fvcore.transforms.transform import NoOpTransform
+from fvcore.transforms.transform import PadTransform
+from fvcore.transforms.transform import Transform
+from fvcore.transforms.transform import TransformList
+from fvcore.transforms.transform import VFlipTransform
+from PIL import Image
+
+from .augmentation import _transform_to_aug
+from .augmentation import Augmentation
+from .transform import ExtentTransform
+from .transform import ResizeTransform
+from .transform import RotationTransform
 
 __all__ = [
     "FixedSizeCrop",

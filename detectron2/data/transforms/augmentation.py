@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Facebook, Inc. and its affiliates.
-
-import numpy as np
-from fvcore.transforms.transform import Transform, TransformList
-
 import inspect
 import pprint
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any
+from typing import List
+from typing import Optional
+from typing import Tuple
+from typing import Union
+
+import numpy as np
+from fvcore.transforms.transform import Transform
+from fvcore.transforms.transform import TransformList
 
 """
 See "Data Augmentation" tutorial for an overview of the system:

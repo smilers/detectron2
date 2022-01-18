@@ -1,26 +1,37 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
+import logging
+import math
+from typing import Dict
+from typing import List
+from typing import Tuple
+
 import numpy as np
 import torch
 from fvcore.nn import sigmoid_focal_loss_jit
-from torch import Tensor, nn
+from torch import nn
+from torch import Tensor
 from torch.nn import functional as F
 
-from detectron2.config import configurable
-from detectron2.data.detection_utils import convert_image_to_rgb
-from detectron2.layers import ShapeSpec, batched_nms, cat, get_norm, nonzero_tuple
-from detectron2.structures import Boxes, ImageList, Instances, pairwise_iou
-from detectron2.utils.events import get_event_storage
-
-import logging
-import math
-from typing import Dict, List, Tuple
-
 from ..anchor_generator import build_anchor_generator
-from ..backbone import Backbone, build_backbone
-from ..box_regression import Box2BoxTransform, _dense_box_regression_loss
+from ..backbone import Backbone
+from ..backbone import build_backbone
+from ..box_regression import _dense_box_regression_loss
+from ..box_regression import Box2BoxTransform
 from ..matcher import Matcher
 from ..postprocessing import detector_postprocess
 from .build import META_ARCH_REGISTRY
+from detectron2.config import configurable
+from detectron2.data.detection_utils import convert_image_to_rgb
+from detectron2.layers import batched_nms
+from detectron2.layers import cat
+from detectron2.layers import get_norm
+from detectron2.layers import nonzero_tuple
+from detectron2.layers import ShapeSpec
+from detectron2.structures import Boxes
+from detectron2.structures import ImageList
+from detectron2.structures import Instances
+from detectron2.structures import pairwise_iou
+from detectron2.utils.events import get_event_storage
 
 __all__ = ["RetinaNet"]
 

@@ -1,16 +1,16 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
-from fvcore.common.timer import Timer
-
-from detectron2.data import DatasetCatalog, MetadataCatalog
-from detectron2.structures import BoxMode
-from detectron2.utils.file_io import PathManager
-
 import logging
 import os
+
+from fvcore.common.timer import Timer
 
 from .builtin_meta import _get_coco_instances_meta
 from .lvis_v0_5_categories import LVIS_CATEGORIES as LVIS_V0_5_CATEGORIES
 from .lvis_v1_categories import LVIS_CATEGORIES as LVIS_V1_CATEGORIES
+from detectron2.data import DatasetCatalog
+from detectron2.data import MetadataCatalog
+from detectron2.structures import BoxMode
+from detectron2.utils.file_io import PathManager
 
 """
 This file contains functions to parse LVIS-format annotations into dicts in the

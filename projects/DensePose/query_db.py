@@ -1,30 +1,30 @@
 #!/usr/bin/env python3
 # Copyright (c) Facebook, Inc. and its affiliates.
-
-import torch
-
-from detectron2.data.catalog import DatasetCatalog
-from detectron2.utils.file_io import PathManager
-from detectron2.utils.logger import setup_logger
-
 import argparse
 import logging
 import os
 import sys
+from timeit import default_timer as timer
+from typing import Any
+from typing import ClassVar
+from typing import Dict
+from typing import List
+
+import torch
 from densepose.structures import DensePoseDataRelative
 from densepose.utils.dbhelper import EntrySelector
 from densepose.utils.logger import verbosity_to_level
 from densepose.vis.base import CompoundVisualizer
 from densepose.vis.bounding_box import BoundingBoxVisualizer
-from densepose.vis.densepose_data_points import (
-    DensePoseDataCoarseSegmentationVisualizer,
-    DensePoseDataPointsIVisualizer,
-    DensePoseDataPointsUVisualizer,
-    DensePoseDataPointsVisualizer,
-    DensePoseDataPointsVVisualizer,
-)
-from timeit import default_timer as timer
-from typing import Any, ClassVar, Dict, List
+from densepose.vis.densepose_data_points import DensePoseDataCoarseSegmentationVisualizer
+from densepose.vis.densepose_data_points import DensePoseDataPointsIVisualizer
+from densepose.vis.densepose_data_points import DensePoseDataPointsUVisualizer
+from densepose.vis.densepose_data_points import DensePoseDataPointsVisualizer
+from densepose.vis.densepose_data_points import DensePoseDataPointsVVisualizer
+
+from detectron2.data.catalog import DatasetCatalog
+from detectron2.utils.file_io import PathManager
+from detectron2.utils.logger import setup_logger
 
 DOC = """Query DB - a tool to print / visualize data from a database
 """

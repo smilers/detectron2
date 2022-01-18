@@ -1,21 +1,28 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
-
-import numpy as np
-import caffe2.python.utils as putils
-import torch
-import torch.nn.functional as F
-from caffe2.proto import caffe2_pb2
-from caffe2.python import core, net_drawer, workspace
-from torch.nn.functional import interpolate as interp
-
 import collections
 import contextlib
 import copy
 import functools
 import logging
 import os
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
+from typing import Union
 from unittest import mock
+
+import caffe2.python.utils as putils
+import numpy as np
+import torch
+import torch.nn.functional as F
+from caffe2.proto import caffe2_pb2
+from caffe2.python import core
+from caffe2.python import net_drawer
+from caffe2.python import workspace
+from torch.nn.functional import interpolate as interp
 
 logger = logging.getLogger(__name__)
 

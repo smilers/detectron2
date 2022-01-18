@@ -1,13 +1,16 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
+import math
+from typing import List
+
 import torch
 from torch import nn
 from torchvision.ops import RoIPool
 
-from detectron2.layers import ROIAlign, ROIAlignRotated, cat, nonzero_tuple
+from detectron2.layers import cat
+from detectron2.layers import nonzero_tuple
+from detectron2.layers import ROIAlign
+from detectron2.layers import ROIAlignRotated
 from detectron2.structures import Boxes
-
-import math
-from typing import List
 
 """
 To export ROIPooler to torchscript, in this file, variables that should be annotated with

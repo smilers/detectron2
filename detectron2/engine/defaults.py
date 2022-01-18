@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Facebook, Inc. and its affiliates.
-
 """
 This file contains components with some default boilerplate logic user may need
 in training / testing. They will not work for everyone, but many users may find them useful.
@@ -8,35 +7,6 @@ in training / testing. They will not work for everyone, but many users may find 
 The behavior of functions/classes in this file is subject to change,
 since they are meant to represent the "common default behavior" people need in their projects.
 """
-
-import torch
-from fvcore.nn.precise_bn import get_bn_modules
-from omegaconf import OmegaConf
-from torch.nn.parallel import DistributedDataParallel
-
-import detectron2.data.transforms as T
-from detectron2.checkpoint import DetectionCheckpointer
-from detectron2.config import CfgNode, LazyConfig
-from detectron2.data import (
-    MetadataCatalog,
-    build_detection_test_loader,
-    build_detection_train_loader,
-)
-from detectron2.evaluation import (
-    DatasetEvaluator,
-    inference_on_dataset,
-    print_csv_format,
-    verify_results,
-)
-from detectron2.modeling import build_model
-from detectron2.solver import build_lr_scheduler, build_optimizer
-from detectron2.utils import comm
-from detectron2.utils.collect_env import collect_env_info
-from detectron2.utils.env import seed_all_rng
-from detectron2.utils.events import CommonMetricPrinter, JSONWriter, TensorboardXWriter
-from detectron2.utils.file_io import PathManager
-from detectron2.utils.logger import setup_logger
-
 import argparse
 import logging
 import os
@@ -45,8 +15,37 @@ import weakref
 from collections import OrderedDict
 from typing import Optional
 
+import torch
+from fvcore.nn.precise_bn import get_bn_modules
+from omegaconf import OmegaConf
+from torch.nn.parallel import DistributedDataParallel
+
+import detectron2.data.transforms as T
 from . import hooks
-from .train_loop import AMPTrainer, SimpleTrainer, TrainerBase
+from .train_loop import AMPTrainer
+from .train_loop import SimpleTrainer
+from .train_loop import TrainerBase
+from detectron2.checkpoint import DetectionCheckpointer
+from detectron2.config import CfgNode
+from detectron2.config import LazyConfig
+from detectron2.data import build_detection_test_loader
+from detectron2.data import build_detection_train_loader
+from detectron2.data import MetadataCatalog
+from detectron2.evaluation import DatasetEvaluator
+from detectron2.evaluation import inference_on_dataset
+from detectron2.evaluation import print_csv_format
+from detectron2.evaluation import verify_results
+from detectron2.modeling import build_model
+from detectron2.solver import build_lr_scheduler
+from detectron2.solver import build_optimizer
+from detectron2.utils import comm
+from detectron2.utils.collect_env import collect_env_info
+from detectron2.utils.env import seed_all_rng
+from detectron2.utils.events import CommonMetricPrinter
+from detectron2.utils.events import JSONWriter
+from detectron2.utils.events import TensorboardXWriter
+from detectron2.utils.file_io import PathManager
+from detectron2.utils.logger import setup_logger
 
 __all__ = [
     "create_ddp_model",

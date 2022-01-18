@@ -1,12 +1,4 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
-import numpy as np
-from PIL import Image
-from tabulate import tabulate
-
-from detectron2.data import MetadataCatalog
-from detectron2.utils import comm
-from detectron2.utils.file_io import PathManager
-
 import contextlib
 import io
 import itertools
@@ -17,7 +9,14 @@ import tempfile
 from collections import OrderedDict
 from typing import Optional
 
+import numpy as np
+from PIL import Image
+from tabulate import tabulate
+
 from .evaluator import DatasetEvaluator
+from detectron2.data import MetadataCatalog
+from detectron2.utils import comm
+from detectron2.utils.file_io import PathManager
 
 logger = logging.getLogger(__name__)
 

@@ -1,4 +1,11 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
+import functools
+import json
+import logging
+import multiprocessing as mp
+import os
+from itertools import chain
+
 import numpy as np
 import pycocotools.mask as mask_util
 from PIL import Image
@@ -7,13 +14,6 @@ from detectron2.structures import BoxMode
 from detectron2.utils.comm import get_world_size
 from detectron2.utils.file_io import PathManager
 from detectron2.utils.logger import setup_logger
-
-import functools
-import json
-import logging
-import multiprocessing as mp
-import os
-from itertools import chain
 
 try:
     import cv2  # noqa

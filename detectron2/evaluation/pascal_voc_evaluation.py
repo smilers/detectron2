@@ -1,21 +1,20 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Facebook, Inc. and its affiliates.
-
-import numpy as np
-import torch
-
-from detectron2.data import MetadataCatalog
-from detectron2.utils import comm
-from detectron2.utils.file_io import PathManager
-
 import logging
 import os
 import tempfile
 import xml.etree.ElementTree as ET
-from collections import OrderedDict, defaultdict
+from collections import defaultdict
+from collections import OrderedDict
 from functools import lru_cache
 
+import numpy as np
+import torch
+
 from .evaluator import DatasetEvaluator
+from detectron2.data import MetadataCatalog
+from detectron2.utils import comm
+from detectron2.utils.file_io import PathManager
 
 
 class PascalVOCDetectionEvaluator(DatasetEvaluator):

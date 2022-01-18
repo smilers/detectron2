@@ -1,16 +1,17 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
+import math
+
 import fvcore.nn.weight_init as weight_init
 import torch
 import torch.nn.functional as F
 from torch import nn
 
-from detectron2.layers import Conv2d, ShapeSpec, get_norm
-
-import math
-
 from .backbone import Backbone
 from .build import BACKBONE_REGISTRY
 from .resnet import build_resnet_backbone
+from detectron2.layers import Conv2d
+from detectron2.layers import get_norm
+from detectron2.layers import ShapeSpec
 
 __all__ = ["build_resnet_fpn_backbone", "build_retinanet_resnet_fpn_backbone", "FPN"]
 

@@ -1,14 +1,15 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
+from typing import Any
 
 import torch
 from torch.nn import functional as F
 
-from detectron2.structures import BitMasks, Boxes, BoxMode
-
-from typing import Any
-
-from .base import IntTupleBox, make_int_box
+from .base import IntTupleBox
+from .base import make_int_box
 from .to_mask import ImageSizeType
+from detectron2.structures import BitMasks
+from detectron2.structures import Boxes
+from detectron2.structures import BoxMode
 
 
 def resample_coarse_segm_tensor_to_bbox(

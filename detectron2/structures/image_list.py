@@ -1,10 +1,13 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 from __future__ import division
+
+from typing import Any
+from typing import List
+from typing import Tuple
+
 import torch
 from torch import device
 from torch.nn import functional as F
-
-from typing import Any, List, Tuple
 
 
 def _as_tensor(x: Tuple[int, int]) -> torch.Tensor:

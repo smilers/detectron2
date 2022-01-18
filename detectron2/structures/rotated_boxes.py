@@ -1,12 +1,13 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
+import math
+from typing import List
+from typing import Tuple
+
 import torch
 
+from .boxes import _maybe_jit_unused
+from .boxes import Boxes
 from detectron2.layers.rotated_boxes import pairwise_iou_rotated
-
-import math
-from typing import List, Tuple
-
-from .boxes import Boxes, _maybe_jit_unused
 
 
 class RotatedBoxes(Boxes):

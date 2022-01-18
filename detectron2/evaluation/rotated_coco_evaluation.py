@@ -1,16 +1,18 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
-import numpy as np
-import torch
-from pycocotools.cocoeval import COCOeval, maskUtils
-
-from detectron2.structures import BoxMode, RotatedBoxes, pairwise_iou_rotated
-from detectron2.utils.file_io import PathManager
-
 import itertools
 import json
 import os
 
+import numpy as np
+import torch
+from pycocotools.cocoeval import COCOeval
+from pycocotools.cocoeval import maskUtils
+
 from .coco_evaluation import COCOEvaluator
+from detectron2.structures import BoxMode
+from detectron2.structures import pairwise_iou_rotated
+from detectron2.structures import RotatedBoxes
+from detectron2.utils.file_io import PathManager
 
 
 class RotatedCOCOeval(COCOeval):

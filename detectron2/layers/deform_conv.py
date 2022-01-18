@@ -1,4 +1,7 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
+import math
+from functools import lru_cache
+
 import torch
 from torch import nn
 from torch.autograd import Function
@@ -6,12 +9,8 @@ from torch.autograd.function import once_differentiable
 from torch.nn.modules.utils import _pair
 from torchvision.ops import deform_conv2d
 
-from detectron2 import _C
-
-import math
-from functools import lru_cache
-
 from .wrappers import _NewEmptyTensorOp
+from detectron2 import _C
 
 
 class _DeformConv(Function):

@@ -1,11 +1,4 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
-import cloudpickle
-import yaml
-from omegaconf import DictConfig, ListConfig, OmegaConf
-
-from detectron2.utils.file_io import PathManager
-from detectron2.utils.registry import _convert_target_to_string
-
 import ast
 import builtins
 import importlib
@@ -16,7 +9,18 @@ import uuid
 from collections import abc
 from contextlib import contextmanager
 from copy import deepcopy
-from typing import List, Tuple, Union
+from typing import List
+from typing import Tuple
+from typing import Union
+
+import cloudpickle
+import yaml
+from omegaconf import DictConfig
+from omegaconf import ListConfig
+from omegaconf import OmegaConf
+
+from detectron2.utils.file_io import PathManager
+from detectron2.utils.registry import _convert_target_to_string
 
 __all__ = ["LazyCall", "LazyConfig"]
 

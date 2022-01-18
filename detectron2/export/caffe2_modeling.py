@@ -1,31 +1,32 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
-
-import torch
-
-from detectron2.modeling import meta_arch
-from detectron2.modeling.box_regression import Box2BoxTransform
-from detectron2.modeling.meta_arch.panoptic_fpn import combine_semantic_and_instance_outputs
-from detectron2.modeling.meta_arch.retinanet import permute_to_N_HWA_K
-from detectron2.modeling.postprocessing import detector_postprocess, sem_seg_postprocess
-from detectron2.modeling.roi_heads import keypoint_head
-from detectron2.structures import Boxes, ImageList, Instances, RotatedBoxes
-
 import functools
 import io
 import struct
 import types
 
+import torch
+
 from .c10 import Caffe2Compatible
-from .caffe2_patch import ROIHeadsPatcher, patch_generalized_rcnn
-from .shared import (
-    alias,
-    check_set_pb_arg,
-    get_pb_arg_floats,
-    get_pb_arg_valf,
-    get_pb_arg_vali,
-    get_pb_arg_vals,
-    mock_torch_nn_functional_interpolate,
-)
+from .caffe2_patch import patch_generalized_rcnn
+from .caffe2_patch import ROIHeadsPatcher
+from .shared import alias
+from .shared import check_set_pb_arg
+from .shared import get_pb_arg_floats
+from .shared import get_pb_arg_valf
+from .shared import get_pb_arg_vali
+from .shared import get_pb_arg_vals
+from .shared import mock_torch_nn_functional_interpolate
+from detectron2.modeling import meta_arch
+from detectron2.modeling.box_regression import Box2BoxTransform
+from detectron2.modeling.meta_arch.panoptic_fpn import combine_semantic_and_instance_outputs
+from detectron2.modeling.meta_arch.retinanet import permute_to_N_HWA_K
+from detectron2.modeling.postprocessing import detector_postprocess
+from detectron2.modeling.postprocessing import sem_seg_postprocess
+from detectron2.modeling.roi_heads import keypoint_head
+from detectron2.structures import Boxes
+from detectron2.structures import ImageList
+from detectron2.structures import Instances
+from detectron2.structures import RotatedBoxes
 
 
 def assemble_rcnn_outputs_by_name(image_sizes, tensor_outputs, force_mask_on=False):

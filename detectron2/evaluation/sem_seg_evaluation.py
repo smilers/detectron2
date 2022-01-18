@@ -1,20 +1,22 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
-import numpy as np
-import PIL.Image as Image
-import pycocotools.mask as mask_util
-import torch
-
-from detectron2.data import DatasetCatalog, MetadataCatalog
-from detectron2.utils.comm import all_gather, is_main_process, synchronize
-from detectron2.utils.file_io import PathManager
-
 import itertools
 import json
 import logging
 import os
 from collections import OrderedDict
 
+import numpy as np
+import PIL.Image as Image
+import pycocotools.mask as mask_util
+import torch
+
 from .evaluator import DatasetEvaluator
+from detectron2.data import DatasetCatalog
+from detectron2.data import MetadataCatalog
+from detectron2.utils.comm import all_gather
+from detectron2.utils.comm import is_main_process
+from detectron2.utils.comm import synchronize
+from detectron2.utils.file_io import PathManager
 
 
 class SemSegEvaluator(DatasetEvaluator):

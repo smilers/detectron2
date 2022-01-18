@@ -1,21 +1,18 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
-import numpy as np
 import fvcore.nn.weight_init as weight_init
+import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn
 
-from detectron2.layers import (
-    CNNBlockBase,
-    Conv2d,
-    DeformConv,
-    ModulatedDeformConv,
-    ShapeSpec,
-    get_norm,
-)
-
 from .backbone import Backbone
 from .build import BACKBONE_REGISTRY
+from detectron2.layers import CNNBlockBase
+from detectron2.layers import Conv2d
+from detectron2.layers import DeformConv
+from detectron2.layers import get_norm
+from detectron2.layers import ModulatedDeformConv
+from detectron2.layers import ShapeSpec
 
 __all__ = [
     "ResNetBlockBase",

@@ -1,7 +1,8 @@
-from setuptools import find_packages, setup
-
 import re
 from pathlib import Path
+
+from setuptools import find_packages
+from setuptools import setup
 
 try:
     import torch  # noqa: F401

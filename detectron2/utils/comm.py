@@ -3,14 +3,13 @@
 This file contains primitives for multi-gpu communication.
 This is useful when doing distributed training.
 """
+import functools
+import logging
+import pickle
 
 import numpy as np
 import torch
 import torch.distributed as dist
-
-import functools
-import logging
-import pickle
 
 from .env import TORCH_VERSION
 

@@ -1,13 +1,4 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
-import numpy as np
-import pycocotools.mask as mask_util
-from fvcore.common.timer import Timer
-from iopath.common.file_io import file_lock
-from PIL import Image
-
-from detectron2.structures import Boxes, BoxMode, PolygonMasks, RotatedBoxes
-from detectron2.utils.file_io import PathManager
-
 import contextlib
 import datetime
 import io
@@ -16,7 +7,19 @@ import logging
 import os
 import shutil
 
-from .. import DatasetCatalog, MetadataCatalog
+import numpy as np
+import pycocotools.mask as mask_util
+from fvcore.common.timer import Timer
+from iopath.common.file_io import file_lock
+from PIL import Image
+
+from .. import DatasetCatalog
+from .. import MetadataCatalog
+from detectron2.structures import Boxes
+from detectron2.structures import BoxMode
+from detectron2.structures import PolygonMasks
+from detectron2.structures import RotatedBoxes
+from detectron2.utils.file_io import PathManager
 
 """
 This file contains functions to parse COCO-format annotations into dicts in "Detectron2 format".

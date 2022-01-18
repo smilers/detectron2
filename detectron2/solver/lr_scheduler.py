@@ -1,16 +1,14 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
-import torch
-from fvcore.common.param_scheduler import (
-    CompositeParamScheduler,
-    ConstantParamScheduler,
-    LinearParamScheduler,
-    ParamScheduler,
-)
-
 import logging
 import math
 from bisect import bisect_right
 from typing import List
+
+import torch
+from fvcore.common.param_scheduler import CompositeParamScheduler
+from fvcore.common.param_scheduler import ConstantParamScheduler
+from fvcore.common.param_scheduler import LinearParamScheduler
+from fvcore.common.param_scheduler import ParamScheduler
 
 logger = logging.getLogger(__name__)
 

@@ -1,12 +1,16 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
-import torch
-
-from detectron2.layers import batched_nms, cat
-from detectron2.structures import Boxes, Instances
-
 import logging
 import math
-from typing import List, Tuple, Union
+from typing import List
+from typing import Tuple
+from typing import Union
+
+import torch
+
+from detectron2.layers import batched_nms
+from detectron2.layers import cat
+from detectron2.structures import Boxes
+from detectron2.structures import Instances
 
 logger = logging.getLogger(__name__)
 

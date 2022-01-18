@@ -1,17 +1,19 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
+import copy
+import itertools
+from typing import Any
+from typing import Iterator
+from typing import List
+from typing import Union
+
 import numpy as np
 import pycocotools.mask as mask_util
 import torch
 from torch import device
 
+from .boxes import Boxes
 from detectron2.layers.roi_align import ROIAlign
 from detectron2.utils.memory import retry_if_cuda_oom
-
-import copy
-import itertools
-from typing import Any, Iterator, List, Union
-
-from .boxes import Boxes
 
 
 def polygon_area(x, y):

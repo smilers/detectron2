@@ -1,8 +1,9 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
-import torch
-
 from dataclasses import fields
-from densepose.structures import DensePoseChartPredictorOutput, DensePoseTransformData
+
+import torch
+from densepose.structures import DensePoseChartPredictorOutput
+from densepose.structures import DensePoseTransformData
 
 
 def densepose_chart_predictor_output_hflip(

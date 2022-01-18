@@ -1,19 +1,17 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
+import inspect
+import logging
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
+
 import numpy as np
 import torch
 from torch import nn
 
-from detectron2.config import configurable
-from detectron2.layers import ShapeSpec, nonzero_tuple
-from detectron2.structures import Boxes, ImageList, Instances, pairwise_iou
-from detectron2.utils.events import get_event_storage
-from detectron2.utils.registry import Registry
-
-import inspect
-import logging
-from typing import Dict, List, Optional, Tuple
-
-from ..backbone.resnet import BottleneckBlock, ResNet
+from ..backbone.resnet import BottleneckBlock
+from ..backbone.resnet import ResNet
 from ..matcher import Matcher
 from ..poolers import ROIPooler
 from ..proposal_generator.proposal_utils import add_ground_truth_to_proposals
@@ -22,6 +20,15 @@ from .box_head import build_box_head
 from .fast_rcnn import FastRCNNOutputLayers
 from .keypoint_head import build_keypoint_head
 from .mask_head import build_mask_head
+from detectron2.config import configurable
+from detectron2.layers import nonzero_tuple
+from detectron2.layers import ShapeSpec
+from detectron2.structures import Boxes
+from detectron2.structures import ImageList
+from detectron2.structures import Instances
+from detectron2.structures import pairwise_iou
+from detectron2.utils.events import get_event_storage
+from detectron2.utils.registry import Registry
 
 ROI_HEADS_REGISTRY = Registry("ROI_HEADS")
 ROI_HEADS_REGISTRY.__doc__ = """

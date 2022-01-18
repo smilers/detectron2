@@ -1,20 +1,28 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
-import numpy as np
-import torch
-from omegaconf import DictConfig, OmegaConf
-from torch import Tensor, nn
-
-from detectron2.layers import ShapeSpec
-from detectron2.structures import BitMasks, Boxes, ImageList, Instances
-from detectron2.utils.events import get_event_storage
-
 import itertools
 import logging
 from collections import OrderedDict
 from collections.abc import Mapping
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
+from typing import Union
+
+import numpy as np
+import torch
+from omegaconf import DictConfig
+from omegaconf import OmegaConf
+from torch import nn
+from torch import Tensor
 
 from .backbone import Backbone
+from detectron2.layers import ShapeSpec
+from detectron2.structures import BitMasks
+from detectron2.structures import Boxes
+from detectron2.structures import ImageList
+from detectron2.structures import Instances
+from detectron2.utils.events import get_event_storage
 
 logger = logging.getLogger(__name__)
 

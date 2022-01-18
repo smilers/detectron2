@@ -1,32 +1,29 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Facebook, Inc. and its affiliates.
-
 """
 Common data processing utilities that are used in a
 typical object detection data pipeline.
 """
+import logging
+from typing import List
+from typing import Union
+
 import numpy as np
 import pycocotools.mask as mask_util
 import torch
 from PIL import Image
 
-from detectron2.structures import (
-    BitMasks,
-    Boxes,
-    BoxMode,
-    Instances,
-    Keypoints,
-    PolygonMasks,
-    RotatedBoxes,
-    polygons_to_bitmask,
-)
-from detectron2.utils.file_io import PathManager
-
-import logging
-from typing import List, Union
-
 from . import transforms as T
 from .catalog import MetadataCatalog
+from detectron2.structures import BitMasks
+from detectron2.structures import Boxes
+from detectron2.structures import BoxMode
+from detectron2.structures import Instances
+from detectron2.structures import Keypoints
+from detectron2.structures import PolygonMasks
+from detectron2.structures import polygons_to_bitmask
+from detectron2.structures import RotatedBoxes
+from detectron2.utils.file_io import PathManager
 
 __all__ = [
     "SizeMismatchError",

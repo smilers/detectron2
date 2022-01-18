@@ -1,15 +1,18 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
+import logging
+from itertools import count
 
 import numpy as np
 import torch
 from caffe2.proto import caffe2_pb2
 from caffe2.python import core
 
-import logging
-from itertools import count
-
-from .caffe2_modeling import META_ARCH_CAFFE2_EXPORT_TYPE_MAP, convert_batched_inputs_to_c2_format
-from .shared import ScopedWS, get_pb_arg_vali, get_pb_arg_vals, infer_device_type
+from .caffe2_modeling import convert_batched_inputs_to_c2_format
+from .caffe2_modeling import META_ARCH_CAFFE2_EXPORT_TYPE_MAP
+from .shared import get_pb_arg_vali
+from .shared import get_pb_arg_vals
+from .shared import infer_device_type
+from .shared import ScopedWS
 
 logger = logging.getLogger(__name__)
 

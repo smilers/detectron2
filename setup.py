@@ -1,15 +1,17 @@
 #!/usr/bin/env python
 # Copyright (c) Facebook, Inc. and its affiliates.
-
-from setuptools import find_packages, setup
-import torch
-from torch.utils.cpp_extension import CUDA_HOME, CppExtension, CUDAExtension
-
 import glob
 import os
 import shutil
 from os import path
 from typing import List
+
+import torch
+from setuptools import find_packages
+from setuptools import setup
+from torch.utils.cpp_extension import CppExtension
+from torch.utils.cpp_extension import CUDA_HOME
+from torch.utils.cpp_extension import CUDAExtension
 
 torch_ver = [int(x) for x in torch.__version__.split(".")[:2]]
 assert torch_ver >= [1, 7], "Requires PyTorch >= 1.7"

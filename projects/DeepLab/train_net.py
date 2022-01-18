@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # Copyright (c) Facebook, Inc. and its affiliates.
-
 """
 DeepLab Training Script.
 
 This script is a simplified version of the training script in detectron2/tools.
 """
+import os
 
 import torch
 
@@ -13,12 +13,18 @@ import detectron2.data.transforms as T
 import detectron2.utils.comm as comm
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.config import get_cfg
-from detectron2.data import DatasetMapper, MetadataCatalog, build_detection_train_loader
-from detectron2.engine import DefaultTrainer, default_argument_parser, default_setup, launch
-from detectron2.evaluation import CityscapesSemSegEvaluator, DatasetEvaluators, SemSegEvaluator
-from detectron2.projects.deeplab import add_deeplab_config, build_lr_scheduler
-
-import os
+from detectron2.data import build_detection_train_loader
+from detectron2.data import DatasetMapper
+from detectron2.data import MetadataCatalog
+from detectron2.engine import default_argument_parser
+from detectron2.engine import default_setup
+from detectron2.engine import DefaultTrainer
+from detectron2.engine import launch
+from detectron2.evaluation import CityscapesSemSegEvaluator
+from detectron2.evaluation import DatasetEvaluators
+from detectron2.evaluation import SemSegEvaluator
+from detectron2.projects.deeplab import add_deeplab_config
+from detectron2.projects.deeplab import build_lr_scheduler
 
 
 def build_sem_seg_train_aug(cfg):

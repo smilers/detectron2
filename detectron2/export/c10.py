@@ -1,18 +1,20 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
+import math
 
 import torch
 import torch.nn.functional as F
 
+from .shared import alias
+from .shared import to_device
 from detectron2.layers import cat
 from detectron2.layers.roi_align_rotated import ROIAlignRotated
 from detectron2.modeling import poolers
 from detectron2.modeling.proposal_generator import rpn
 from detectron2.modeling.roi_heads.mask_head import mask_rcnn_inference
-from detectron2.structures import Boxes, ImageList, Instances, Keypoints
-
-import math
-
-from .shared import alias, to_device
+from detectron2.structures import Boxes
+from detectron2.structures import ImageList
+from detectron2.structures import Instances
+from detectron2.structures import Keypoints
 
 """
 This file contains caffe2-compatible implementation of several detectron2 components.

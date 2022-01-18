@@ -1,47 +1,43 @@
 #!/usr/bin/env python3
 # Copyright (c) Facebook, Inc. and its affiliates.
-
-import torch
-
-from detectron2.config import CfgNode, get_cfg
-from detectron2.data.detection_utils import read_image
-from detectron2.engine.defaults import DefaultPredictor
-from detectron2.structures.instances import Instances
-from detectron2.utils.logger import setup_logger
-
 import argparse
 import glob
 import logging
 import os
 import pickle
 import sys
+from typing import Any
+from typing import ClassVar
+from typing import Dict
+from typing import List
+
+import torch
 from densepose import add_densepose_config
-from densepose.structures import DensePoseChartPredictorOutput, DensePoseEmbeddingPredictorOutput
+from densepose.structures import DensePoseChartPredictorOutput
+from densepose.structures import DensePoseEmbeddingPredictorOutput
 from densepose.utils.logger import verbosity_to_level
 from densepose.vis.base import CompoundVisualizer
 from densepose.vis.bounding_box import ScoredBoundingBoxVisualizer
-from densepose.vis.densepose_outputs_vertex import (
-    DensePoseOutputsTextureVisualizer,
-    DensePoseOutputsVertexVisualizer,
-    get_texture_atlases,
-)
-from densepose.vis.densepose_results import (
-    DensePoseResultsContourVisualizer,
-    DensePoseResultsFineSegmentationVisualizer,
-    DensePoseResultsUVisualizer,
-    DensePoseResultsVVisualizer,
-)
-from densepose.vis.densepose_results_textures import (
-    DensePoseResultsVisualizerWithTexture,
-    get_texture_atlas,
-)
-from densepose.vis.extractor import (
-    CompoundExtractor,
-    DensePoseOutputsExtractor,
-    DensePoseResultExtractor,
-    create_extractor,
-)
-from typing import Any, ClassVar, Dict, List
+from densepose.vis.densepose_outputs_vertex import DensePoseOutputsTextureVisualizer
+from densepose.vis.densepose_outputs_vertex import DensePoseOutputsVertexVisualizer
+from densepose.vis.densepose_outputs_vertex import get_texture_atlases
+from densepose.vis.densepose_results import DensePoseResultsContourVisualizer
+from densepose.vis.densepose_results import DensePoseResultsFineSegmentationVisualizer
+from densepose.vis.densepose_results import DensePoseResultsUVisualizer
+from densepose.vis.densepose_results import DensePoseResultsVVisualizer
+from densepose.vis.densepose_results_textures import DensePoseResultsVisualizerWithTexture
+from densepose.vis.densepose_results_textures import get_texture_atlas
+from densepose.vis.extractor import CompoundExtractor
+from densepose.vis.extractor import create_extractor
+from densepose.vis.extractor import DensePoseOutputsExtractor
+from densepose.vis.extractor import DensePoseResultExtractor
+
+from detectron2.config import CfgNode
+from detectron2.config import get_cfg
+from detectron2.data.detection_utils import read_image
+from detectron2.engine.defaults import DefaultPredictor
+from detectron2.structures.instances import Instances
+from detectron2.utils.logger import setup_logger
 
 DOC = """Apply Net - a tool to print / visualize DensePose results
 """

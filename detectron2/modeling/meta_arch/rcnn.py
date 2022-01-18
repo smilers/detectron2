@@ -1,22 +1,26 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
+import logging
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
+
 import numpy as np
 import torch
 from torch import nn
 
-from detectron2.config import configurable
-from detectron2.data.detection_utils import convert_image_to_rgb
-from detectron2.structures import ImageList, Instances
-from detectron2.utils.events import get_event_storage
-from detectron2.utils.logger import log_first_n
-
-import logging
-from typing import Dict, List, Optional, Tuple
-
-from ..backbone import Backbone, build_backbone
+from ..backbone import Backbone
+from ..backbone import build_backbone
 from ..postprocessing import detector_postprocess
 from ..proposal_generator import build_proposal_generator
 from ..roi_heads import build_roi_heads
 from .build import META_ARCH_REGISTRY
+from detectron2.config import configurable
+from detectron2.data.detection_utils import convert_image_to_rgb
+from detectron2.structures import ImageList
+from detectron2.structures import Instances
+from detectron2.utils.events import get_event_storage
+from detectron2.utils.logger import log_first_n
 
 __all__ = ["GeneralizedRCNN", "ProposalNetwork"]
 

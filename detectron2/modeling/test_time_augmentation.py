@@ -1,28 +1,27 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
-import numpy as np
-import torch
-from fvcore.transforms import HFlipTransform, NoOpTransform
-from torch import nn
-from torch.nn.parallel import DistributedDataParallel
-
-from detectron2.config import configurable
-from detectron2.data.detection_utils import read_image
-from detectron2.data.transforms import (
-    RandomFlip,
-    ResizeShortestEdge,
-    ResizeTransform,
-    apply_augmentations,
-)
-from detectron2.structures import Boxes, Instances
-
 import copy
 from contextlib import contextmanager
 from itertools import count
 from typing import List
 
+import numpy as np
+import torch
+from fvcore.transforms import HFlipTransform
+from fvcore.transforms import NoOpTransform
+from torch import nn
+from torch.nn.parallel import DistributedDataParallel
+
 from .meta_arch import GeneralizedRCNN
 from .postprocessing import detector_postprocess
 from .roi_heads.fast_rcnn import fast_rcnn_inference_single_image
+from detectron2.config import configurable
+from detectron2.data.detection_utils import read_image
+from detectron2.data.transforms import apply_augmentations
+from detectron2.data.transforms import RandomFlip
+from detectron2.data.transforms import ResizeShortestEdge
+from detectron2.data.transforms import ResizeTransform
+from detectron2.structures import Boxes
+from detectron2.structures import Instances
 
 __all__ = ["DatasetMapperTTA", "GeneralizedRCNNWithTTA"]
 

@@ -1,13 +1,16 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
+import math
+from enum import IntEnum
+from enum import unique
+from typing import List
+from typing import Tuple
+from typing import Union
+
 import numpy as np
 import torch
 from torch import device
 
 from detectron2.utils.env import TORCH_VERSION
-
-import math
-from enum import IntEnum, unique
-from typing import List, Tuple, Union
 
 _RawBoxType = Union[List[float], Tuple[float, ...], torch.Tensor, np.ndarray]
 

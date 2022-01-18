@@ -2,14 +2,11 @@
 import numpy as np
 import pycocotools.mask as mask_util
 
-from detectron2.utils.visualizer import (
-    ColorMode,
-    Visualizer,
-    _create_text_labels,
-    _PanopticPrediction,
-)
-
 from .colormap import random_color
+from detectron2.utils.visualizer import _create_text_labels
+from detectron2.utils.visualizer import _PanopticPrediction
+from detectron2.utils.visualizer import ColorMode
+from detectron2.utils.visualizer import Visualizer
 
 
 class _DetectedInstance:

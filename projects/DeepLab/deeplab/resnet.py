@@ -2,14 +2,14 @@
 import fvcore.nn.weight_init as weight_init
 import torch.nn.functional as F
 
-from detectron2.layers import CNNBlockBase, Conv2d, get_norm
+from detectron2.layers import CNNBlockBase
+from detectron2.layers import Conv2d
+from detectron2.layers import get_norm
 from detectron2.modeling import BACKBONE_REGISTRY
-from detectron2.modeling.backbone.resnet import (
-    BasicStem,
-    BottleneckBlock,
-    DeformBottleneckBlock,
-    ResNet,
-)
+from detectron2.modeling.backbone.resnet import BasicStem
+from detectron2.modeling.backbone.resnet import BottleneckBlock
+from detectron2.modeling.backbone.resnet import DeformBottleneckBlock
+from detectron2.modeling.backbone.resnet import ResNet
 
 
 class DeepLabStem(CNNBlockBase):

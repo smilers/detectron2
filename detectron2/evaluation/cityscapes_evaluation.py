@@ -1,19 +1,18 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
-import numpy as np
-import torch
-from PIL import Image
-
-from detectron2.data import MetadataCatalog
-from detectron2.utils import comm
-from detectron2.utils.file_io import PathManager
-
 import glob
 import logging
 import os
 import tempfile
 from collections import OrderedDict
 
+import numpy as np
+import torch
+from PIL import Image
+
 from .evaluator import DatasetEvaluator
+from detectron2.data import MetadataCatalog
+from detectron2.utils import comm
+from detectron2.utils.file_io import PathManager
 
 
 class CityscapesEvaluator(DatasetEvaluator):

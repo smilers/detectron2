@@ -1,16 +1,24 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
+from typing import Callable
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
+from typing import Union
+
 import fvcore.nn.weight_init as weight_init
 import torch
 from torch import nn
 from torch.nn import functional as F
 
-from detectron2.config import configurable
-from detectron2.layers import ASPP, Conv2d, DepthwiseSeparableConv2d, ShapeSpec, get_norm
-from detectron2.modeling import SEM_SEG_HEADS_REGISTRY
-
-from typing import Callable, Dict, List, Optional, Tuple, Union
-
 from .loss import DeepLabCE
+from detectron2.config import configurable
+from detectron2.layers import ASPP
+from detectron2.layers import Conv2d
+from detectron2.layers import DepthwiseSeparableConv2d
+from detectron2.layers import get_norm
+from detectron2.layers import ShapeSpec
+from detectron2.modeling import SEM_SEG_HEADS_REGISTRY
 
 
 @SEM_SEG_HEADS_REGISTRY.register()
