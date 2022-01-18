@@ -28,7 +28,7 @@ class _ColorfulFormatter(logging.Formatter):
         log = super(_ColorfulFormatter, self).formatMessage(record)
         if record.levelno == logging.WARNING:
             prefix = colored("WARNING", "red", attrs=["blink"])
-        elif record.levelno == logging.ERROR or record.levelno == logging.CRITICAL:
+        elif record.levelno in [logging.ERROR, logging.CRITICAL]:
             prefix = colored("ERROR", "red", attrs=["blink", "underline"])
         else:
             return log
@@ -218,7 +218,7 @@ def create_small_table(small_dict):
         str: the table as a string.
     """
     keys, values = tuple(zip(*small_dict.items()))
-    table = tabulate(
+    return tabulate(
         [values],
         headers=keys,
         tablefmt="pipe",
@@ -226,7 +226,6 @@ def create_small_table(small_dict):
         stralign="center",
         numalign="center",
     )
-    return table
 
 
 def _log_api_usage(identifier: str):

@@ -88,56 +88,55 @@ class _DeformConv(Function):
 
         if not grad_output.is_cuda:
             raise NotImplementedError("Deformable Conv is not supported on CPUs!")
-        else:
-            cur_im2col_step = _DeformConv._cal_im2col_step(input.shape[0], ctx.im2col_step)
-            assert (input.shape[0] % cur_im2col_step) == 0, "im2col step must divide batchsize"
+        cur_im2col_step = _DeformConv._cal_im2col_step(input.shape[0], ctx.im2col_step)
+        assert (input.shape[0] % cur_im2col_step) == 0, "im2col step must divide batchsize"
 
-            if ctx.needs_input_grad[0] or ctx.needs_input_grad[1]:
-                grad_input = torch.zeros_like(input)
-                grad_offset = torch.zeros_like(offset)
-                _C.deform_conv_backward_input(
-                    input,
-                    offset,
-                    grad_output,
-                    grad_input,
-                    grad_offset,
-                    weight,
-                    ctx.bufs_[0],
-                    weight.size(3),
-                    weight.size(2),
-                    ctx.stride[1],
-                    ctx.stride[0],
-                    ctx.padding[1],
-                    ctx.padding[0],
-                    ctx.dilation[1],
-                    ctx.dilation[0],
-                    ctx.groups,
-                    ctx.deformable_groups,
-                    cur_im2col_step,
-                )
+        if ctx.needs_input_grad[0] or ctx.needs_input_grad[1]:
+            grad_input = torch.zeros_like(input)
+            grad_offset = torch.zeros_like(offset)
+            _C.deform_conv_backward_input(
+                input,
+                offset,
+                grad_output,
+                grad_input,
+                grad_offset,
+                weight,
+                ctx.bufs_[0],
+                weight.size(3),
+                weight.size(2),
+                ctx.stride[1],
+                ctx.stride[0],
+                ctx.padding[1],
+                ctx.padding[0],
+                ctx.dilation[1],
+                ctx.dilation[0],
+                ctx.groups,
+                ctx.deformable_groups,
+                cur_im2col_step,
+            )
 
-            if ctx.needs_input_grad[2]:
-                grad_weight = torch.zeros_like(weight)
-                _C.deform_conv_backward_filter(
-                    input,
-                    offset,
-                    grad_output,
-                    grad_weight,
-                    ctx.bufs_[0],
-                    ctx.bufs_[1],
-                    weight.size(3),
-                    weight.size(2),
-                    ctx.stride[1],
-                    ctx.stride[0],
-                    ctx.padding[1],
-                    ctx.padding[0],
-                    ctx.dilation[1],
-                    ctx.dilation[0],
-                    ctx.groups,
-                    ctx.deformable_groups,
-                    1,
-                    cur_im2col_step,
-                )
+        if ctx.needs_input_grad[2]:
+            grad_weight = torch.zeros_like(weight)
+            _C.deform_conv_backward_filter(
+                input,
+                offset,
+                grad_output,
+                grad_weight,
+                ctx.bufs_[0],
+                ctx.bufs_[1],
+                weight.size(3),
+                weight.size(2),
+                ctx.stride[1],
+                ctx.stride[0],
+                ctx.padding[1],
+                ctx.padding[0],
+                ctx.dilation[1],
+                ctx.dilation[0],
+                ctx.groups,
+                ctx.deformable_groups,
+                1,
+                cur_im2col_step,
+            )
 
         return grad_input, grad_offset, grad_weight, None, None, None, None, None, None
 
@@ -450,11 +449,7 @@ class ModulatedDeformConv(nn.Module):
         self.weight = nn.Parameter(
             torch.Tensor(out_channels, in_channels // groups, *self.kernel_size)
         )
-        if bias:
-            self.bias = nn.Parameter(torch.Tensor(out_channels))
-        else:
-            self.bias = None
-
+        self.bias = nn.Parameter(torch.Tensor(out_channels)) if bias else None
         nn.init.kaiming_uniform_(self.weight, nonlinearity="relu")
         if self.bias is not None:
             nn.init.constant_(self.bias, 0)

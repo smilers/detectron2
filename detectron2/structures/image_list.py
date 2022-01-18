@@ -14,7 +14,9 @@ def _as_tensor(x: Tuple[int, int]) -> torch.Tensor:
     """
     if torch.jit.is_scripting():
         return torch.as_tensor(x)
-    if isinstance(x, (list, tuple)) and all([isinstance(t, torch.Tensor) for t in x]):
+    if isinstance(x, (list, tuple)) and all(
+        isinstance(t, torch.Tensor) for t in x
+    ):
         return torch.stack(x)
     return torch.as_tensor(x)
 
@@ -101,9 +103,8 @@ class ImageList(object):
         # handle weirdness of scripting and tracing ...
         if torch.jit.is_scripting():
             max_size: List[int] = max_size.to(dtype=torch.long).tolist()
-        else:
-            if torch.jit.is_tracing():
-                image_sizes = image_sizes_tensor
+        elif torch.jit.is_tracing():
+            image_sizes = image_sizes_tensor
 
         if len(tensors) == 1:
             # This seems slightly (2%) faster.

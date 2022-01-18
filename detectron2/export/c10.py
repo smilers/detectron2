@@ -58,23 +58,14 @@ class InstancesList(object):
     def get_fields(self):
         """like `get_fields` in the Instances object,
         but return each field in tensor representations"""
-        ret = {}
-        for k, v in self.batch_extra_fields.items():
-            # if isinstance(v, torch.Tensor):
-            #     tensor_rep = v
-            # elif isinstance(v, (Boxes, Keypoints)):
-            #     tensor_rep = v.tensor
-            # else:
-            #     raise ValueError("Can't find tensor representation for: {}".format())
-            ret[k] = v
-        return ret
+        return dict(self.batch_extra_fields.items())
 
     def has(self, name):
         return name in self.batch_extra_fields
 
     def set(self, name, value):
-        data_len = len(value)
         if len(self.batch_extra_fields):
+            data_len = len(value)
             assert (
                 len(self) == data_len
             ), "Adding a field of length {} to a Instances of length {}".format(data_len, len(self))
@@ -277,13 +268,11 @@ class Caffe2ROIPooler(Caffe2Compatible, poolers.ROIPooler):
     @staticmethod
     def c2_preprocess(box_lists):
         assert all(isinstance(x, Boxes) for x in box_lists)
-        if all(isinstance(x, Caffe2Boxes) for x in box_lists):
-            # input is pure-tensor based
-            assert len(box_lists) == 1
-            pooler_fmt_boxes = box_lists[0].tensor
-        else:
-            pooler_fmt_boxes = poolers.convert_boxes_to_pooler_format(box_lists)
-        return pooler_fmt_boxes
+        if not all(isinstance(x, Caffe2Boxes) for x in box_lists):
+            return poolers.convert_boxes_to_pooler_format(box_lists)
+        # input is pure-tensor based
+        assert len(box_lists) == 1
+        return box_lists[0].tensor
 
     def forward(self, x, box_lists):
         assert not self.training
@@ -303,7 +292,7 @@ class Caffe2ROIPooler(Caffe2Compatible, poolers.ROIPooler):
             if x0.is_quantized:
                 x0 = x0.dequantize()
 
-            out = c2_roi_align(
+            return c2_roi_align(
                 x0,
                 pooler_fmt_boxes,
                 order="NCHW",
@@ -313,12 +302,12 @@ class Caffe2ROIPooler(Caffe2Compatible, poolers.ROIPooler):
                 sampling_ratio=int(self.level_poolers[0].sampling_ratio),
                 aligned=aligned,
             )
-            return out
 
         device = pooler_fmt_boxes.device
         assert (
-            self.max_level - self.min_level + 1 == 4
+            self.max_level - self.min_level == 3
         ), "Currently DistributeFpnProposals only support 4 levels"
+
         fpn_outputs = torch.ops._caffe2.DistributeFpnProposals(
             to_device(pooler_fmt_boxes, "cpu"),
             roi_canonical_scale=self.canonical_box_size,
@@ -361,8 +350,9 @@ class Caffe2ROIPooler(Caffe2Compatible, poolers.ROIPooler):
             "Caffe2 export requires tracing with a model checkpoint + input that can produce valid"
             " detections. But no detections were obtained with the given checkpoint and input!"
         )
-        roi_feat = torch.ops._caffe2.BatchPermutation(roi_feat_shuffled, rois_idx_restore_int32)
-        return roi_feat
+        return torch.ops._caffe2.BatchPermutation(
+            roi_feat_shuffled, rois_idx_restore_int32
+        )
 
 
 class Caffe2FastRCNNOutputsInference:

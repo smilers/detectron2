@@ -408,13 +408,15 @@ class EventStorage:
 
         This provides a default behavior that other writers can use.
         """
-        result = {}
-        for k, (v, itr) in self._latest_scalars.items():
-            result[k] = (
-                self._history[k].median(window_size) if self._smoothing_hints[k] else v,
+        return {
+            k: (
+                self._history[k].median(window_size)
+                if self._smoothing_hints[k]
+                else v,
                 itr,
             )
-        return result
+            for k, (v, itr) in self._latest_scalars.items()
+        }
 
     def smoothing_hints(self):
         """

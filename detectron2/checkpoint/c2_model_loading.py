@@ -350,8 +350,7 @@ def _group_keys_by_module(keys: List[str], original_names: Dict[str, str]):
         pos = key.rfind(".")
         if pos < 0:
             return None
-        prefix = key[: pos + 1]
-        return prefix
+        return key[: pos + 1]
 
     all_submodules = [_submodule_name(k) for k in keys]
     all_submodules = [x for x in all_submodules if x]

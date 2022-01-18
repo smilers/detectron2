@@ -192,8 +192,7 @@ def _get_lvis_instances_meta_v0_5():
     # Ensure that the category list is sorted by id
     lvis_categories = sorted(LVIS_V0_5_CATEGORIES, key=lambda x: x["id"])
     thing_classes = [k["synonyms"][0] for k in lvis_categories]
-    meta = {"thing_classes": thing_classes}
-    return meta
+    return {"thing_classes": thing_classes}
 
 
 def _get_lvis_instances_meta_v1():
@@ -205,8 +204,7 @@ def _get_lvis_instances_meta_v1():
     # Ensure that the category list is sorted by id
     lvis_categories = sorted(LVIS_V1_CATEGORIES, key=lambda x: x["id"])
     thing_classes = [k["synonyms"][0] for k in lvis_categories]
-    meta = {"thing_classes": thing_classes}
-    return meta
+    return {"thing_classes": thing_classes}
 
 
 if __name__ == "__main__":

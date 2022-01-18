@@ -212,9 +212,7 @@ class Caffe2MetaArch(Caffe2Compatible, torch.nn.Module):
         normalized_data = (data - mean) / std
         normalized_data = alias(normalized_data, "normalized_data")
 
-        # Pack (data, im_info) into ImageList which is recognized by self.inference.
-        images = ImageList(tensor=normalized_data, image_sizes=im_info)
-        return images
+        return ImageList(tensor=normalized_data, image_sizes=im_info)
 
     @staticmethod
     def get_outputs_converter(predict_net, init_net):

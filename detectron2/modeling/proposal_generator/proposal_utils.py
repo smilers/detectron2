@@ -12,11 +12,7 @@ logger = logging.getLogger(__name__)
 
 def _is_tracing():
     # (fixed in TORCH_VERSION >= 1.9)
-    if torch.jit.is_scripting():
-        # https://github.com/pytorch/pytorch/issues/47379
-        return False
-    else:
-        return torch.jit.is_tracing()
+    return False if torch.jit.is_scripting() else torch.jit.is_tracing()
 
 
 def find_top_rpn_proposals(
@@ -150,7 +146,7 @@ def add_ground_truth_to_proposals(
 
     if len(proposals) != len(gt):
         raise ValueError("proposals and gt should have the same length as the number of images!")
-    if len(proposals) == 0:
+    if not proposals:
         return proposals
 
     return [
@@ -193,8 +189,4 @@ def add_ground_truth_to_proposals_single_image(
             key
         ), "The attribute '{}' in `proposals` does not exist in `gt`".format(key)
 
-    # NOTE: Instances.cat only use fields from the first item. Extra fields in latter items
-    # will be thrown away.
-    new_proposals = Instances.cat([proposals, gt_proposal])
-
-    return new_proposals
+    return Instances.cat([proposals, gt_proposal])

@@ -143,9 +143,7 @@ class SemSegEvaluator(DatasetEvaluator):
         fiou = np.sum(iou[acc_valid] * class_weights[acc_valid])
         pacc = np.sum(tp) / np.sum(pos_gt)
 
-        res = {}
-        res["mIoU"] = 100 * miou
-        res["fwIoU"] = 100 * fiou
+        res = {'mIoU': 100 * miou, 'fwIoU': 100 * fiou}
         for i, name in enumerate(self._class_names):
             res["IoU-{}".format(name)] = 100 * iou[i]
         res["mACC"] = 100 * macc

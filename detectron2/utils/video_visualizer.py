@@ -73,14 +73,7 @@ class VideoVisualizer:
         classes = predictions.pred_classes.numpy() if predictions.has("pred_classes") else None
         keypoints = predictions.pred_keypoints if predictions.has("pred_keypoints") else None
 
-        if predictions.has("pred_masks"):
-            masks = predictions.pred_masks
-            # mask IOU is not yet enabled
-            # masks_rles = mask_util.encode(np.asarray(masks.permute(1, 2, 0), order="F"))
-            # assert len(masks_rles) == num_instances
-        else:
-            masks = None
-
+        masks = predictions.pred_masks if predictions.has("pred_masks") else None
         detected = [
             _DetectedInstance(classes[i], boxes[i], mask_rle=None, color=None, ttl=8)
             for i in range(num_instances)
@@ -149,7 +142,7 @@ class VideoVisualizer:
             )
 
         all_instances = list(pred.instance_masks())
-        if len(all_instances) == 0:
+        if not all_instances:
             return frame_visualizer.output
         # draw mask for all instances second
         masks, sinfo = list(zip(*all_instances))

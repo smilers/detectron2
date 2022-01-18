@@ -242,8 +242,7 @@ class RotatedBoxes(Boxes):
             torch.Tensor: a vector with areas of each box.
         """
         box = self.tensor
-        area = box[:, 2] * box[:, 3]
-        return area
+        return box[:, 2] * box[:, 3]
 
     def normalize_angles(self) -> None:
         """
@@ -313,8 +312,7 @@ class RotatedBoxes(Boxes):
         box = self.tensor
         widths = box[:, 2]
         heights = box[:, 3]
-        keep = (widths > threshold) & (heights > threshold)
-        return keep
+        return (widths > threshold) & (heights > threshold)
 
     def __getitem__(self, item) -> "RotatedBoxes":
         """
@@ -373,14 +371,12 @@ class RotatedBoxes(Boxes):
         max_rect_dx = c * half_w + s * half_h
         max_rect_dy = c * half_h + s * half_w
 
-        inds_inside = (
+        return (
             (cnt_x - max_rect_dx >= -boundary_threshold)
             & (cnt_y - max_rect_dy >= -boundary_threshold)
             & (cnt_x + max_rect_dx < width + boundary_threshold)
             & (cnt_y + max_rect_dy < height + boundary_threshold)
         )
-
-        return inds_inside
 
     def get_centers(self) -> torch.Tensor:
         """
@@ -467,13 +463,11 @@ class RotatedBoxes(Boxes):
             RotatedBoxes: the concatenated RotatedBoxes
         """
         assert isinstance(boxes_list, (list, tuple))
-        if len(boxes_list) == 0:
+        if not boxes_list:
             return cls(torch.empty(0))
-        assert all([isinstance(box, RotatedBoxes) for box in boxes_list])
+        assert all(isinstance(box, RotatedBoxes) for box in boxes_list)
 
-        # use torch.cat (v.s. layers.cat) so the returned boxes never share storage with input
-        cat_boxes = cls(torch.cat([b.tensor for b in boxes_list], dim=0))
-        return cat_boxes
+        return cls(torch.cat([b.tensor for b in boxes_list], dim=0))
 
     @property
     def device(self) -> torch.device:

@@ -50,11 +50,7 @@ def BilinearInterpolation(tensor_in, up_scale):
 
     def upsample_filt(size):
         factor = (size + 1) // 2
-        if size % 2 == 1:
-            center = factor - 1
-        else:
-            center = factor - 0.5
-
+        center = factor - 1 if size % 2 == 1 else factor - 0.5
         og = np.ogrid[:size, :size]
         return (1 - abs(og[0] - center) / factor) * (1 - abs(og[1] - center) / factor)
 
@@ -403,13 +399,12 @@ def _generic_status_identifier(
 
     def _check_and_update(key, value):
         assert value is not None
-        if key in _known_status:
-            if not _known_status[key] == value:
-                raise RuntimeError(
-                    "Confilict status for {}, existing status {}, new status {}".format(
-                        key, _known_status[key], value
-                    )
+        if key in _known_status and _known_status[key] != value:
+            raise RuntimeError(
+                "Confilict status for {}, existing status {}, new status {}".format(
+                    key, _known_status[key], value
                 )
+            )
         _known_status[key] = value
 
     def _update_i(op, ssa_i):
@@ -468,9 +463,9 @@ def infer_device_type(
 
     def _other_ops_updater(op, input_types, output_types):
         non_none_types = [x for x in input_types + output_types if x is not None]
-        if len(non_none_types) > 0:
+        if non_none_types:
             the_type = non_none_types[0]
-            if not all(x == the_type for x in non_none_types):
+            if any(x != the_type for x in non_none_types):
                 _updater_raise(op, input_types, output_types)
         else:
             the_type = None
@@ -772,8 +767,9 @@ def get_sub_graph_external_input_output(
     # outside of this sub-graph (including predict_net.external_output)
     all_other_inputs = sum(
         (ssa[i][0] for i in range(len(ssa)) if i not in sub_graph_op_indices),
-        [(outp, versions[outp]) for outp in predict_net.external_output],
+        ((outp, versions[outp]) for outp in predict_net.external_output),
     )
+
     ext_outputs = [outp for outp in all_outputs if outp in set(all_other_inputs)]
 
     return ext_inputs, ext_outputs

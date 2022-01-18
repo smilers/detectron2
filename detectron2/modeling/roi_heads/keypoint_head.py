@@ -74,7 +74,7 @@ def keypoint_rcnn_loss(pred_keypoint_logits, instances, normalizer):
 
     # torch.mean (in binary_cross_entropy_with_logits) doesn't
     # accept empty tensors, so handle it separately
-    if len(heatmaps) == 0 or valid.numel() == 0:
+    if not heatmaps or valid.numel() == 0:
         global _TOTAL_SKIPPED
         _TOTAL_SKIPPED += 1
         storage = get_event_storage()

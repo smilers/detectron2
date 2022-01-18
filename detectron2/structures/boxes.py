@@ -186,8 +186,7 @@ class Boxes:
             torch.Tensor: a vector with areas of each box.
         """
         box = self.tensor
-        area = (box[:, 2] - box[:, 0]) * (box[:, 3] - box[:, 1])
-        return area
+        return (box[:, 2] - box[:, 0]) * (box[:, 3] - box[:, 1])
 
     def clip(self, box_size: Tuple[int, int]) -> None:
         """
@@ -218,8 +217,7 @@ class Boxes:
         box = self.tensor
         widths = box[:, 2] - box[:, 0]
         heights = box[:, 3] - box[:, 1]
-        keep = (widths > threshold) & (heights > threshold)
-        return keep
+        return (widths > threshold) & (heights > threshold)
 
     def __getitem__(self, item) -> "Boxes":
         """
@@ -262,13 +260,12 @@ class Boxes:
             a binary vector, indicating whether each box is inside the reference box.
         """
         height, width = box_size
-        inds_inside = (
+        return (
             (self.tensor[..., 0] >= -boundary_threshold)
             & (self.tensor[..., 1] >= -boundary_threshold)
             & (self.tensor[..., 2] < width + boundary_threshold)
             & (self.tensor[..., 3] < height + boundary_threshold)
         )
-        return inds_inside
 
     def get_centers(self) -> torch.Tensor:
         """
@@ -297,13 +294,11 @@ class Boxes:
             Boxes: the concatenated Boxes
         """
         assert isinstance(boxes_list, (list, tuple))
-        if len(boxes_list) == 0:
+        if not boxes_list:
             return cls(torch.empty(0))
-        assert all([isinstance(box, Boxes) for box in boxes_list])
+        assert all(isinstance(box, Boxes) for box in boxes_list)
 
-        # use torch.cat (v.s. layers.cat) so the returned boxes never share storage with input
-        cat_boxes = cls(torch.cat([b.tensor for b in boxes_list], dim=0))
-        return cat_boxes
+        return cls(torch.cat([b.tensor for b in boxes_list], dim=0))
 
     @property
     def device(self) -> device:
@@ -337,8 +332,7 @@ def pairwise_intersection(boxes1: Boxes, boxes2: Boxes) -> torch.Tensor:
     )  # [N,M,2]
 
     width_height.clamp_(min=0)  # [N,M,2]
-    intersection = width_height.prod(dim=2)  # [N,M]
-    return intersection
+    return width_height.prod(dim=2)
 
 
 # implementation from https://github.com/kuangliu/torchcv/blob/master/torchcv/utils/box.py
@@ -359,13 +353,11 @@ def pairwise_iou(boxes1: Boxes, boxes2: Boxes) -> torch.Tensor:
     area2 = boxes2.area()  # [M]
     inter = pairwise_intersection(boxes1, boxes2)
 
-    # handle empty boxes
-    iou = torch.where(
+    return torch.where(
         inter > 0,
         inter / (area1[:, None] + area2 - inter),
         torch.zeros(1, dtype=inter.dtype, device=inter.device),
     )
-    return iou
 
 
 def pairwise_ioa(boxes1: Boxes, boxes2: Boxes) -> torch.Tensor:
@@ -381,11 +373,11 @@ def pairwise_ioa(boxes1: Boxes, boxes2: Boxes) -> torch.Tensor:
     area2 = boxes2.area()  # [M]
     inter = pairwise_intersection(boxes1, boxes2)
 
-    # handle empty boxes
-    ioa = torch.where(
-        inter > 0, inter / area2, torch.zeros(1, dtype=inter.dtype, device=inter.device)
+    return torch.where(
+        inter > 0,
+        inter / area2,
+        torch.zeros(1, dtype=inter.dtype, device=inter.device),
     )
-    return ioa
 
 
 def pairwise_point_box_distance(points: torch.Tensor, boxes: Boxes):
@@ -431,5 +423,4 @@ def matched_pairwise_iou(boxes1: Boxes, boxes2: Boxes) -> torch.Tensor:
     rb = torch.min(box1[:, 2:], box2[:, 2:])  # [N,2]
     wh = (rb - lt).clamp(min=0)  # [N,2]
     inter = wh[:, 0] * wh[:, 1]  # [N]
-    iou = inter / (area1 + area2 - inter)  # [N]
-    return iou
+    return inter / (area1 + area2 - inter)

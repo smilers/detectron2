@@ -67,7 +67,7 @@ def mask_rcnn_loss(pred_mask_logits: torch.Tensor, instances: List[Instances], v
         # A tensor of shape (N, M, M), N=#instances in the image; M=mask_side_len
         gt_masks.append(gt_masks_per_image)
 
-    if len(gt_masks) == 0:
+    if not gt_masks:
         return pred_mask_logits.sum() * 0
 
     gt_masks = cat(gt_masks, dim=0)
@@ -79,11 +79,7 @@ def mask_rcnn_loss(pred_mask_logits: torch.Tensor, instances: List[Instances], v
         gt_classes = cat(gt_classes, dim=0)
         pred_mask_logits = pred_mask_logits[indices, gt_classes]
 
-    if gt_masks.dtype == torch.bool:
-        gt_masks_bool = gt_masks
-    else:
-        # Here we allow gt_masks to be float as well (depend on the implementation of rasterize())
-        gt_masks_bool = gt_masks > 0.5
+    gt_masks_bool = gt_masks if gt_masks.dtype == torch.bool else gt_masks > 0.5
     gt_masks = gt_masks.to(dtype=torch.float32)
 
     # Log the training accuracy (using gt classes and 0.5 threshold)
@@ -107,8 +103,9 @@ def mask_rcnn_loss(pred_mask_logits: torch.Tensor, instances: List[Instances], v
             vis_mask = torch.stack([vis_mask] * 3, axis=0)
             storage.put_image(name + f" ({idx})", vis_mask)
 
-    mask_loss = F.binary_cross_entropy_with_logits(pred_mask_logits, gt_masks, reduction="mean")
-    return mask_loss
+    return F.binary_cross_entropy_with_logits(
+        pred_mask_logits, gt_masks, reduction="mean"
+    )
 
 
 def mask_rcnn_inference(pred_mask_logits: torch.Tensor, pred_instances: List[Instances]):
@@ -191,9 +188,8 @@ class BaseMaskRCNNHead(nn.Module):
         x = self.layers(x)
         if self.training:
             return {"loss_mask": mask_rcnn_loss(x, instances, self.vis_period) * self.loss_weight}
-        else:
-            mask_rcnn_inference(x, instances)
-            return instances
+        mask_rcnn_inference(x, instances)
+        return instances
 
     def layers(self, x):
         """

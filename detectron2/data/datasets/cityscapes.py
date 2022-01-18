@@ -32,10 +32,10 @@ def _get_cityscapes_files(image_dir, gt_dir):
     for city in cities:
         city_img_dir = os.path.join(image_dir, city)
         city_gt_dir = os.path.join(gt_dir, city)
+        suffix = "leftImg8bit.png"
         for basename in PathManager.ls(city_img_dir):
             image_file = os.path.join(city_img_dir, basename)
 
-            suffix = "leftImg8bit.png"
             assert basename.endswith(suffix), basename
             basename = basename[: -len(suffix)]
 
@@ -200,10 +200,7 @@ def _cityscapes_files_to_dict(files, from_json, to_polygons):
                 continue
             polygons_union = polygons_union.union(poly)
 
-            anno = {}
-            anno["iscrowd"] = label_name.endswith("group")
-            anno["category_id"] = label.id
-
+            anno = {'iscrowd': label_name.endswith("group"), 'category_id': label.id}
             if isinstance(poly_wo_overlaps, Polygon):
                 poly_list = [poly_wo_overlaps]
             elif isinstance(poly_wo_overlaps, MultiPolygon):
@@ -211,12 +208,7 @@ def _cityscapes_files_to_dict(files, from_json, to_polygons):
             else:
                 raise NotImplementedError("Unknown geometric structure {}".format(poly_wo_overlaps))
 
-            poly_coord = []
-            for poly_el in poly_list:
-                # COCO API can work only with exterior boundaries now, hence we store only them.
-                # TODO: store both exterior and interior boundaries once other parts of the
-                # codebase support holes in polygons.
-                poly_coord.append(list(chain(*poly_el.exterior.coords)))
+            poly_coord = [list(chain(*poly_el.exterior.coords)) for poly_el in poly_list]
             anno["segmentation"] = poly_coord
             (xmin, ymin, xmax, ymax) = poly_wo_overlaps.bounds
 
@@ -247,10 +239,7 @@ def _cityscapes_files_to_dict(files, from_json, to_polygons):
             if not label.hasInstances or label.ignoreInEval:
                 continue
 
-            anno = {}
-            anno["iscrowd"] = instance_id < 1000
-            anno["category_id"] = label.id
-
+            anno = {'iscrowd': instance_id < 1000, 'category_id': label.id}
             mask = np.asarray(inst_image == instance_id, dtype=np.uint8, order="F")
 
             inds = np.nonzero(mask)
@@ -268,7 +257,7 @@ def _cityscapes_files_to_dict(files, from_json, to_polygons):
                 ]
                 polygons = [c.reshape(-1).tolist() for c in contours if len(c) >= 3]
                 # opencv's can produce invalid polygons
-                if len(polygons) == 0:
+                if not polygons:
                     continue
                 anno["segmentation"] = polygons
             else:

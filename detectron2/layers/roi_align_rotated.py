@@ -16,10 +16,9 @@ class _ROIAlignRotated(Function):
         ctx.spatial_scale = spatial_scale
         ctx.sampling_ratio = sampling_ratio
         ctx.input_shape = input.size()
-        output = _C.roi_align_rotated_forward(
+        return _C.roi_align_rotated_forward(
             input, roi, spatial_scale, output_size[0], output_size[1], sampling_ratio
         )
-        return output
 
     @staticmethod
     @once_differentiable
