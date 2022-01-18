@@ -1,22 +1,20 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
-import importlib
 import importlib.util
 import logging
-import numpy as np
 import os
 import random
 import sys
 from datetime import datetime
+
+import numpy as np
 import torch
 
 __all__ = ["seed_all_rng"]
-
 
 TORCH_VERSION = tuple(int(x) for x in torch.__version__.split(".")[:2])
 """
 PyTorch version as a tuple of 2 ints. Useful for comparison.
 """
-
 
 DOC_BUILDING = os.getenv("_DOC_BUILDING", False)  # set in docs/conf.py
 """
@@ -32,11 +30,8 @@ def seed_all_rng(seed=None):
         seed (int): if None, will use a strong random seed.
     """
     if seed is None:
-        seed = (
-            os.getpid()
-            + int(datetime.now().strftime("%S%f"))
-            + int.from_bytes(os.urandom(2), "big")
-        )
+        seed = (os.getpid() + int(datetime.now().strftime("%S%f")) +
+                int.from_bytes(os.urandom(2), "big"))
         logger = logging.getLogger(__name__)
         logger.info("Using a generated random seed {}".format(seed))
     np.random.seed(seed)
@@ -111,9 +106,6 @@ def setup_environment():
 
     if custom_module_path:
         setup_custom_environment(custom_module_path)
-    else:
-        # The default setup is a no-op
-        pass
 
 
 def setup_custom_environment(custom_module):
@@ -122,13 +114,15 @@ def setup_custom_environment(custom_module):
     module, and run the setup function.
     """
     if custom_module.endswith(".py"):
-        module = _import_file("detectron2.utils.env.custom_module", custom_module)
+        module = _import_file("detectron2.utils.env.custom_module",
+                              custom_module)
     else:
         module = importlib.import_module(custom_module)
-    assert hasattr(module, "setup_environment") and callable(module.setup_environment), (
-        "Custom environment module defined in {} does not have the "
-        "required callable attribute 'setup_environment'."
-    ).format(custom_module)
+    assert hasattr(module, "setup_environment") and callable(
+        module.setup_environment), (
+            "Custom environment module defined in {} does not have the "
+            "required callable attribute 'setup_environment'."
+        ).format(custom_module)
     module.setup_environment()
 
 
@@ -150,7 +144,8 @@ def fixup_module_metadata(module_name, namespace, keys=None):
         seen_ids.add(id(obj))
 
         mod = getattr(obj, "__module__", None)
-        if mod is not None and (mod.startswith(module_name) or mod.startswith("fvcore.")):
+        if mod is not None and (mod.startswith(module_name)
+                                or mod.startswith("fvcore.")):
             obj.__module__ = module_name
             # Modules, unlike everything else in Python, put fully-qualitied
             # names into their __name__ attribute. We check for "." to avoid

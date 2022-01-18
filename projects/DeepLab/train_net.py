@@ -1,29 +1,38 @@
 #!/usr/bin/env python3
 # Copyright (c) Facebook, Inc. and its affiliates.
-
 """
 DeepLab Training Script.
 
 This script is a simplified version of the training script in detectron2/tools.
 """
-
 import os
+
 import torch
 
 import detectron2.data.transforms as T
 import detectron2.utils.comm as comm
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.config import get_cfg
-from detectron2.data import DatasetMapper, MetadataCatalog, build_detection_train_loader
-from detectron2.engine import DefaultTrainer, default_argument_parser, default_setup, launch
-from detectron2.evaluation import CityscapesSemSegEvaluator, DatasetEvaluators, SemSegEvaluator
-from detectron2.projects.deeplab import add_deeplab_config, build_lr_scheduler
+from detectron2.data import build_detection_train_loader
+from detectron2.data import DatasetMapper
+from detectron2.data import MetadataCatalog
+from detectron2.engine import default_argument_parser
+from detectron2.engine import default_setup
+from detectron2.engine import DefaultTrainer
+from detectron2.engine import launch
+from detectron2.evaluation import CityscapesSemSegEvaluator
+from detectron2.evaluation import DatasetEvaluators
+from detectron2.evaluation import SemSegEvaluator
+from detectron2.projects.deeplab import add_deeplab_config
+from detectron2.projects.deeplab import build_lr_scheduler
 
 
 def build_sem_seg_train_aug(cfg):
     augs = [
         T.ResizeShortestEdge(
-            cfg.INPUT.MIN_SIZE_TRAIN, cfg.INPUT.MAX_SIZE_TRAIN, cfg.INPUT.MIN_SIZE_TRAIN_SAMPLING
+            cfg.INPUT.MIN_SIZE_TRAIN,
+            cfg.INPUT.MAX_SIZE_TRAIN,
+            cfg.INPUT.MIN_SIZE_TRAIN_SAMPLING,
         )
     ]
     if cfg.INPUT.CROP.ENABLED:
@@ -33,8 +42,7 @@ def build_sem_seg_train_aug(cfg):
                 cfg.INPUT.CROP.SIZE,
                 cfg.INPUT.CROP.SINGLE_CATEGORY_MAX_AREA,
                 cfg.MODEL.SEM_SEG_HEAD.IGNORE_VALUE,
-            )
-        )
+            ))
     augs.append(T.RandomFlip())
     return augs
 
@@ -70,12 +78,10 @@ class Trainer(DefaultTrainer):
                 torch.cuda.device_count() > comm.get_rank()
             ), "CityscapesEvaluator currently do not work with multiple machines."
             return CityscapesSemSegEvaluator(dataset_name)
-        if len(evaluator_list) == 0:
+        if not evaluator_list:
             raise NotImplementedError(
                 "no Evaluator for the dataset {} with the type {}".format(
-                    dataset_name, evaluator_type
-                )
-            )
+                    dataset_name, evaluator_type))
         if len(evaluator_list) == 1:
             return evaluator_list[0]
         return DatasetEvaluators(evaluator_list)
@@ -83,7 +89,9 @@ class Trainer(DefaultTrainer):
     @classmethod
     def build_train_loader(cls, cfg):
         if "SemanticSegmentor" in cfg.MODEL.META_ARCHITECTURE:
-            mapper = DatasetMapper(cfg, is_train=True, augmentations=build_sem_seg_train_aug(cfg))
+            mapper = DatasetMapper(cfg,
+                                   is_train=True,
+                                   augmentations=build_sem_seg_train_aug(cfg))
         else:
             mapper = None
         return build_detection_train_loader(cfg, mapper=mapper)
@@ -116,10 +124,8 @@ def main(args):
     if args.eval_only:
         model = Trainer.build_model(cfg)
         DetectionCheckpointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
-            cfg.MODEL.WEIGHTS, resume=args.resume
-        )
-        res = Trainer.test(cfg, model)
-        return res
+            cfg.MODEL.WEIGHTS, resume=args.resume)
+        return Trainer.test(cfg, model)
 
     trainer = Trainer(cfg)
     trainer.resume_or_load(resume=args.resume)
@@ -135,5 +141,5 @@ if __name__ == "__main__":
         num_machines=args.num_machines,
         machine_rank=args.machine_rank,
         dist_url=args.dist_url,
-        args=(args,),
+        args=(args, ),
     )

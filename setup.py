@@ -1,23 +1,28 @@
 #!/usr/bin/env python
 # Copyright (c) Facebook, Inc. and its affiliates.
-
 import glob
 import os
 import shutil
 from os import path
-from setuptools import find_packages, setup
 from typing import List
+
 import torch
-from torch.utils.cpp_extension import CUDA_HOME, CppExtension, CUDAExtension
+from setuptools import find_packages
+from setuptools import setup
+from torch.utils.cpp_extension import CppExtension
+from torch.utils.cpp_extension import CUDA_HOME
+from torch.utils.cpp_extension import CUDAExtension
 
 torch_ver = [int(x) for x in torch.__version__.split(".")[:2]]
 assert torch_ver >= [1, 7], "Requires PyTorch >= 1.7"
 
 
 def get_version():
-    init_py_path = path.join(path.abspath(path.dirname(__file__)), "detectron2", "__init__.py")
+    init_py_path = path.join(path.abspath(path.dirname(__file__)),
+                             "detectron2", "__init__.py")
     init_py = open(init_py_path, "r").readlines()
-    version_line = [l.strip() for l in init_py if l.startswith("__version__")][0]
+    version_line = [l.strip() for l in init_py
+                    if l.startswith("__version__")][0]
     version = version_line.split("=")[-1].strip().strip("'\"")
 
     # The following is used to build release packages.
@@ -46,16 +51,15 @@ def get_extensions():
 
     from torch.utils.cpp_extension import ROCM_HOME
 
-    is_rocm_pytorch = (
-        True if ((torch.version.hip is not None) and (ROCM_HOME is not None)) else False
-    )
+    is_rocm_pytorch = (torch.version.hip is not None) and (ROCM_HOME
+                                                           is not None)
     if is_rocm_pytorch:
         assert torch_ver >= [1, 8], "ROCM support requires PyTorch >= 1.8!"
 
     # common code between cuda and rocm platforms, for hipify version [1,0,0] and later.
-    source_cuda = glob.glob(path.join(extensions_dir, "**", "*.cu")) + glob.glob(
-        path.join(extensions_dir, "*.cu")
-    )
+    source_cuda = glob.glob(path.join(extensions_dir, "**",
+                                      "*.cu")) + glob.glob(
+                                          path.join(extensions_dir, "*.cu"))
     sources = [main_source] + sources
 
     extension = CppExtension
@@ -63,9 +67,9 @@ def get_extensions():
     extra_compile_args = {"cxx": []}
     define_macros = []
 
-    if (torch.cuda.is_available() and ((CUDA_HOME is not None) or is_rocm_pytorch)) or os.getenv(
-        "FORCE_CUDA", "0"
-    ) == "1":
+    if (torch.cuda.is_available() and
+        ((CUDA_HOME is not None) or is_rocm_pytorch)) or os.getenv(
+            "FORCE_CUDA", "0") == "1":
         extension = CUDAExtension
         sources += source_cuda
 
@@ -90,7 +94,7 @@ def get_extensions():
 
     include_dirs = [extensions_dir]
 
-    ext_modules = [
+    return [
         extension(
             "detectron2._C",
             sources,
@@ -100,8 +104,6 @@ def get_extensions():
         )
     ]
 
-    return ext_modules
-
 
 def get_model_zoo_configs() -> List[str]:
     """
@@ -110,10 +112,10 @@ def get_model_zoo_configs() -> List[str]:
     """
 
     # Use absolute paths while symlinking.
-    source_configs_dir = path.join(path.dirname(path.realpath(__file__)), "configs")
-    destination = path.join(
-        path.dirname(path.realpath(__file__)), "detectron2", "model_zoo", "configs"
-    )
+    source_configs_dir = path.join(path.dirname(path.realpath(__file__)),
+                                   "configs")
+    destination = path.join(path.dirname(path.realpath(__file__)),
+                            "detectron2", "model_zoo", "configs")
     # Symlink the config directory inside package to have a cleaner pip install.
 
     # Remove stale symlink/directory from a previous build.
@@ -130,18 +132,19 @@ def get_model_zoo_configs() -> List[str]:
             # Fall back to copying if symlink fails: ex. on Windows.
             shutil.copytree(source_configs_dir, destination)
 
-    config_paths = glob.glob("configs/**/*.yaml", recursive=True) + glob.glob(
-        "configs/**/*.py", recursive=True
-    )
-    return config_paths
+    return glob.glob("configs/**/*.yaml", recursive=True) + glob.glob(
+        "configs/**/*.py", recursive=True)
 
 
 # For projects that are relative small and provide features that are very close
 # to detectron2's core functionalities, we install them under detectron2.projects
 PROJECTS = {
-    "detectron2.projects.point_rend": "projects/PointRend/point_rend",
-    "detectron2.projects.deeplab": "projects/DeepLab/deeplab",
-    "detectron2.projects.panoptic_deeplab": "projects/Panoptic-DeepLab/panoptic_deeplab",
+    "detectron2.projects.point_rend":
+    "projects/PointRend/point_rend",
+    "detectron2.projects.deeplab":
+    "projects/DeepLab/deeplab",
+    "detectron2.projects.panoptic_deeplab":
+    "projects/Panoptic-DeepLab/panoptic_deeplab",
 }
 
 setup(
@@ -151,7 +154,8 @@ setup(
     url="https://github.com/facebookresearch/detectron2",
     description="Detectron2 is FAIR's next-generation research "
     "platform for object detection and segmentation.",
-    packages=find_packages(exclude=("configs", "tests*")) + list(PROJECTS.keys()),
+    packages=find_packages(exclude=("configs", "tests*")) +
+    list(PROJECTS.keys()),
     package_dir=PROJECTS,
     package_data={"detectron2.model_zoo": get_model_zoo_configs()},
     python_requires=">=3.6",

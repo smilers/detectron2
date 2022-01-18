@@ -1,17 +1,20 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Facebook, Inc. and its affiliates.
-
 import inspect
-import numpy as np
 import pprint
-from typing import Any, List, Optional, Tuple, Union
-from fvcore.transforms.transform import Transform, TransformList
+from typing import Any
+from typing import List
+from typing import Optional
+from typing import Tuple
+from typing import Union
 
+import numpy as np
+from fvcore.transforms.transform import Transform
+from fvcore.transforms.transform import TransformList
 """
 See "Data Augmentation" tutorial for an overview of the system:
 https://detectron2.readthedocs.io/tutorials/augmentation.html
 """
-
 
 __all__ = [
     "Augmentation",
@@ -25,14 +28,13 @@ __all__ = [
 
 
 def _check_img_dtype(img):
-    assert isinstance(img, np.ndarray), "[Augmentation] Needs an numpy array, but got a {}!".format(
-        type(img)
-    )
+    assert isinstance(
+        img, np.ndarray
+    ), "[Augmentation] Needs an numpy array, but got a {}!".format(type(img))
     assert not isinstance(img.dtype, np.integer) or (
         img.dtype == np.uint8
     ), "[Augmentation] Got image of type {}, use uint8 or floating points instead!".format(
-        img.dtype
-    )
+        img.dtype)
     assert img.ndim in [2, 3], img.ndim
 
 
@@ -47,18 +49,19 @@ def _get_aug_input_args(aug, aug_input) -> List[Any]:
         # (work automatically for majority of use cases, and also avoid BC breaking),
         # Otherwise, use the argument names.
         if len(prms) == 1:
-            names = ("image",)
+            names = ("image", )
         else:
             names = []
             for name, prm in prms:
-                if prm.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
-                    raise TypeError(
-                        f""" \
+                if prm.kind in (
+                        inspect.Parameter.VAR_POSITIONAL,
+                        inspect.Parameter.VAR_KEYWORD,
+                ):
+                    raise TypeError(f""" \
 The default implementation of `{type(aug)}.__call__` does not allow \
 `{type(aug)}.get_transform` to use variable-length arguments (*args, **kwargs)! \
 If arguments are unknown, reimplement `__call__` instead. \
-"""
-                    )
+""")
                 names.append(name)
         aug.input_args = tuple(names)
 
@@ -69,8 +72,7 @@ If arguments are unknown, reimplement `__call__` instead. \
         except AttributeError as e:
             raise AttributeError(
                 f"{type(aug)}.get_transform needs input attribute '{f}', "
-                f"but it is not an attribute of {type(aug_input)}!"
-            ) from e
+                f"but it is not an attribute of {type(aug_input)}!") from e
     return args
 
 
@@ -165,8 +167,7 @@ class Augmentation:
         tfm = self.get_transform(*args)
         assert isinstance(tfm, (Transform, TransformList)), (
             f"{type(self)}.get_transform must return an instance of Transform! "
-            "Got {type(tfm)} instead."
-        )
+            "Got {type(tfm)} instead.")
         aug_input.transform(tfm)
         return tfm
 
@@ -190,13 +191,15 @@ class Augmentation:
             classname = type(self).__name__
             argstr = []
             for name, param in sig.parameters.items():
-                assert (
-                    param.kind != param.VAR_POSITIONAL and param.kind != param.VAR_KEYWORD
-                ), "The default __repr__ doesn't support *args or **kwargs"
+                assert param.kind not in [
+                    param.VAR_POSITIONAL,
+                    param.VAR_KEYWORD,
+                ], "The default __repr__ doesn't support *args or **kwargs"
+
                 assert hasattr(self, name), (
                     "Attribute {} not found! "
-                    "Default __repr__ only works if attributes match the constructor.".format(name)
-                )
+                    "Default __repr__ only works if attributes match the constructor."
+                    .format(name))
                 attr = getattr(self, name)
                 default = param.default
                 if default is attr:
@@ -224,6 +227,7 @@ def _transform_to_aug(tfm_or_aug):
     else:
 
         class _TransformToAug(Augmentation):
+
             def __init__(self, tfm: Transform):
                 self.tfm = tfm
 
@@ -339,15 +343,16 @@ class AugInput:
             self.sem_seg = tfm.apply_segmentation(self.sem_seg)
 
     def apply_augmentations(
-        self, augmentations: List[Union[Augmentation, Transform]]
-    ) -> TransformList:
+            self, augmentations: List[Union[Augmentation,
+                                            Transform]]) -> TransformList:
         """
         Equivalent of ``AugmentationList(augmentations)(self)``
         """
         return AugmentationList(augmentations)(self)
 
 
-def apply_augmentations(augmentations: List[Union[Transform, Augmentation]], inputs):
+def apply_augmentations(augmentations: List[Union[Transform, Augmentation]],
+                        inputs):
     """
     Use ``T.AugmentationList(augmentations)(inputs)`` instead.
     """

@@ -1,15 +1,24 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Callable
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
+from typing import Union
+
 import fvcore.nn.weight_init as weight_init
 import torch
 from torch import nn
 from torch.nn import functional as F
 
-from detectron2.config import configurable
-from detectron2.layers import ASPP, Conv2d, DepthwiseSeparableConv2d, ShapeSpec, get_norm
-from detectron2.modeling import SEM_SEG_HEADS_REGISTRY
-
 from .loss import DeepLabCE
+from detectron2.config import configurable
+from detectron2.layers import ASPP
+from detectron2.layers import Conv2d
+from detectron2.layers import DepthwiseSeparableConv2d
+from detectron2.layers import get_norm
+from detectron2.layers import ShapeSpec
+from detectron2.modeling import SEM_SEG_HEADS_REGISTRY
 
 
 @SEM_SEG_HEADS_REGISTRY.register()
@@ -69,28 +78,25 @@ class DeepLabV3PlusHead(nn.Module):
         input_shape = sorted(input_shape.items(), key=lambda x: x[1].stride)
 
         # fmt: off
-        self.in_features      = [k for k, v in input_shape]  # starting from "res2" to "res5"
-        in_channels           = [x[1].channels for x in input_shape]
-        in_strides            = [x[1].stride for x in input_shape]
-        aspp_channels         = decoder_channels[-1]
-        self.ignore_value     = ignore_value
-        self.common_stride    = common_stride  # output stride
-        self.loss_weight      = loss_weight
-        self.loss_type        = loss_type
-        self.decoder_only     = num_classes is None
+        self.in_features = [k for k, v in input_shape
+                            ]  # starting from "res2" to "res5"
+        in_channels = [x[1].channels for x in input_shape]
+        in_strides = [x[1].stride for x in input_shape]
+        aspp_channels = decoder_channels[-1]
+        self.ignore_value = ignore_value
+        self.common_stride = common_stride  # output stride
+        self.loss_weight = loss_weight
+        self.loss_type = loss_type
+        self.decoder_only = num_classes is None
         self.use_depthwise_separable_conv = use_depthwise_separable_conv
         # fmt: on
 
-        assert (
-            len(project_channels) == len(self.in_features) - 1
-        ), "Expected {} project_channels, got {}".format(
-            len(self.in_features) - 1, len(project_channels)
-        )
+        assert (len(project_channels) == len(self.in_features) -
+                1), "Expected {} project_channels, got {}".format(
+                    len(self.in_features) - 1, len(project_channels))
         assert len(decoder_channels) == len(
-            self.in_features
-        ), "Expected {} decoder_channels, got {}".format(
-            len(self.in_features), len(decoder_channels)
-        )
+            self.in_features), "Expected {} decoder_channels, got {}".format(
+                len(self.in_features), len(decoder_channels))
         self.decoder = nn.ModuleDict()
 
         use_bias = norm == ""
@@ -103,7 +109,9 @@ class DeepLabV3PlusHead(nn.Module):
                     train_h, train_w = train_size
                     encoder_stride = in_strides[-1]
                     if train_h % encoder_stride or train_w % encoder_stride:
-                        raise ValueError("Crop size need to be divisible by encoder stride.")
+                        raise ValueError(
+                            "Crop size need to be divisible by encoder stride."
+                        )
                     pool_h = train_h // encoder_stride
                     pool_w = train_w // encoder_stride
                     pool_kernel_size = (pool_h, pool_w)
@@ -174,16 +182,20 @@ class DeepLabV3PlusHead(nn.Module):
             self.decoder[self.in_features[idx]] = decoder_stage
 
         if not self.decoder_only:
-            self.predictor = Conv2d(
-                decoder_channels[0], num_classes, kernel_size=1, stride=1, padding=0
-            )
+            self.predictor = Conv2d(decoder_channels[0],
+                                    num_classes,
+                                    kernel_size=1,
+                                    stride=1,
+                                    padding=0)
             nn.init.normal_(self.predictor.weight, 0, 0.001)
             nn.init.constant_(self.predictor.bias, 0)
 
             if self.loss_type == "cross_entropy":
-                self.loss = nn.CrossEntropyLoss(reduction="mean", ignore_index=self.ignore_value)
+                self.loss = nn.CrossEntropyLoss(reduction="mean",
+                                                ignore_index=self.ignore_value)
             elif self.loss_type == "hard_pixel_mining":
-                self.loss = DeepLabCE(ignore_label=self.ignore_value, top_k_percent_pixels=0.2)
+                self.loss = DeepLabCE(ignore_label=self.ignore_value,
+                                      top_k_percent_pixels=0.2)
             else:
                 raise ValueError("Unexpected loss type: %s" % self.loss_type)
 
@@ -194,12 +206,14 @@ class DeepLabV3PlusHead(nn.Module):
             train_size = cfg.INPUT.CROP.SIZE
         else:
             train_size = None
-        decoder_channels = [cfg.MODEL.SEM_SEG_HEAD.CONVS_DIM] * (
-            len(cfg.MODEL.SEM_SEG_HEAD.IN_FEATURES) - 1
-        ) + [cfg.MODEL.SEM_SEG_HEAD.ASPP_CHANNELS]
-        ret = dict(
+        decoder_channels = [cfg.MODEL.SEM_SEG_HEAD.CONVS_DIM
+                            ] * (len(cfg.MODEL.SEM_SEG_HEAD.IN_FEATURES) -
+                                 1) + [cfg.MODEL.SEM_SEG_HEAD.ASPP_CHANNELS]
+        return dict(
             input_shape={
-                k: v for k, v in input_shape.items() if k in cfg.MODEL.SEM_SEG_HEAD.IN_FEATURES
+                k: v
+                for k, v in input_shape.items()
+                if k in cfg.MODEL.SEM_SEG_HEAD.IN_FEATURES
             },
             project_channels=cfg.MODEL.SEM_SEG_HEAD.PROJECT_CHANNELS,
             aspp_dilations=cfg.MODEL.SEM_SEG_HEAD.ASPP_DILATIONS,
@@ -212,9 +226,9 @@ class DeepLabV3PlusHead(nn.Module):
             loss_type=cfg.MODEL.SEM_SEG_HEAD.LOSS_TYPE,
             ignore_value=cfg.MODEL.SEM_SEG_HEAD.IGNORE_VALUE,
             num_classes=cfg.MODEL.SEM_SEG_HEAD.NUM_CLASSES,
-            use_depthwise_separable_conv=cfg.MODEL.SEM_SEG_HEAD.USE_DEPTHWISE_SEPARABLE_CONV,
+            use_depthwise_separable_conv=cfg.MODEL.SEM_SEG_HEAD.
+            USE_DEPTHWISE_SEPARABLE_CONV,
         )
-        return ret
 
     def forward(self, features, targets=None):
         """
@@ -228,11 +242,11 @@ class DeepLabV3PlusHead(nn.Module):
             return y
         if self.training:
             return None, self.losses(y, targets)
-        else:
-            y = F.interpolate(
-                y, scale_factor=self.common_stride, mode="bilinear", align_corners=False
-            )
-            return y, {}
+        y = F.interpolate(y,
+                          scale_factor=self.common_stride,
+                          mode="bilinear",
+                          align_corners=False)
+        return y, {}
 
     def layers(self, features):
         # Reverse feature maps into top-down order (from low to high resolution)
@@ -244,7 +258,10 @@ class DeepLabV3PlusHead(nn.Module):
                 y = proj_x
             else:
                 # Upsample y
-                y = F.interpolate(y, size=proj_x.size()[2:], mode="bilinear", align_corners=False)
+                y = F.interpolate(y,
+                                  size=proj_x.size()[2:],
+                                  mode="bilinear",
+                                  align_corners=False)
                 y = torch.cat([proj_x, y], dim=1)
                 y = self.decoder[f]["fuse_conv"](y)
         if not self.decoder_only:
@@ -253,11 +270,13 @@ class DeepLabV3PlusHead(nn.Module):
 
     def losses(self, predictions, targets):
         predictions = F.interpolate(
-            predictions, scale_factor=self.common_stride, mode="bilinear", align_corners=False
+            predictions,
+            scale_factor=self.common_stride,
+            mode="bilinear",
+            align_corners=False,
         )
         loss = self.loss(predictions, targets)
-        losses = {"loss_sem_seg": loss * self.loss_weight}
-        return losses
+        return {"loss_sem_seg": loss * self.loss_weight}
 
 
 @SEM_SEG_HEADS_REGISTRY.register()
@@ -270,19 +289,19 @@ class DeepLabV3Head(nn.Module):
         super().__init__()
 
         # fmt: off
-        self.in_features      = cfg.MODEL.SEM_SEG_HEAD.IN_FEATURES
-        in_channels           = [input_shape[f].channels for f in self.in_features]
-        aspp_channels         = cfg.MODEL.SEM_SEG_HEAD.ASPP_CHANNELS
-        aspp_dilations        = cfg.MODEL.SEM_SEG_HEAD.ASPP_DILATIONS
-        self.ignore_value     = cfg.MODEL.SEM_SEG_HEAD.IGNORE_VALUE
-        num_classes           = cfg.MODEL.SEM_SEG_HEAD.NUM_CLASSES
-        conv_dims             = cfg.MODEL.SEM_SEG_HEAD.CONVS_DIM
-        self.common_stride    = cfg.MODEL.SEM_SEG_HEAD.COMMON_STRIDE  # output stride
-        norm                  = cfg.MODEL.SEM_SEG_HEAD.NORM
-        self.loss_weight      = cfg.MODEL.SEM_SEG_HEAD.LOSS_WEIGHT
-        self.loss_type        = cfg.MODEL.SEM_SEG_HEAD.LOSS_TYPE
-        train_crop_size       = cfg.INPUT.CROP.SIZE
-        aspp_dropout          = cfg.MODEL.SEM_SEG_HEAD.ASPP_DROPOUT
+        self.in_features = cfg.MODEL.SEM_SEG_HEAD.IN_FEATURES
+        in_channels = [input_shape[f].channels for f in self.in_features]
+        aspp_channels = cfg.MODEL.SEM_SEG_HEAD.ASPP_CHANNELS
+        aspp_dilations = cfg.MODEL.SEM_SEG_HEAD.ASPP_DILATIONS
+        self.ignore_value = cfg.MODEL.SEM_SEG_HEAD.IGNORE_VALUE
+        num_classes = cfg.MODEL.SEM_SEG_HEAD.NUM_CLASSES
+        conv_dims = cfg.MODEL.SEM_SEG_HEAD.CONVS_DIM
+        self.common_stride = cfg.MODEL.SEM_SEG_HEAD.COMMON_STRIDE  # output stride
+        norm = cfg.MODEL.SEM_SEG_HEAD.NORM
+        self.loss_weight = cfg.MODEL.SEM_SEG_HEAD.LOSS_WEIGHT
+        self.loss_type = cfg.MODEL.SEM_SEG_HEAD.LOSS_TYPE
+        train_crop_size = cfg.INPUT.CROP.SIZE
+        aspp_dropout = cfg.MODEL.SEM_SEG_HEAD.ASPP_DROPOUT
         use_depthwise_separable_conv = cfg.MODEL.SEM_SEG_HEAD.USE_DEPTHWISE_SEPARABLE_CONV
         # fmt: on
 
@@ -294,7 +313,8 @@ class DeepLabV3Head(nn.Module):
             assert cfg.INPUT.CROP.TYPE == "absolute"
             train_crop_h, train_crop_w = train_crop_size
             if train_crop_h % self.common_stride or train_crop_w % self.common_stride:
-                raise ValueError("Crop size need to be divisible by output stride.")
+                raise ValueError(
+                    "Crop size need to be divisible by output stride.")
             pool_h = train_crop_h // self.common_stride
             pool_w = train_crop_w // self.common_stride
             pool_kernel_size = (pool_h, pool_w)
@@ -311,14 +331,20 @@ class DeepLabV3Head(nn.Module):
             use_depthwise_separable_conv=use_depthwise_separable_conv,
         )
 
-        self.predictor = Conv2d(conv_dims, num_classes, kernel_size=1, stride=1, padding=0)
+        self.predictor = Conv2d(conv_dims,
+                                num_classes,
+                                kernel_size=1,
+                                stride=1,
+                                padding=0)
         nn.init.normal_(self.predictor.weight, 0, 0.001)
         nn.init.constant_(self.predictor.bias, 0)
 
         if self.loss_type == "cross_entropy":
-            self.loss = nn.CrossEntropyLoss(reduction="mean", ignore_index=self.ignore_value)
+            self.loss = nn.CrossEntropyLoss(reduction="mean",
+                                            ignore_index=self.ignore_value)
         elif self.loss_type == "hard_pixel_mining":
-            self.loss = DeepLabCE(ignore_label=self.ignore_value, top_k_percent_pixels=0.2)
+            self.loss = DeepLabCE(ignore_label=self.ignore_value,
+                                  top_k_percent_pixels=0.2)
         else:
             raise ValueError("Unexpected loss type: %s" % self.loss_type)
 
@@ -333,16 +359,18 @@ class DeepLabV3Head(nn.Module):
         x = self.predictor(x)
         if self.training:
             return None, self.losses(x, targets)
-        else:
-            x = F.interpolate(
-                x, scale_factor=self.common_stride, mode="bilinear", align_corners=False
-            )
-            return x, {}
+        x = F.interpolate(x,
+                          scale_factor=self.common_stride,
+                          mode="bilinear",
+                          align_corners=False)
+        return x, {}
 
     def losses(self, predictions, targets):
         predictions = F.interpolate(
-            predictions, scale_factor=self.common_stride, mode="bilinear", align_corners=False
+            predictions,
+            scale_factor=self.common_stride,
+            mode="bilinear",
+            align_corners=False,
         )
         loss = self.loss(predictions, targets)
-        losses = {"loss_sem_seg": loss * self.loss_weight}
-        return losses
+        return {"loss_sem_seg": loss * self.loss_weight}

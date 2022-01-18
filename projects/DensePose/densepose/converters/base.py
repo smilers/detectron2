@@ -1,6 +1,8 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
+from typing import Any
+from typing import Tuple
+from typing import Type
 
-from typing import Any, Tuple, Type
 import torch
 
 
@@ -76,11 +78,10 @@ class BaseConverter:
         instance_type = type(instance)
         converter = cls._lookup_converter(instance_type)
         if converter is None:
-            if cls.dst_type is None:  # pyre-ignore[16]
-                output_type_str = "itself"
-            else:
-                output_type_str = cls.dst_type
-            raise KeyError(f"Could not find converter from {instance_type} to {output_type_str}")
+            output_type_str = "itself" if cls.dst_type is None else cls.dst_type
+            raise KeyError(
+                f"Could not find converter from {instance_type} to {output_type_str}"
+            )
         return converter(instance, *args, **kwargs)
 
 

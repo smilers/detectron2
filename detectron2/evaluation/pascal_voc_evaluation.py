@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Facebook, Inc. and its affiliates.
-
 import logging
-import numpy as np
 import os
 import tempfile
 import xml.etree.ElementTree as ET
-from collections import OrderedDict, defaultdict
+from collections import defaultdict
+from collections import OrderedDict
 from functools import lru_cache
+
+import numpy as np
 import torch
 
+from .evaluator import DatasetEvaluator
 from detectron2.data import MetadataCatalog
 from detectron2.utils import comm
 from detectron2.utils.file_io import PathManager
-
-from .evaluator import DatasetEvaluator
 
 
 class PascalVOCDetectionEvaluator(DatasetEvaluator):
@@ -38,10 +38,10 @@ class PascalVOCDetectionEvaluator(DatasetEvaluator):
 
         # Too many tiny files, download all to local for speed.
         annotation_dir_local = PathManager.get_local_path(
-            os.path.join(meta.dirname, "Annotations/")
-        )
+            os.path.join(meta.dirname, "Annotations/"))
         self._anno_file_template = os.path.join(annotation_dir_local, "{}.xml")
-        self._image_set_path = os.path.join(meta.dirname, "ImageSets", "Main", meta.split + ".txt")
+        self._image_set_path = os.path.join(meta.dirname, "ImageSets", "Main",
+                                            meta.split + ".txt")
         self._class_names = meta.thing_classes
         assert meta.year in [2007, 2012], meta.year
         self._is_2007 = meta.year == 2007
@@ -49,7 +49,8 @@ class PascalVOCDetectionEvaluator(DatasetEvaluator):
         self._logger = logging.getLogger(__name__)
 
     def reset(self):
-        self._predictions = defaultdict(list)  # class name -> list of prediction strings
+        self._predictions = defaultdict(
+            list)  # class name -> list of prediction strings
 
     def process(self, inputs, outputs):
         for input, output in zip(inputs, outputs):
@@ -84,9 +85,7 @@ class PascalVOCDetectionEvaluator(DatasetEvaluator):
         self._logger.info(
             "Evaluating {} using {} metric. "
             "Note that results do not use the official Matlab API.".format(
-                self._dataset_name, 2007 if self._is_2007 else 2012
-            )
-        )
+                self._dataset_name, 2007 if self._is_2007 else 2012))
 
         with tempfile.TemporaryDirectory(prefix="pascal_voc_eval_") as dirname:
             res_file_template = os.path.join(dirname, "{}.txt")
@@ -111,7 +110,11 @@ class PascalVOCDetectionEvaluator(DatasetEvaluator):
 
         ret = OrderedDict()
         mAP = {iou: np.mean(x) for iou, x in aps.items()}
-        ret["bbox"] = {"AP": np.mean(list(mAP.values())), "AP50": mAP[50], "AP75": mAP[75]}
+        ret["bbox"] = {
+            "AP": np.mean(list(mAP.values())),
+            "AP50": mAP[50],
+            "AP75": mAP[75],
+        }
         return ret
 
 
@@ -124,7 +127,6 @@ class PascalVOCDetectionEvaluator(DatasetEvaluator):
 # Licensed under The MIT License [see LICENSE for details]
 # Written by Bharath Hariharan
 # --------------------------------------------------------
-
 """Python implementation of the PASCAL VOC devkit's AP evaluation code."""
 
 
@@ -135,8 +137,7 @@ def parse_rec(filename):
         tree = ET.parse(f)
     objects = []
     for obj in tree.findall("object"):
-        obj_struct = {}
-        obj_struct["name"] = obj.find("name").text
+        obj_struct = {"name": obj.find("name").text}
         obj_struct["pose"] = obj.find("pose").text
         obj_struct["truncated"] = int(obj.find("truncated").text)
         obj_struct["difficult"] = int(obj.find("difficult").text)
@@ -160,11 +161,8 @@ def voc_ap(rec, prec, use_07_metric=False):
         # 11 point metric
         ap = 0.0
         for t in np.arange(0.0, 1.1, 0.1):
-            if np.sum(rec >= t) == 0:
-                p = 0
-            else:
-                p = np.max(prec[rec >= t])
-            ap = ap + p / 11.0
+            p = 0 if np.sum(rec >= t) == 0 else np.max(prec[rec >= t])
+            ap += p / 11.0
     else:
         # correct AP calculation
         # first append sentinel values at the end
@@ -184,7 +182,12 @@ def voc_ap(rec, prec, use_07_metric=False):
     return ap
 
 
-def voc_eval(detpath, annopath, imagesetfile, classname, ovthresh=0.5, use_07_metric=False):
+def voc_eval(detpath,
+             annopath,
+             imagesetfile,
+             classname,
+             ovthresh=0.5,
+             use_07_metric=False):
     """rec, prec, ap = voc_eval(detpath,
                                 annopath,
                                 imagesetfile,
@@ -229,7 +232,11 @@ def voc_eval(detpath, annopath, imagesetfile, classname, ovthresh=0.5, use_07_me
         # difficult = np.array([False for x in R]).astype(np.bool)  # treat all "difficult" as GT
         det = [False] * len(R)
         npos = npos + sum(~difficult)
-        class_recs[imagename] = {"bbox": bbox, "difficult": difficult, "det": det}
+        class_recs[imagename] = {
+            "bbox": bbox,
+            "difficult": difficult,
+            "det": det
+        }
 
     # read dets
     detfile = detpath.format(classname)
@@ -239,7 +246,8 @@ def voc_eval(detpath, annopath, imagesetfile, classname, ovthresh=0.5, use_07_me
     splitlines = [x.strip().split(" ") for x in lines]
     image_ids = [x[0] for x in splitlines]
     confidence = np.array([float(x[1]) for x in splitlines])
-    BB = np.array([[float(z) for z in x[2:]] for x in splitlines]).reshape(-1, 4)
+    BB = np.array([[float(z) for z in x[2:]]
+                   for x in splitlines]).reshape(-1, 4)
 
     # sort by confidence
     sorted_ind = np.argsort(-confidence)
@@ -268,11 +276,9 @@ def voc_eval(detpath, annopath, imagesetfile, classname, ovthresh=0.5, use_07_me
             inters = iw * ih
 
             # union
-            uni = (
-                (bb[2] - bb[0] + 1.0) * (bb[3] - bb[1] + 1.0)
-                + (BBGT[:, 2] - BBGT[:, 0] + 1.0) * (BBGT[:, 3] - BBGT[:, 1] + 1.0)
-                - inters
-            )
+            uni = ((bb[2] - bb[0] + 1.0) * (bb[3] - bb[1] + 1.0) +
+                   (BBGT[:, 2] - BBGT[:, 0] + 1.0) *
+                   (BBGT[:, 3] - BBGT[:, 1] + 1.0) - inters)
 
             overlaps = inters / uni
             ovmax = np.max(overlaps)

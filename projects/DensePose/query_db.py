@@ -1,30 +1,30 @@
 #!/usr/bin/env python3
 # Copyright (c) Facebook, Inc. and its affiliates.
-
 import argparse
 import logging
 import os
 import sys
 from timeit import default_timer as timer
-from typing import Any, ClassVar, Dict, List
+from typing import Any
+from typing import ClassVar
+from typing import Dict
+from typing import List
+
 import torch
-
-from detectron2.data.catalog import DatasetCatalog
-from detectron2.utils.file_io import PathManager
-from detectron2.utils.logger import setup_logger
-
 from densepose.structures import DensePoseDataRelative
 from densepose.utils.dbhelper import EntrySelector
 from densepose.utils.logger import verbosity_to_level
 from densepose.vis.base import CompoundVisualizer
 from densepose.vis.bounding_box import BoundingBoxVisualizer
-from densepose.vis.densepose_data_points import (
-    DensePoseDataCoarseSegmentationVisualizer,
-    DensePoseDataPointsIVisualizer,
-    DensePoseDataPointsUVisualizer,
-    DensePoseDataPointsVisualizer,
-    DensePoseDataPointsVVisualizer,
-)
+from densepose.vis.densepose_data_points import DensePoseDataCoarseSegmentationVisualizer
+from densepose.vis.densepose_data_points import DensePoseDataPointsIVisualizer
+from densepose.vis.densepose_data_points import DensePoseDataPointsUVisualizer
+from densepose.vis.densepose_data_points import DensePoseDataPointsVisualizer
+from densepose.vis.densepose_data_points import DensePoseDataPointsVVisualizer
+
+from detectron2.data.catalog import DatasetCatalog
+from detectron2.utils.file_io import PathManager
+from detectron2.utils.logger import setup_logger
 
 DOC = """Query DB - a tool to print / visualize data from a database
 """
@@ -37,6 +37,7 @@ _ACTION_REGISTRY: Dict[str, "Action"] = {}
 
 
 class Action(object):
+
     @classmethod
     def add_arguments(cls: type, parser: argparse.ArgumentParser):
         parser.add_argument(
@@ -57,11 +58,14 @@ def register_action(cls: type):
 
 
 class EntrywiseAction(Action):
+
     @classmethod
     def add_arguments(cls: type, parser: argparse.ArgumentParser):
         super(EntrywiseAction, cls).add_arguments(parser)
         parser.add_argument(
-            "dataset", metavar="<dataset>", help="Dataset name (e.g. densepose_coco_2014_train)"
+            "dataset",
+            metavar="<dataset>",
+            help="Dataset name (e.g. densepose_coco_2014_train)",
         )
         parser.add_argument(
             "selector",
@@ -71,7 +75,10 @@ class EntrywiseAction(Action):
             "entries from the dataset that satisfy the constraints",
         )
         parser.add_argument(
-            "--max-entries", metavar="N", help="Maximum number of entries to process", type=int
+            "--max-entries",
+            metavar="N",
+            help="Maximum number of entries to process",
+            type=int,
         )
 
     @classmethod
@@ -90,8 +97,7 @@ class EntrywiseAction(Action):
 
     @classmethod
     def create_context(cls: type, args: argparse.Namespace) -> Dict[str, Any]:
-        context = {}
-        return context
+        return {}
 
 
 @register_action
@@ -104,7 +110,8 @@ class PrintAction(EntrywiseAction):
 
     @classmethod
     def add_parser(cls: type, subparsers: argparse._SubParsersAction):
-        parser = subparsers.add_parser(cls.COMMAND, help="Output selected entries to stdout. ")
+        parser = subparsers.add_parser(
+            cls.COMMAND, help="Output selected entries to stdout. ")
         cls.add_arguments(parser)
         parser.set_defaults(func=cls.execute)
 
@@ -113,7 +120,8 @@ class PrintAction(EntrywiseAction):
         super(PrintAction, cls).add_arguments(parser)
 
     @classmethod
-    def execute_on_entry(cls: type, entry: Dict[str, Any], context: Dict[str, Any]):
+    def execute_on_entry(cls: type, entry: Dict[str, Any], context: Dict[str,
+                                                                         Any]):
         import pprint
 
         printer = pprint.PrettyPrinter(indent=2, width=200, compact=True)
@@ -138,7 +146,8 @@ class ShowAction(EntrywiseAction):
 
     @classmethod
     def add_parser(cls: type, subparsers: argparse._SubParsersAction):
-        parser = subparsers.add_parser(cls.COMMAND, help="Visualize selected entries")
+        parser = subparsers.add_parser(cls.COMMAND,
+                                       help="Visualize selected entries")
         cls.add_arguments(parser)
         parser.set_defaults(func=cls.execute)
 
@@ -159,14 +168,16 @@ class ShowAction(EntrywiseAction):
         )
 
     @classmethod
-    def execute_on_entry(cls: type, entry: Dict[str, Any], context: Dict[str, Any]):
-        import cv2
+    def execute_on_entry(cls: type, entry: Dict[str, Any], context: Dict[str,
+                                                                         Any]):
         import numpy as np
+        import cv2
 
         image_fpath = PathManager.get_local_path(entry["file_name"])
         image = cv2.imread(image_fpath, cv2.IMREAD_GRAYSCALE)
         image = np.tile(image[:, :, np.newaxis], [1, 1, 3])
-        datas = cls._extract_data_for_visualizers_from_entry(context["vis_specs"], entry)
+        datas = cls._extract_data_for_visualizers_from_entry(
+            context["vis_specs"], entry)
         visualizer = context["visualizer"]
         image_vis = visualizer.visualize(image, datas)
         entry_idx = context["entry_idx"] + 1
@@ -187,18 +198,17 @@ class ShowAction(EntrywiseAction):
         for vis_spec in vis_specs:
             vis = cls.VISUALIZERS[vis_spec]
             visualizers.append(vis)
-        context = {
+        return {
             "vis_specs": vis_specs,
             "visualizer": CompoundVisualizer(visualizers),
             "out_fname": args.output,
             "entry_idx": 0,
         }
-        return context
 
     @classmethod
-    def _extract_data_for_visualizers_from_entry(
-        cls: type, vis_specs: List[str], entry: Dict[str, Any]
-    ):
+    def _extract_data_for_visualizers_from_entry(cls: type,
+                                                 vis_specs: List[str],
+                                                 entry: Dict[str, Any]):
         dp_list = []
         bbox_list = []
         for annotation in entry["annotations"]:
@@ -209,10 +219,10 @@ class ShowAction(EntrywiseAction):
             bbox_list.append(bbox)
             dp_data = DensePoseDataRelative(annotation)
             dp_list.append(dp_data)
-        datas = []
-        for vis_spec in vis_specs:
-            datas.append(bbox_list if "bbox" == vis_spec else (bbox_list, dp_list))
-        return datas
+        return [
+            bbox_list if vis_spec == "bbox" else (bbox_list, dp_list)
+            for vis_spec in vis_specs
+        ]
 
 
 def setup_dataset(dataset_name):
@@ -220,14 +230,16 @@ def setup_dataset(dataset_name):
     start = timer()
     dataset = DatasetCatalog.get(dataset_name)
     stop = timer()
-    logger.info("Loaded dataset {} in {:.3f}s".format(dataset_name, stop - start))
+    logger.info("Loaded dataset {} in {:.3f}s".format(dataset_name,
+                                                      stop - start))
     return dataset
 
 
 def create_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=DOC,
-        formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=120),
+        formatter_class=lambda prog: argparse.HelpFormatter(
+            prog, max_help_position=120),
     )
     parser.set_defaults(func=lambda _: parser.print_help(sys.stdout))
     subparsers = parser.add_subparsers(title="Actions")

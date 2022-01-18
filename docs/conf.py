@@ -1,30 +1,31 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Facebook, Inc. and its affiliates.
-
 # flake8: noqa
-
 # Configuration file for the Sphinx documentation builder.
 #
 # This file does only contain a selection of the most common options. For a
 # full list see the documentation:
 # http://www.sphinx-doc.org/en/master/config
-
 # -- Path setup --------------------------------------------------------------
-
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
 import sys
+from typing import Dict
+from typing import List
+from typing import Tuple
 from unittest import mock
-from sphinx.domains import Domain
-from typing import Dict, List, Tuple
 
+import sphinx_rtd_theme
+from recommonmark.parser import CommonMarkParser
+from sphinx.domains import Domain
+
+import detectron2  # isort: skip
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-import sphinx_rtd_theme
 
 
 class GithubURLDomain(Domain):
@@ -36,7 +37,8 @@ class GithubURLDomain(Domain):
     ROOT = "https://github.com/facebookresearch/detectron2/blob/master/"
     LINKED_DOC = ["tutorials/install", "tutorials/getting_started"]
 
-    def resolve_any_xref(self, env, fromdocname, builder, target, node, contnode):
+    def resolve_any_xref(self, env, fromdocname, builder, target, node,
+                         contnode):
         github_url = None
         if not target.endswith("html") and target.startswith("../../"):
             url = target.replace("../", "")
@@ -46,7 +48,8 @@ class GithubURLDomain(Domain):
             github_url = target
 
         if github_url is not None:
-            if github_url.endswith("MODEL_ZOO") or github_url.endswith("README"):
+            if github_url.endswith("MODEL_ZOO") or github_url.endswith(
+                    "README"):
                 # bug of recommonmark.
                 # https://github.com/readthedocs/recommonmark/blob/ddd56e7717e9745f11300059e4268e204138a6b1/recommonmark/parser.py#L152-L155
                 github_url += ".md"
@@ -58,12 +61,10 @@ class GithubURLDomain(Domain):
 
 
 # to support markdown
-from recommonmark.parser import CommonMarkParser
 
 sys.path.insert(0, os.path.abspath("../"))
 os.environ["_DOC_BUILDING"] = "True"
 DEPLOY = os.environ.get("READTHEDOCS") == "True"
-
 
 # -- Project information -----------------------------------------------------
 
@@ -72,9 +73,21 @@ try:
     import torch  # noqa
 except ImportError:
     for m in [
-        "torch", "torchvision", "torch.nn", "torch.nn.parallel", "torch.distributed", "torch.multiprocessing", "torch.autograd",
-        "torch.autograd.function", "torch.nn.modules", "torch.nn.modules.utils", "torch.utils", "torch.utils.data", "torch.onnx",
-        "torchvision", "torchvision.ops",
+            "torch",
+            "torchvision",
+            "torch.nn",
+            "torch.nn.parallel",
+            "torch.distributed",
+            "torch.multiprocessing",
+            "torch.autograd",
+            "torch.autograd.function",
+            "torch.nn.modules",
+            "torch.nn.modules.utils",
+            "torch.utils",
+            "torch.utils.data",
+            "torch.onnx",
+            "torchvision",
+            "torchvision.ops",
     ]:
         sys.modules[m] = mock.Mock(name=m)
     sys.modules['torch'].__version__ = "1.7"  # fake version
@@ -87,23 +100,34 @@ else:
     HAS_TORCH = True
 
 for m in [
-    "cv2", "scipy", "portalocker", "detectron2._C",
-    "pycocotools", "pycocotools.mask", "pycocotools.coco", "pycocotools.cocoeval",
-    "google", "google.protobuf", "google.protobuf.internal", "onnx",
-    "caffe2", "caffe2.proto", "caffe2.python", "caffe2.python.utils", "caffe2.python.onnx", "caffe2.python.onnx.backend",
+        "cv2",
+        "scipy",
+        "portalocker",
+        "detectron2._C",
+        "pycocotools",
+        "pycocotools.mask",
+        "pycocotools.coco",
+        "pycocotools.cocoeval",
+        "google",
+        "google.protobuf",
+        "google.protobuf.internal",
+        "onnx",
+        "caffe2",
+        "caffe2.proto",
+        "caffe2.python",
+        "caffe2.python.utils",
+        "caffe2.python.onnx",
+        "caffe2.python.onnx.backend",
 ]:
     sys.modules[m] = mock.Mock(name=m)
 # fmt: on
 sys.modules["cv2"].__version__ = "3.4"
-
-import detectron2  # isort: skip
 
 if HAS_TORCH:
     from detectron2.utils.env import fixup_module_metadata
 
     fixup_module_metadata("torch.nn", torch.nn.__dict__)
     fixup_module_metadata("torch.utils.data", torch.utils.data.__dict__)
-
 
 project = "detectron2"
 copyright = "2019-2020, detectron2 contributors"
@@ -113,7 +137,6 @@ author = "detectron2 contributors"
 version = detectron2.__version__
 # The full version, including alpha/beta/rc tags
 release = version
-
 
 # -- General configuration ---------------------------------------------------
 
@@ -145,18 +168,13 @@ napoleon_use_rtype = False
 autodoc_inherit_docstrings = False
 autodoc_member_order = "bysource"
 
-if DEPLOY:
-    intersphinx_timeout = 10
-else:
-    # skip this when building locally
-    intersphinx_timeout = 0.5
+intersphinx_timeout = 10 if DEPLOY else 0.5
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3.6", None),
     "numpy": ("https://docs.scipy.org/doc/numpy/", None),
     "torch": ("https://pytorch.org/docs/master/", None),
 }
 # -------------------------
-
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -176,11 +194,17 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "build", "README.md", "tutorials/README.md"]
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+    "build",
+    "README.md",
+    "tutorials/README.md",
+]
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = "sphinx"
-
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -209,12 +233,10 @@ html_css_files = ["css/custom.css"]
 #
 # html_sidebars = {}
 
-
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = "detectron2doc"
-
 
 # -- Options for LaTeX output ------------------------------------------------
 
@@ -236,35 +258,35 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
-latex_documents = [
-    (master_doc, "detectron2.tex", "detectron2 Documentation", "detectron2 contributors", "manual")
-]
-
+latex_documents = [(
+    master_doc,
+    "detectron2.tex",
+    "detectron2 Documentation",
+    "detectron2 contributors",
+    "manual",
+)]
 
 # -- Options for manual page output ------------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, "detectron2", "detectron2 Documentation", [author], 1)]
-
+man_pages = [(master_doc, "detectron2", "detectron2 Documentation", [author],
+              1)]
 
 # -- Options for Texinfo output ----------------------------------------------
 
 # Grouping the document tree into Texinfo files. List of tuples
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
-texinfo_documents = [
-    (
-        master_doc,
-        "detectron2",
-        "detectron2 Documentation",
-        author,
-        "detectron2",
-        "One line description of project.",
-        "Miscellaneous",
-    )
-]
-
+texinfo_documents = [(
+    master_doc,
+    "detectron2",
+    "detectron2 Documentation",
+    author,
+    "detectron2",
+    "One line description of project.",
+    "Miscellaneous",
+)]
 
 # -- Options for todo extension ----------------------------------------------
 
@@ -297,8 +319,8 @@ def autodoc_skip_member(app, what, name, obj, skip, options):
     }
     try:
         if name in HIDDEN or (
-            hasattr(obj, "__doc__") and obj.__doc__.lower().strip().startswith("deprecated")
-        ):
+                hasattr(obj, "__doc__")
+                and obj.__doc__.lower().strip().startswith("deprecated")):
             print("Skipping deprecated object: {}".format(name))
             return True
     except:
@@ -315,14 +337,32 @@ _PAPER_DATA = {
         "Faster R-CNN: Towards Real-Time Object Detection with Region Proposal Networks",
     ),
     "deformconv": ("1703.06211", "Deformable Convolutional Networks"),
-    "deformconv2": ("1811.11168", "Deformable ConvNets v2: More Deformable, Better Results"),
+    "deformconv2": (
+        "1811.11168",
+        "Deformable ConvNets v2: More Deformable, Better Results",
+    ),
     "panopticfpn": ("1901.02446", "Panoptic Feature Pyramid Networks"),
     "retinanet": ("1708.02002", "Focal Loss for Dense Object Detection"),
-    "cascade r-cnn": ("1712.00726", "Cascade R-CNN: Delving into High Quality Object Detection"),
-    "lvis": ("1908.03195", "LVIS: A Dataset for Large Vocabulary Instance Segmentation"),
-    "rrpn": ("1703.01086", "Arbitrary-Oriented Scene Text Detection via Rotation Proposals"),
-    "imagenet in 1h": ("1706.02677", "Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour"),
-    "xception": ("1610.02357", "Xception: Deep Learning with Depthwise Separable Convolutions"),
+    "cascade r-cnn": (
+        "1712.00726",
+        "Cascade R-CNN: Delving into High Quality Object Detection",
+    ),
+    "lvis": (
+        "1908.03195",
+        "LVIS: A Dataset for Large Vocabulary Instance Segmentation",
+    ),
+    "rrpn": (
+        "1703.01086",
+        "Arbitrary-Oriented Scene Text Detection via Rotation Proposals",
+    ),
+    "imagenet in 1h": (
+        "1706.02677",
+        "Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour",
+    ),
+    "xception": (
+        "1610.02357",
+        "Xception: Deep Learning with Depthwise Separable Convolutions",
+    ),
     "mobilenet": (
         "1704.04861",
         "MobileNets: Efficient Convolutional Neural Networks for Mobile Vision Applications",
@@ -375,7 +415,11 @@ def setup(app):
     app.add_role("paper", paper_ref_role)
     app.add_config_value(
         "recommonmark_config",
-        {"enable_math": True, "enable_inline_math": True, "enable_eval_rst": True},
+        {
+            "enable_math": True,
+            "enable_inline_math": True,
+            "enable_eval_rst": True
+        },
         True,
     )
     app.add_transform(AutoStructify)

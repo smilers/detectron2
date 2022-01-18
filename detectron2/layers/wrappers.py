@@ -7,8 +7,8 @@ Ideally, add support directly in PyTorch to empty tensors in those functions.
 These can be removed once https://github.com/pytorch/pytorch/issues/12013
 is implemented
 """
-
 from typing import List
+
 import torch
 from torch.nn import functional as F
 
@@ -34,6 +34,7 @@ def cross_entropy(input, target, *, reduction="mean", **kwargs):
 
 
 class _NewEmptyTensorOp(torch.autograd.Function):
+
     @staticmethod
     def forward(ctx, x, new_shape):
         ctx.shape = x.shape
@@ -74,15 +75,20 @@ class Conv2d(torch.nn.Conv2d):
         # 1. currently we only support torchscript in evaluation mode
         # 2. features needed by exporting module to torchscript are added in PyTorch 1.6 or
         # later version, `Conv2d` in these PyTorch versions has already supported empty inputs.
-        if not torch.jit.is_scripting():
-            if x.numel() == 0 and self.training:
-                # https://github.com/pytorch/pytorch/issues/12013
-                assert not isinstance(
-                    self.norm, torch.nn.SyncBatchNorm
-                ), "SyncBatchNorm does not support empty inputs!"
+        if not torch.jit.is_scripting() and x.numel() == 0 and self.training:
+            # https://github.com/pytorch/pytorch/issues/12013
+            assert not isinstance(
+                self.norm, torch.nn.SyncBatchNorm
+            ), "SyncBatchNorm does not support empty inputs!"
 
         x = F.conv2d(
-            x, self.weight, self.bias, self.stride, self.padding, self.dilation, self.groups
+            x,
+            self.weight,
+            self.bias,
+            self.stride,
+            self.padding,
+            self.dilation,
+            self.groups,
         )
         if self.norm is not None:
             x = self.norm(x)
@@ -102,9 +108,8 @@ def nonzero_tuple(x):
     A 'as_tuple=True' version of torch.nonzero to support torchscript.
     because of https://github.com/pytorch/pytorch/issues/38718
     """
-    if torch.jit.is_scripting():
-        if x.dim() == 0:
-            return x.unsqueeze(0).nonzero().unbind(1)
-        return x.nonzero().unbind(1)
-    else:
+    if not torch.jit.is_scripting():
         return x.nonzero(as_tuple=True)
+    if x.dim() == 0:
+        return x.unsqueeze(0).nonzero().unbind(1)
+    return x.nonzero().unbind(1)

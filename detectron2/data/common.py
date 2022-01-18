@@ -2,15 +2,21 @@
 import copy
 import itertools
 import logging
-import numpy as np
 import pickle
 import random
+
+import numpy as np
 import torch.utils.data as data
 from torch.utils.data.sampler import Sampler
 
 from detectron2.utils.serialize import PicklableWrapper
 
-__all__ = ["MapDataset", "DatasetFromList", "AspectRatioGroupedDataset", "ToIterableDataset"]
+__all__ = [
+    "MapDataset",
+    "DatasetFromList",
+    "AspectRatioGroupedDataset",
+    "ToIterableDataset",
+]
 
 
 def _shard_iterator_dataloader_worker(iterable):
@@ -20,7 +26,8 @@ def _shard_iterator_dataloader_worker(iterable):
         # do nothing
         yield from iterable
     else:
-        yield from itertools.islice(iterable, worker_info.id, None, worker_info.num_workers)
+        yield from itertools.islice(iterable, worker_info.id, None,
+                                    worker_info.num_workers)
 
 
 class _MapIterableDataset(data.IterableDataset):
@@ -35,7 +42,8 @@ class _MapIterableDataset(data.IterableDataset):
 
     def __init__(self, dataset, map_func):
         self._dataset = dataset
-        self._map_func = PicklableWrapper(map_func)  # wrap so that a lambda will work
+        self._map_func = PicklableWrapper(
+            map_func)  # wrap so that a lambda will work
 
     def __len__(self):
         return len(self._dataset)
@@ -64,7 +72,8 @@ class MapDataset(data.Dataset):
                 If `dataset` is iterable, it skips the data and tries the next.
         """
         self._dataset = dataset
-        self._map_func = PicklableWrapper(map_func)  # wrap so that a lambda will work
+        self._map_func = PicklableWrapper(
+            map_func)  # wrap so that a lambda will work
 
         self._rng = random.Random(42)
         self._fallback_candidates = set(range(len(dataset)))
@@ -100,10 +109,8 @@ class MapDataset(data.Dataset):
             if retry_count >= 3:
                 logger = logging.getLogger(__name__)
                 logger.warning(
-                    "Failed to apply `_map_func` for idx: {}, retry count: {}".format(
-                        idx, retry_count
-                    )
-                )
+                    "Failed to apply `_map_func` for idx: {}, retry count: {}".
+                    format(idx, retry_count))
 
 
 class DatasetFromList(data.Dataset):
@@ -133,21 +140,18 @@ class DatasetFromList(data.Dataset):
         if self._serialize:
             logger = logging.getLogger(__name__)
             logger.info(
-                "Serializing {} elements to byte tensors and concatenating them all ...".format(
-                    len(self._lst)
-                )
-            )
+                "Serializing {} elements to byte tensors and concatenating them all ..."
+                .format(len(self._lst)))
             self._lst = [_serialize(x) for x in self._lst]
-            self._addr = np.asarray([len(x) for x in self._lst], dtype=np.int64)
+            self._addr = np.asarray([len(x) for x in self._lst],
+                                    dtype=np.int64)
             self._addr = np.cumsum(self._addr)
             self._lst = np.concatenate(self._lst)
-            logger.info("Serialized dataset takes {:.2f} MiB".format(len(self._lst) / 1024 ** 2))
+            logger.info("Serialized dataset takes {:.2f} MiB".format(
+                len(self._lst) / 1024**2))
 
     def __len__(self):
-        if self._serialize:
-            return len(self._addr)
-        else:
-            return len(self._lst)
+        return len(self._addr) if self._serialize else len(self._lst)
 
     def __getitem__(self, idx):
         if self._serialize:
@@ -167,7 +171,10 @@ class ToIterableDataset(data.IterableDataset):
     to an iterable-style dataset.
     """
 
-    def __init__(self, dataset: data.Dataset, sampler: Sampler, shard_sampler: bool = True):
+    def __init__(self,
+                 dataset: data.Dataset,
+                 sampler: Sampler,
+                 shard_sampler: bool = True):
         """
         Args:
             dataset: an old-style dataset with ``__getitem__``

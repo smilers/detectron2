@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Facebook, Inc. and its affiliates.
-
-
 """
 This file registers pre-defined datasets at hard-coded paths, and their metadata.
 
@@ -16,67 +14,103 @@ exist in "./datasets/".
 Users SHOULD NOT use this file to create new dataset / metadata for new dataset.
 To add new dataset, refer to the tutorial "docs/DATASETS.md".
 """
-
 import os
 
-from detectron2.data import DatasetCatalog, MetadataCatalog
-
-from .builtin_meta import ADE20K_SEM_SEG_CATEGORIES, _get_builtin_metadata
-from .cityscapes import load_cityscapes_instances, load_cityscapes_semantic
+from .builtin_meta import _get_builtin_metadata
+from .builtin_meta import ADE20K_SEM_SEG_CATEGORIES
+from .cityscapes import load_cityscapes_instances
+from .cityscapes import load_cityscapes_semantic
 from .cityscapes_panoptic import register_all_cityscapes_panoptic
-from .coco import load_sem_seg, register_coco_instances
-from .coco_panoptic import register_coco_panoptic, register_coco_panoptic_separated
-from .lvis import get_lvis_instances_meta, register_lvis_instances
+from .coco import load_sem_seg
+from .coco import register_coco_instances
+from .coco_panoptic import register_coco_panoptic
+from .coco_panoptic import register_coco_panoptic_separated
+from .lvis import get_lvis_instances_meta
+from .lvis import register_lvis_instances
 from .pascal_voc import register_pascal_voc
+from detectron2.data import DatasetCatalog
+from detectron2.data import MetadataCatalog
 
 # ==== Predefined datasets and splits for COCO ==========
 
-_PREDEFINED_SPLITS_COCO = {}
-_PREDEFINED_SPLITS_COCO["coco"] = {
-    "coco_2014_train": ("coco/train2014", "coco/annotations/instances_train2014.json"),
-    "coco_2014_val": ("coco/val2014", "coco/annotations/instances_val2014.json"),
-    "coco_2014_minival": ("coco/val2014", "coco/annotations/instances_minival2014.json"),
-    "coco_2014_minival_100": ("coco/val2014", "coco/annotations/instances_minival2014_100.json"),
-    "coco_2014_valminusminival": (
-        "coco/val2014",
-        "coco/annotations/instances_valminusminival2014.json",
-    ),
-    "coco_2017_train": ("coco/train2017", "coco/annotations/instances_train2017.json"),
-    "coco_2017_val": ("coco/val2017", "coco/annotations/instances_val2017.json"),
-    "coco_2017_test": ("coco/test2017", "coco/annotations/image_info_test2017.json"),
-    "coco_2017_test-dev": ("coco/test2017", "coco/annotations/image_info_test-dev2017.json"),
-    "coco_2017_val_100": ("coco/val2017", "coco/annotations/instances_val2017_100.json"),
+_PREDEFINED_SPLITS_COCO = {
+    "coco": {
+        "coco_2014_train": (
+            "coco/train2014",
+            "coco/annotations/instances_train2014.json",
+        ),
+        "coco_2014_val": (
+            "coco/val2014",
+            "coco/annotations/instances_val2014.json",
+        ),
+        "coco_2014_minival": (
+            "coco/val2014",
+            "coco/annotations/instances_minival2014.json",
+        ),
+        "coco_2014_minival_100": (
+            "coco/val2014",
+            "coco/annotations/instances_minival2014_100.json",
+        ),
+        "coco_2014_valminusminival": (
+            "coco/val2014",
+            "coco/annotations/instances_valminusminival2014.json",
+        ),
+        "coco_2017_train": (
+            "coco/train2017",
+            "coco/annotations/instances_train2017.json",
+        ),
+        "coco_2017_val": (
+            "coco/val2017",
+            "coco/annotations/instances_val2017.json",
+        ),
+        "coco_2017_test": (
+            "coco/test2017",
+            "coco/annotations/image_info_test2017.json",
+        ),
+        "coco_2017_test-dev": (
+            "coco/test2017",
+            "coco/annotations/image_info_test-dev2017.json",
+        ),
+        "coco_2017_val_100": (
+            "coco/val2017",
+            "coco/annotations/instances_val2017_100.json",
+        ),
+    },
+    "coco_person": {
+        "keypoints_coco_2014_train": (
+            "coco/train2014",
+            "coco/annotations/person_keypoints_train2014.json",
+        ),
+        "keypoints_coco_2014_val": (
+            "coco/val2014",
+            "coco/annotations/person_keypoints_val2014.json",
+        ),
+        "keypoints_coco_2014_minival": (
+            "coco/val2014",
+            "coco/annotations/person_keypoints_minival2014.json",
+        ),
+        "keypoints_coco_2014_valminusminival": (
+            "coco/val2014",
+            "coco/annotations/person_keypoints_valminusminival2014.json",
+        ),
+        "keypoints_coco_2014_minival_100": (
+            "coco/val2014",
+            "coco/annotations/person_keypoints_minival2014_100.json",
+        ),
+        "keypoints_coco_2017_train": (
+            "coco/train2017",
+            "coco/annotations/person_keypoints_train2017.json",
+        ),
+        "keypoints_coco_2017_val": (
+            "coco/val2017",
+            "coco/annotations/person_keypoints_val2017.json",
+        ),
+        "keypoints_coco_2017_val_100": (
+            "coco/val2017",
+            "coco/annotations/person_keypoints_val2017_100.json",
+        ),
+    },
 }
-
-_PREDEFINED_SPLITS_COCO["coco_person"] = {
-    "keypoints_coco_2014_train": (
-        "coco/train2014",
-        "coco/annotations/person_keypoints_train2014.json",
-    ),
-    "keypoints_coco_2014_val": ("coco/val2014", "coco/annotations/person_keypoints_val2014.json"),
-    "keypoints_coco_2014_minival": (
-        "coco/val2014",
-        "coco/annotations/person_keypoints_minival2014.json",
-    ),
-    "keypoints_coco_2014_valminusminival": (
-        "coco/val2014",
-        "coco/annotations/person_keypoints_valminusminival2014.json",
-    ),
-    "keypoints_coco_2014_minival_100": (
-        "coco/val2014",
-        "coco/annotations/person_keypoints_minival2014_100.json",
-    ),
-    "keypoints_coco_2017_train": (
-        "coco/train2017",
-        "coco/annotations/person_keypoints_train2017.json",
-    ),
-    "keypoints_coco_2017_val": ("coco/val2017", "coco/annotations/person_keypoints_val2017.json"),
-    "keypoints_coco_2017_val_100": (
-        "coco/val2017",
-        "coco/annotations/person_keypoints_val2017_100.json",
-    ),
-}
-
 
 _PREDEFINED_SPLITS_COCO_PANOPTIC = {
     "coco_2017_train_panoptic": (
@@ -110,15 +144,16 @@ def register_all_coco(root):
             register_coco_instances(
                 key,
                 _get_builtin_metadata(dataset_name),
-                os.path.join(root, json_file) if "://" not in json_file else json_file,
+                os.path.join(root, json_file)
+                if "://" not in json_file else json_file,
                 os.path.join(root, image_root),
             )
 
     for (
-        prefix,
+            prefix,
         (panoptic_root, panoptic_json, semantic_root),
     ) in _PREDEFINED_SPLITS_COCO_PANOPTIC.items():
-        prefix_instances = prefix[: -len("_panoptic")]
+        prefix_instances = prefix[:-len("_panoptic")]
         instances_meta = MetadataCatalog.get(prefix_instances)
         image_root, instances_json = instances_meta.image_root, instances_meta.json_file
         # The "separated" version of COCO panoptic segmentation dataset,
@@ -146,23 +181,28 @@ def register_all_coco(root):
 
 # ==== Predefined datasets and splits for LVIS ==========
 
-
 _PREDEFINED_SPLITS_LVIS = {
     "lvis_v1": {
         "lvis_v1_train": ("coco/", "lvis/lvis_v1_train.json"),
         "lvis_v1_val": ("coco/", "lvis/lvis_v1_val.json"),
         "lvis_v1_test_dev": ("coco/", "lvis/lvis_v1_image_info_test_dev.json"),
-        "lvis_v1_test_challenge": ("coco/", "lvis/lvis_v1_image_info_test_challenge.json"),
+        "lvis_v1_test_challenge": (
+            "coco/",
+            "lvis/lvis_v1_image_info_test_challenge.json",
+        ),
     },
     "lvis_v0.5": {
         "lvis_v0.5_train": ("coco/", "lvis/lvis_v0.5_train.json"),
         "lvis_v0.5_val": ("coco/", "lvis/lvis_v0.5_val.json"),
-        "lvis_v0.5_val_rand_100": ("coco/", "lvis/lvis_v0.5_val_rand_100.json"),
+        "lvis_v0.5_val_rand_100":
+        ("coco/", "lvis/lvis_v0.5_val_rand_100.json"),
         "lvis_v0.5_test": ("coco/", "lvis/lvis_v0.5_image_info_test.json"),
     },
     "lvis_v0.5_cocofied": {
-        "lvis_v0.5_train_cocofied": ("coco/", "lvis/lvis_v0.5_train_cocofied.json"),
-        "lvis_v0.5_val_cocofied": ("coco/", "lvis/lvis_v0.5_val_cocofied.json"),
+        "lvis_v0.5_train_cocofied":
+        ("coco/", "lvis/lvis_v0.5_train_cocofied.json"),
+        "lvis_v0.5_val_cocofied":
+        ("coco/", "lvis/lvis_v0.5_val_cocofied.json"),
     },
 }
 
@@ -173,16 +213,26 @@ def register_all_lvis(root):
             register_lvis_instances(
                 key,
                 get_lvis_instances_meta(dataset_name),
-                os.path.join(root, json_file) if "://" not in json_file else json_file,
+                os.path.join(root, json_file)
+                if "://" not in json_file else json_file,
                 os.path.join(root, image_root),
             )
 
 
 # ==== Predefined splits for raw cityscapes images ===========
 _RAW_CITYSCAPES_SPLITS = {
-    "cityscapes_fine_{task}_train": ("cityscapes/leftImg8bit/train/", "cityscapes/gtFine/train/"),
-    "cityscapes_fine_{task}_val": ("cityscapes/leftImg8bit/val/", "cityscapes/gtFine/val/"),
-    "cityscapes_fine_{task}_test": ("cityscapes/leftImg8bit/test/", "cityscapes/gtFine/test/"),
+    "cityscapes_fine_{task}_train": (
+        "cityscapes/leftImg8bit/train/",
+        "cityscapes/gtFine/train/",
+    ),
+    "cityscapes_fine_{task}_val": (
+        "cityscapes/leftImg8bit/val/",
+        "cityscapes/gtFine/val/",
+    ),
+    "cityscapes_fine_{task}_test": (
+        "cityscapes/leftImg8bit/test/",
+        "cityscapes/gtFine/test/",
+    ),
 }
 
 
@@ -196,17 +246,19 @@ def register_all_cityscapes(root):
         DatasetCatalog.register(
             inst_key,
             lambda x=image_dir, y=gt_dir: load_cityscapes_instances(
-                x, y, from_json=True, to_polygons=True
-            ),
+                x, y, from_json=True, to_polygons=True),
         )
         MetadataCatalog.get(inst_key).set(
-            image_dir=image_dir, gt_dir=gt_dir, evaluator_type="cityscapes_instance", **meta
+            image_dir=image_dir,
+            gt_dir=gt_dir,
+            evaluator_type="cityscapes_instance",
+            **meta,
         )
 
         sem_key = key.format(task="sem_seg")
         DatasetCatalog.register(
-            sem_key, lambda x=image_dir, y=gt_dir: load_cityscapes_semantic(x, y)
-        )
+            sem_key,
+            lambda x=image_dir, y=gt_dir: load_cityscapes_semantic(x, y))
         MetadataCatalog.get(sem_key).set(
             image_dir=image_dir,
             gt_dir=gt_dir,
@@ -240,7 +292,9 @@ def register_all_ade20k(root):
         gt_dir = os.path.join(root, "annotations_detectron2", dirname)
         name = f"ade20k_sem_seg_{name}"
         DatasetCatalog.register(
-            name, lambda x=image_dir, y=gt_dir: load_sem_seg(y, x, gt_ext="png", image_ext="jpg")
+            name,
+            lambda x=image_dir, y=gt_dir: load_sem_seg(
+                y, x, gt_ext="png", image_ext="jpg"),
         )
         MetadataCatalog.get(name).set(
             stuff_classes=ADE20K_SEM_SEG_CATEGORIES[:],

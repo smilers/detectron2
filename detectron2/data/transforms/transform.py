@@ -1,21 +1,17 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Facebook, Inc. and its affiliates.
-
 """
 See "Data Augmentation" tutorial for an overview of the system:
 https://detectron2.readthedocs.io/tutorials/augmentation.html
 """
-
 import numpy as np
 import torch
 import torch.nn.functional as F
-from fvcore.transforms.transform import (
-    CropTransform,
-    HFlipTransform,
-    NoOpTransform,
-    Transform,
-    TransformList,
-)
+from fvcore.transforms.transform import CropTransform
+from fvcore.transforms.transform import HFlipTransform
+from fvcore.transforms.transform import NoOpTransform
+from fvcore.transforms.transform import Transform
+from fvcore.transforms.transform import TransformList
 from PIL import Image
 
 try:
@@ -64,9 +60,10 @@ class ExtentTransform(Transform):
             size=(w, h),
             method=Image.EXTENT,
             data=self.src_rect,
-            resample=interp if interp else self.interp,
+            resample=interp or self.interp,
             fill=self.fill,
         )
+
         ret = np.asarray(pil_image)
         if len(img.shape) > 2 and img.shape[2] == 1:
             ret = np.expand_dims(ret, -1)
@@ -119,7 +116,8 @@ class ResizeTransform(Transform):
                 pil_image = Image.fromarray(img[:, :, 0], mode="L")
             else:
                 pil_image = Image.fromarray(img)
-            pil_image = pil_image.resize((self.new_w, self.new_h), interp_method)
+            pil_image = pil_image.resize((self.new_w, self.new_h),
+                                         interp_method)
             ret = np.asarray(pil_image)
             if len(img.shape) > 2 and img.shape[2] == 1:
                 ret = np.expand_dims(ret, -1)
@@ -138,9 +136,9 @@ class ResizeTransform(Transform):
             }
             mode = _PIL_RESIZE_TO_INTERPOLATE_MODE[interp_method]
             align_corners = None if mode == "nearest" else False
-            img = F.interpolate(
-                img, (self.new_h, self.new_w), mode=mode, align_corners=align_corners
-            )
+            img = F.interpolate(img, (self.new_h, self.new_w),
+                                mode=mode,
+                                align_corners=align_corners)
             shape[:2] = (self.new_h, self.new_w)
             ret = img.permute(2, 3, 0, 1).view(shape).numpy()  # nchw -> hw(c)
 
@@ -156,7 +154,8 @@ class ResizeTransform(Transform):
         return segmentation
 
     def inverse(self):
-        return ResizeTransform(self.new_h, self.new_w, self.h, self.w, self.interp)
+        return ResizeTransform(self.new_h, self.new_w, self.h, self.w,
+                               self.interp)
 
 
 class RotationTransform(Transform):
@@ -183,12 +182,15 @@ class RotationTransform(Transform):
             center = image_center
         if interp is None:
             interp = cv2.INTER_LINEAR
-        abs_cos, abs_sin = (abs(np.cos(np.deg2rad(angle))), abs(np.sin(np.deg2rad(angle))))
+        abs_cos, abs_sin = (
+            abs(np.cos(np.deg2rad(angle))),
+            abs(np.sin(np.deg2rad(angle))),
+        )
         if expand:
             # find the new width and height bounds
             bound_w, bound_h = np.rint(
-                [h * abs_sin + w * abs_cos, h * abs_cos + w * abs_sin]
-            ).astype(int)
+                [h * abs_sin + w * abs_cos,
+                 h * abs_cos + w * abs_sin]).astype(int)
         else:
             bound_w, bound_h = w, h
 
@@ -205,7 +207,9 @@ class RotationTransform(Transform):
             return img
         assert img.shape[:2] == (self.h, self.w)
         interp = interp if interp is not None else self.interp
-        return cv2.warpAffine(img, self.rm_image, (self.bound_w, self.bound_h), flags=interp)
+        return cv2.warpAffine(img,
+                              self.rm_image, (self.bound_w, self.bound_h),
+                              flags=interp)
 
     def apply_coords(self, coords):
         """
@@ -226,8 +230,10 @@ class RotationTransform(Transform):
         if self.expand:
             # Find the coordinates of the center of rotation in the new image
             # The only point for which we know the future coordinates is the center of the image
-            rot_im_center = cv2.transform(self.image_center[None, None, :] + offset, rm)[0, 0, :]
-            new_center = np.array([self.bound_w / 2, self.bound_h / 2]) + offset - rot_im_center
+            rot_im_center = cv2.transform(
+                self.image_center[None, None, :] + offset, rm)[0, 0, :]
+            new_center = (np.array([self.bound_w / 2, self.bound_h / 2]) +
+                          offset - rot_im_center)
             # shift the rotation center to the new coordinates
             rm[:, 2] += new_center
         return rm
@@ -238,11 +244,13 @@ class RotationTransform(Transform):
         """
         if not self.expand:  # Not possible to inverse if a part of the image is lost
             raise NotImplementedError()
-        rotation = RotationTransform(
-            self.bound_h, self.bound_w, -self.angle, True, None, self.interp
-        )
+        rotation = RotationTransform(self.bound_h, self.bound_w, -self.angle,
+                                     True, None, self.interp)
         crop = CropTransform(
-            (rotation.bound_w - self.w) // 2, (rotation.bound_h - self.h) // 2, self.w, self.h
+            (rotation.bound_w - self.w) // 2,
+            (rotation.bound_h - self.h) // 2,
+            self.w,
+            self.h,
         )
         return TransformList([rotation, crop])
 
@@ -337,9 +345,12 @@ def Resize_rotated_box(transform, rotated_boxes):
     theta = rotated_boxes[:, 4] * np.pi / 180.0
     c = np.cos(theta)
     s = np.sin(theta)
-    rotated_boxes[:, 2] *= np.sqrt(np.square(scale_factor_x * c) + np.square(scale_factor_y * s))
-    rotated_boxes[:, 3] *= np.sqrt(np.square(scale_factor_x * s) + np.square(scale_factor_y * c))
-    rotated_boxes[:, 4] = np.arctan2(scale_factor_x * s, scale_factor_y * c) * 180 / np.pi
+    rotated_boxes[:, 2] *= np.sqrt(
+        np.square(scale_factor_x * c) + np.square(scale_factor_y * s))
+    rotated_boxes[:, 3] *= np.sqrt(
+        np.square(scale_factor_x * s) + np.square(scale_factor_y * c))
+    rotated_boxes[:, 4] = (np.arctan2(scale_factor_x * s, scale_factor_y * c) *
+                           180 / np.pi)
 
     return rotated_boxes
 

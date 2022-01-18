@@ -1,23 +1,30 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
-
 import collections
 import contextlib
 import copy
 import functools
 import logging
-import numpy as np
 import os
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
+from typing import Union
 from unittest import mock
+
 import caffe2.python.utils as putils
+import numpy as np
 import torch
 import torch.nn.functional as F
 from caffe2.proto import caffe2_pb2
-from caffe2.python import core, net_drawer, workspace
+from caffe2.python import core
+from caffe2.python import net_drawer
+from caffe2.python import workspace
 from torch.nn.functional import interpolate as interp
 
 logger = logging.getLogger(__name__)
-
 
 # ==== torch/utils_toffee/cast.py =======================================
 
@@ -38,7 +45,8 @@ def to_device(t, device_str):
     elif src.type == "cpu" and dst.type == "cuda":
         return torch.ops._caffe2.CopyCPUToGPU(t)
     else:
-        raise RuntimeError("Can't cast tensor from device {} to device {}".format(src, dst))
+        raise RuntimeError(
+            "Can't cast tensor from device {} to device {}".format(src, dst))
 
 
 # ==== torch/utils_toffee/interpolate.py =======================================
@@ -50,13 +58,10 @@ def BilinearInterpolation(tensor_in, up_scale):
 
     def upsample_filt(size):
         factor = (size + 1) // 2
-        if size % 2 == 1:
-            center = factor - 1
-        else:
-            center = factor - 0.5
-
+        center = factor - 1 if size % 2 == 1 else factor - 0.5
         og = np.ogrid[:size, :size]
-        return (1 - abs(og[0] - center) / factor) * (1 - abs(og[1] - center) / factor)
+        return (1 - abs(og[0] - center) / factor) * (
+            1 - abs(og[1] - center) / factor)
 
     kernel_size = int(up_scale) * 2
     bil_filt = upsample_filt(kernel_size)
@@ -79,9 +84,11 @@ def BilinearInterpolation(tensor_in, up_scale):
 # NOTE: ONNX is incompatible with traced torch.nn.functional.interpolate if
 # using dynamic `scale_factor` rather than static `size`. (T43166860)
 # NOTE: Caffe2 Int8 conversion might not be able to quantize `size` properly.
-def onnx_compatibale_interpolate(
-    input, size=None, scale_factor=None, mode="nearest", align_corners=None
-):
+def onnx_compatibale_interpolate(input,
+                                 size=None,
+                                 scale_factor=None,
+                                 mode="nearest",
+                                 align_corners=None):
     # NOTE: The input dimensions are interpreted in the form:
     # `mini-batch x channels x [optional depth] x [optional height] x width`.
     if size is None and scale_factor is not None:
@@ -96,18 +103,21 @@ def onnx_compatibale_interpolate(
             assert not align_corners, "No matching C2 op for align_corners == True"
             if mode == "nearest":
                 return torch.ops._caffe2.ResizeNearest(
-                    input, order="NCHW", width_scale=width_scale, height_scale=height_scale
+                    input,
+                    order="NCHW",
+                    width_scale=width_scale,
+                    height_scale=height_scale,
                 )
             elif mode == "bilinear":
                 logger.warning(
                     "Use F.conv_transpose2d for bilinear interpolate"
                     " because there's no such C2 op, this may cause significant"
                     " slowdown and the boundary pixels won't be as same as"
-                    " using F.interpolate due to padding."
-                )
+                    " using F.interpolate due to padding.")
                 assert height_scale == width_scale
                 return BilinearInterpolation(input, up_scale=height_scale)
-        logger.warning("Output size is not static, it might cause ONNX conversion issue")
+        logger.warning(
+            "Output size is not static, it might cause ONNX conversion issue")
 
     return interp(input, size, scale_factor, mode, align_corners)
 
@@ -115,9 +125,8 @@ def onnx_compatibale_interpolate(
 @contextlib.contextmanager
 def mock_torch_nn_functional_interpolate():
     if torch.onnx.is_in_onnx_export():
-        with mock.patch(
-            "torch.nn.functional.interpolate", side_effect=onnx_compatibale_interpolate
-        ):
+        with mock.patch("torch.nn.functional.interpolate",
+                        side_effect=onnx_compatibale_interpolate):
             yield
     else:
         yield
@@ -127,6 +136,7 @@ def mock_torch_nn_functional_interpolate():
 
 
 class ScopedWS(object):
+
     def __init__(self, ws_name, is_reset, is_cleanup=False):
         self.ws_name = ws_name
         self.is_reset = is_reset
@@ -208,15 +218,15 @@ def check_set_pb_arg(pb, arg_name, arg_attr, arg_value, allow_override=False):
         assert hasattr(arg, arg_attr)
         pb.arg.extend([arg])
     if allow_override and getattr(arg, arg_attr) != arg_value:
-        logger.warning(
-            "Override argument {}: {} -> {}".format(arg_name, getattr(arg, arg_attr), arg_value)
-        )
+        logger.warning("Override argument {}: {} -> {}".format(
+            arg_name, getattr(arg, arg_attr), arg_value))
         setattr(arg, arg_attr, arg_value)
     else:
         assert arg is not None
-        assert getattr(arg, arg_attr) == arg_value, "Existing value {}, new value {}".format(
-            getattr(arg, arg_attr), arg_value
-        )
+        assert (getattr(
+            arg,
+            arg_attr) == arg_value), "Existing value {}, new value {}".format(
+                getattr(arg, arg_attr), arg_value)
 
 
 def _create_const_fill_op_from_numpy(name, tensor, device_option=None):
@@ -237,7 +247,8 @@ def _create_const_fill_op_from_numpy(name, tensor, device_option=None):
     if device_option is not None:
         args_dict["device_option"] = device_option
 
-    return core.CreateOperator(kTypeNameMapper[tensor.dtype], [], [name], **args_dict)
+    return core.CreateOperator(kTypeNameMapper[tensor.dtype], [], [name],
+                               **args_dict)
 
 
 def _create_const_fill_op_from_c2_int8_tensor(name, int8_tensor):
@@ -277,8 +288,7 @@ def create_const_fill_op(
         np.ndarray,
         workspace.Int8Tensor,
     ], 'Error when creating const fill op for "{}", unsupported blob type: {}'.format(
-        name, type(blob)
-    )
+        name, type(blob))
 
     if tensor_type == np.ndarray:
         return _create_const_fill_op_from_numpy(name, blob, device_option)
@@ -288,7 +298,8 @@ def create_const_fill_op(
 
 
 def construct_init_net_from_params(
-    params: Dict[str, Any], device_options: Optional[Dict[str, caffe2_pb2.DeviceOption]] = None
+    params: Dict[str, Any],
+    device_options: Optional[Dict[str, caffe2_pb2.DeviceOption]] = None,
 ) -> caffe2_pb2.NetDef:
     """
     Construct the init_net from params dictionary
@@ -297,16 +308,15 @@ def construct_init_net_from_params(
     device_options = device_options or {}
     for name, blob in params.items():
         if isinstance(blob, str):
-            logger.warning(
-                (
-                    "Blob {} with type {} is not supported in generating init net,"
-                    " skipped.".format(name, type(blob))
-                )
-            )
+            logger.warning((
+                "Blob {} with type {} is not supported in generating init net,"
+                " skipped.".format(name, type(blob))))
             continue
-        init_net.op.extend(
-            [create_const_fill_op(name, blob, device_option=device_options.get(name, None))]
-        )
+        init_net.op.extend([
+            create_const_fill_op(name,
+                                 blob,
+                                 device_option=device_options.get(name, None))
+        ])
         init_net.external_output.append(name)
     return init_net
 
@@ -346,6 +356,7 @@ def get_params_from_init_net(
         params: dict from blob name to numpy array
         device_options: dict from blob name to the device option of its creating op
     """
+
     # NOTE: this assumes that the params is determined by producer op with the
     # only exception be CopyGPUToCPU which is CUDA op but returns CPU tensor.
     def _get_device_option(producer_op):
@@ -354,7 +365,9 @@ def get_params_from_init_net(
         else:
             return producer_op.device_option
 
-    with ScopedWS("__get_params_from_init_net__", is_reset=True, is_cleanup=True) as ws:
+    with ScopedWS("__get_params_from_init_net__",
+                  is_reset=True,
+                  is_cleanup=True) as ws:
         ws.RunNetOnce(init_net)
         params = {b: fetch_any_blob(b) for b in init_net.external_output}
     ssa, versions = core.get_ssa(init_net)
@@ -369,8 +382,7 @@ def get_params_from_init_net(
 def _updater_raise(op, input_types, output_types):
     raise RuntimeError(
         "Failed to apply updater for op {} given input_types {} and"
-        " output_types {}".format(op, input_types, output_types)
-    )
+        " output_types {}".format(op, input_types, output_types))
 
 
 def _generic_status_identifier(
@@ -393,23 +405,22 @@ def _generic_status_identifier(
     """
     ssa, versions = core.get_ssa(predict_net)
     versioned_ext_input = [(b, 0) for b in predict_net.external_input]
-    versioned_ext_output = [(b, versions[b]) for b in predict_net.external_output]
+    versioned_ext_output = [(b, versions[b])
+                            for b in predict_net.external_output]
     all_versioned_blobs = set().union(*[set(x[0] + x[1]) for x in ssa])
 
-    allowed_vbs = all_versioned_blobs.union(versioned_ext_input).union(versioned_ext_output)
+    allowed_vbs = all_versioned_blobs.union(versioned_ext_input).union(
+        versioned_ext_output)
     assert all(k in allowed_vbs for k in known_status)
     assert all(v is not None for v in known_status.values())
     _known_status = copy.deepcopy(known_status)
 
     def _check_and_update(key, value):
         assert value is not None
-        if key in _known_status:
-            if not _known_status[key] == value:
-                raise RuntimeError(
-                    "Confilict status for {}, existing status {}, new status {}".format(
-                        key, _known_status[key], value
-                    )
-                )
+        if key in _known_status and _known_status[key] != value:
+            raise RuntimeError(
+                "Confilict status for {}, existing status {}, new status {}".
+                format(key, _known_status[key], value))
         _known_status[key] = value
 
     def _update_i(op, ssa_i):
@@ -417,13 +428,16 @@ def _generic_status_identifier(
         versioned_outputs = ssa_i[1]
 
         inputs_status = [_known_status.get(b, None) for b in versioned_inputs]
-        outputs_status = [_known_status.get(b, None) for b in versioned_outputs]
+        outputs_status = [
+            _known_status.get(b, None) for b in versioned_outputs
+        ]
 
-        new_inputs_status, new_outputs_status = status_updater(op, inputs_status, outputs_status)
+        new_inputs_status, new_outputs_status = status_updater(
+            op, inputs_status, outputs_status)
 
         for versioned_blob, status in zip(
-            versioned_inputs + versioned_outputs, new_inputs_status + new_outputs_status
-        ):
+                versioned_inputs + versioned_outputs,
+                new_inputs_status + new_outputs_status):
             if status is not None:
                 _check_and_update(versioned_blob, status)
 
@@ -439,8 +453,8 @@ def _generic_status_identifier(
         if k not in _known_status:
             raise NotImplementedError(
                 "Can not infer the status for {}. Currently only support the case where"
-                " a single forward and backward pass can identify status for all blobs.".format(k)
-            )
+                " a single forward and backward pass can identify status for all blobs."
+                .format(k))
 
     return _known_status
 
@@ -467,10 +481,12 @@ def infer_device_type(
         return ([_GPU_STR], [_CPU_STR])
 
     def _other_ops_updater(op, input_types, output_types):
-        non_none_types = [x for x in input_types + output_types if x is not None]
-        if len(non_none_types) > 0:
+        non_none_types = [
+            x for x in input_types + output_types if x is not None
+        ]
+        if non_none_types:
             the_type = non_none_types[0]
-            if not all(x == the_type for x in non_none_types):
+            if any(x != the_type for x in non_none_types):
                 _updater_raise(op, input_types, output_types)
         else:
             the_type = None
@@ -482,7 +498,8 @@ def infer_device_type(
             "CopyGPUToCPU": _copy_gpu_to_cpu_updater,
         }.get(op.type, _other_ops_updater)(op, *args, **kwargs)
 
-    return _generic_status_identifier(predict_net, _device_updater, known_status)
+    return _generic_status_identifier(predict_net, _device_updater,
+                                      known_status)
 
 
 # ==== torch/utils_caffe2/vis.py ===============================================
@@ -505,6 +522,7 @@ def _modify_blob_names(ops, blob_rename_f):
 
 
 def _rename_blob(name, blob_sizes, blob_ranges):
+
     def _list_to_str(bsize):
         ret = ", ".join([str(x) for x in bsize])
         ret = "[" + ret + "]"
@@ -520,12 +538,23 @@ def _rename_blob(name, blob_sizes, blob_ranges):
 
 
 # graph_name could not contain word 'graph'
-def save_graph(net, file_name, graph_name="net", op_only=True, blob_sizes=None, blob_ranges=None):
-    blob_rename_f = functools.partial(_rename_blob, blob_sizes=blob_sizes, blob_ranges=blob_ranges)
+def save_graph(net,
+               file_name,
+               graph_name="net",
+               op_only=True,
+               blob_sizes=None,
+               blob_ranges=None):
+    blob_rename_f = functools.partial(_rename_blob,
+                                      blob_sizes=blob_sizes,
+                                      blob_ranges=blob_ranges)
     return save_graph_base(net, file_name, graph_name, op_only, blob_rename_f)
 
 
-def save_graph_base(net, file_name, graph_name="net", op_only=True, blob_rename_func=None):
+def save_graph_base(net,
+                    file_name,
+                    graph_name="net",
+                    op_only=True,
+                    blob_rename_func=None):
     graph = None
     ops = net.op
     if blob_rename_func is not None:
@@ -533,9 +562,10 @@ def save_graph_base(net, file_name, graph_name="net", op_only=True, blob_rename_
     if not op_only:
         graph = net_drawer.GetPydotGraph(ops, graph_name, rankdir="TB")
     else:
-        graph = net_drawer.GetPydotGraphMinimal(
-            ops, graph_name, rankdir="TB", minimal_dependency=True
-        )
+        graph = net_drawer.GetPydotGraphMinimal(ops,
+                                                graph_name,
+                                                rankdir="TB",
+                                                minimal_dependency=True)
 
     try:
         par_dir = os.path.dirname(file_name)
@@ -568,7 +598,8 @@ def group_norm_replace_aten_with_caffe2(predict_net: caffe2_pb2.NetDef):
     count = 0
     for op in predict_net.op:
         if op.type == "ATen":
-            op_name = get_pb_arg_vals(op, "operator", None)  # return byte in py3
+            op_name = get_pb_arg_vals(op, "operator",
+                                      None)  # return byte in py3
             if op_name and op_name.decode() == "group_norm":
                 op.arg.remove(get_pb_arg(op, "operator"))
 
@@ -605,7 +636,12 @@ def fuse_alias_placeholder(predict_net, init_net):
             assert len(op.output) == 1
             name = get_pb_arg_vals(op, "name", None).decode()
             is_backward = bool(get_pb_arg_vali(op, "is_backward", 0))
-            rename_op_input(predict_net, init_net, i, 0, name, from_producer=is_backward)
+            rename_op_input(predict_net,
+                            init_net,
+                            i,
+                            0,
+                            name,
+                            from_producer=is_backward)
             rename_op_output(predict_net, i, 0, name)
 
     # Remove AliasWithName, should be very safe since it's a non-op
@@ -681,8 +717,7 @@ def rename_op_input(
 
     init_net_ssa, init_net_versions = core.get_ssa(init_net)
     predict_net_ssa, predict_net_versions = core.get_ssa(
-        predict_net, copy.deepcopy(init_net_versions)
-    )
+        predict_net, copy.deepcopy(init_net_versions))
 
     versioned_inputs, versioned_outputs = predict_net_ssa[op_id]
     old_name, version = versioned_inputs[input_id]
@@ -692,8 +727,7 @@ def rename_op_input(
         if not (old_name, version) in producer_map:
             raise NotImplementedError(
                 "Can't find producer, the input {} is probably from"
-                " init_net, this is not supported yet.".format(old_name)
-            )
+                " init_net, this is not supported yet.".format(old_name))
         producer = producer_map[(old_name, version)]
         rename_op_output(predict_net, producer[0], producer[1], new_name)
         return
@@ -703,17 +737,14 @@ def rename_op_input(
 
     is_consumer = [contain_targets(op_ssa) for op_ssa in predict_net_ssa]
     if sum(is_consumer) > 1:
-        raise IllegalGraphTransformError(
-            (
-                "Input '{}' of operator(#{}) are consumed by other ops, please use"
-                + " rename_op_output on the producer instead. Offending op: \n{}"
-            ).format(old_name, op_id, predict_net.op[op_id])
-        )
+        raise IllegalGraphTransformError((
+            "Input '{}' of operator(#{}) are consumed by other ops, please use"
+            + " rename_op_output on the producer instead. Offending op: \n{}"
+        ).format(old_name, op_id, predict_net.op[op_id]))
 
     # update init_net
-    _rename_versioned_blob_in_proto(
-        init_net, old_name, new_name, version, init_net_ssa, {}, init_net_versions
-    )
+    _rename_versioned_blob_in_proto(init_net, old_name, new_name, version,
+                                    init_net_ssa, {}, init_net_versions)
     # update predict_net
     _rename_versioned_blob_in_proto(
         predict_net,
@@ -726,7 +757,8 @@ def rename_op_input(
     )
 
 
-def rename_op_output(predict_net: caffe2_pb2.NetDef, op_id: int, output_id: int, new_name: str):
+def rename_op_output(predict_net: caffe2_pb2.NetDef, op_id: int,
+                     output_id: int, new_name: str):
     """
     Rename the op_id-th operator in predict_net, change it's output_id-th input's
         name to the new_name. It also does automatic re-route and change
@@ -742,9 +774,8 @@ def rename_op_output(predict_net: caffe2_pb2.NetDef, op_id: int, output_id: int,
     old_name, version = versioned_outputs[output_id]
 
     # update predict_net
-    _rename_versioned_blob_in_proto(
-        predict_net, old_name, new_name, version, ssa, {}, blob_versions
-    )
+    _rename_versioned_blob_in_proto(predict_net, old_name, new_name, version,
+                                    ssa, {}, blob_versions)
 
 
 def get_sub_graph_external_input_output(
@@ -772,9 +803,12 @@ def get_sub_graph_external_input_output(
     # outside of this sub-graph (including predict_net.external_output)
     all_other_inputs = sum(
         (ssa[i][0] for i in range(len(ssa)) if i not in sub_graph_op_indices),
-        [(outp, versions[outp]) for outp in predict_net.external_output],
+        ((outp, versions[outp]) for outp in predict_net.external_output),
     )
-    ext_outputs = [outp for outp in all_outputs if outp in set(all_other_inputs)]
+
+    ext_outputs = [
+        outp for outp in all_outputs if outp in set(all_other_inputs)
+    ]
 
     return ext_inputs, ext_outputs
 
@@ -834,25 +868,25 @@ def _get_dependency_chain(ssa, versioned_target, versioned_source):
     consumer_map = get_consumer_map(ssa)
     producer_map = get_producer_map(ssa)
     start_op = min(x[0] for x in consumer_map[versioned_source]) - 15
-    end_op = (
-        producer_map[versioned_target][0] + 15 if versioned_target in producer_map else start_op
-    )
-    sub_graph_ssa = ssa[start_op : end_op + 1]
+    end_op = (producer_map[versioned_target][0] +
+              15 if versioned_target in producer_map else start_op)
+    sub_graph_ssa = ssa[start_op:end_op + 1]
     if len(sub_graph_ssa) > 30:
         logger.warning(
             "Subgraph bebetween {} and {} is large (from op#{} to op#{}), it"
-            " might take non-trival time to find all paths between them.".format(
-                versioned_source, versioned_target, start_op, end_op
-            )
-        )
+            " might take non-trival time to find all paths between them.".
+            format(versioned_source, versioned_target, start_op, end_op))
 
     dag = DiGraph.from_ssa(sub_graph_ssa)
-    paths = dag.get_all_paths(versioned_source, versioned_target)  # include two ends
-    ops_in_paths = [[producer_map[blob][0] for blob in path[1:]] for path in paths]
+    paths = dag.get_all_paths(versioned_source,
+                              versioned_target)  # include two ends
+    ops_in_paths = [[producer_map[blob][0] for blob in path[1:]]
+                    for path in paths]
     return sorted(set().union(*[set(ops) for ops in ops_in_paths]))
 
 
-def identify_reshape_sub_graph(predict_net: caffe2_pb2.NetDef) -> List[List[int]]:
+def identify_reshape_sub_graph(
+        predict_net: caffe2_pb2.NetDef) -> List[List[int]]:
     """
     Idenfity the reshape sub-graph in a protobuf.
     The reshape sub-graph is defined as matching the following pattern:
@@ -902,12 +936,12 @@ def remove_reshape_for_fc(predict_net, params):
         ssa, _ = core.get_ssa(predict_net)
         reshape_output = ssa[reshape_op_id][1][0]
         consumers = [i for i in range(len(ssa)) if reshape_output in ssa[i][0]]
-        if all(predict_net.op[consumer].type == "FC" for consumer in consumers):
+        if all(predict_net.op[consumer].type == "FC"
+               for consumer in consumers):
             # safety check if the sub-graph is isolated, for this reshape sub-graph,
             # it means it has one non-param external input and one external output.
             ext_inputs, ext_outputs = get_sub_graph_external_input_output(
-                predict_net, reshape_sub_graph
-            )
+                predict_net, reshape_sub_graph)
             non_params_ext_inputs = [inp for inp in ext_inputs if inp[1] != 0]
             if len(non_params_ext_inputs) == 1 and len(ext_outputs) == 1:
                 sub_graphs_to_remove.append(reshape_sub_graph)
@@ -919,15 +953,13 @@ def remove_reshape_for_fc(predict_net, params):
     remove_op_ids = []
     params_to_remove = []
     for sub_graph in sub_graphs_to_remove:
-        logger.info(
-            "Remove Reshape sub-graph:\n{}".format(
-                "".join(["(#{:>4})\n{}".format(i, predict_net.op[i]) for i in sub_graph])
-            )
-        )
+        logger.info("Remove Reshape sub-graph:\n{}".format("".join(
+            ["(#{:>4})\n{}".format(i, predict_net.op[i]) for i in sub_graph])))
         reshape_op_id = sub_graph[-1]
         new_reshap_output = predict_net.op[reshape_op_id].input[0]
         rename_op_output(predict_net, reshape_op_id, 0, new_reshap_output)
-        ext_inputs, ext_outputs = get_sub_graph_external_input_output(predict_net, sub_graph)
+        ext_inputs, ext_outputs = get_sub_graph_external_input_output(
+            predict_net, sub_graph)
         non_params_ext_inputs = [inp for inp in ext_inputs if inp[1] != 0]
         params_ext_inputs = [inp for inp in ext_inputs if inp[1] == 0]
         assert len(non_params_ext_inputs) == 1 and len(ext_outputs) == 1
@@ -937,12 +969,16 @@ def remove_reshape_for_fc(predict_net, params):
         params_to_remove.extend(params_ext_inputs)
 
     predict_net = copy.deepcopy(predict_net)
-    new_ops = [op for i, op in enumerate(predict_net.op) if i not in remove_op_ids]
+    new_ops = [
+        op for i, op in enumerate(predict_net.op) if i not in remove_op_ids
+    ]
     del predict_net.op[:]
     predict_net.op.extend(new_ops)
     for versioned_params in params_to_remove:
         name = versioned_params[0]
-        logger.info("Remove params: {} from init_net and predict_net.external_input".format(name))
+        logger.info(
+            "Remove params: {} from init_net and predict_net.external_input".
+            format(name))
         del params[name]
         predict_net.external_input.remove(name)
 
@@ -964,36 +1000,34 @@ def fuse_copy_between_cpu_and_gpu(predict_net: caffe2_pb2.NetDef):
     def _fuse_once(predict_net):
         ssa, blob_versions = core.get_ssa(predict_net)
         consumer_map = get_consumer_map(ssa)
-        versioned_external_output = [
-            (name, blob_versions[name]) for name in predict_net.external_output
-        ]
+        versioned_external_output = [(name, blob_versions[name])
+                                     for name in predict_net.external_output]
 
         for op_id, op in enumerate(predict_net.op):
             if op.type in _COPY_OPS:
                 fw_copy_versioned_output = ssa[op_id][1][0]
-                consumer_ids = [x[0] for x in consumer_map[fw_copy_versioned_output]]
+                consumer_ids = [
+                    x[0] for x in consumer_map[fw_copy_versioned_output]
+                ]
                 reverse_op_type = _COPY_OPS[1 - _COPY_OPS.index(op.type)]
 
                 is_fusable = (
-                    len(consumer_ids) > 0
-                    and fw_copy_versioned_output not in versioned_external_output
-                    and all(
+                    len(consumer_ids) > 0 and fw_copy_versioned_output
+                    not in versioned_external_output and all(
                         predict_net.op[_op_id].type == reverse_op_type
                         and ssa[_op_id][1][0] not in versioned_external_output
-                        for _op_id in consumer_ids
-                    )
-                )
+                        for _op_id in consumer_ids))
 
                 if is_fusable:
                     for rv_copy_op_id in consumer_ids:
                         # making each NextOp uses "a" directly and removing Copy ops
                         rs_copy_versioned_output = ssa[rv_copy_op_id][1][0]
-                        next_op_id, inp_id = consumer_map[rs_copy_versioned_output][0]
+                        next_op_id, inp_id = consumer_map[
+                            rs_copy_versioned_output][0]
                         predict_net.op[next_op_id].input[inp_id] = op.input[0]
                     # remove CopyOps
                     new_ops = [
-                        op
-                        for i, op in enumerate(predict_net.op)
+                        op for i, op in enumerate(predict_net.op)
                         if i != op_id and i not in consumer_ids
                     ]
                     del predict_net.op[:]
@@ -1010,18 +1044,16 @@ def fuse_copy_between_cpu_and_gpu(predict_net: caffe2_pb2.NetDef):
 def remove_dead_end_ops(net_def: caffe2_pb2.NetDef):
     """remove ops if its output is not used or not in external_output"""
     ssa, versions = core.get_ssa(net_def)
-    versioned_external_output = [(name, versions[name]) for name in net_def.external_output]
+    versioned_external_output = [(name, versions[name])
+                                 for name in net_def.external_output]
     consumer_map = get_consumer_map(ssa)
     removed_op_ids = set()
 
     def _is_dead_end(versioned_blob):
-        return not (
-            versioned_blob in versioned_external_output
-            or (
-                len(consumer_map[versioned_blob]) > 0
-                and all(x[0] not in removed_op_ids for x in consumer_map[versioned_blob])
-            )
-        )
+        return not (versioned_blob in versioned_external_output or
+                    (len(consumer_map[versioned_blob]) > 0
+                     and all(x[0] not in removed_op_ids
+                             for x in consumer_map[versioned_blob])))
 
     for i, ssa_i in reversed(list(enumerate(ssa))):
         versioned_outputs = ssa_i[1]
@@ -1029,6 +1061,8 @@ def remove_dead_end_ops(net_def: caffe2_pb2.NetDef):
             removed_op_ids.add(i)
 
     # simply removing those deadend ops should have no effect to external_output
-    new_ops = [op for i, op in enumerate(net_def.op) if i not in removed_op_ids]
+    new_ops = [
+        op for i, op in enumerate(net_def.op) if i not in removed_op_ids
+    ]
     del net_def.op[:]
     net_def.op.extend(new_ops)

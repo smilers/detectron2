@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Facebook, Inc. and its affiliates.
-
 import datetime
 import itertools
 import logging
@@ -11,20 +10,22 @@ import tempfile
 import time
 import warnings
 from collections import Counter
+
 import torch
 from fvcore.common.checkpoint import Checkpointer
 from fvcore.common.checkpoint import PeriodicCheckpointer as _PeriodicCheckpointer
 from fvcore.common.param_scheduler import ParamScheduler
 from fvcore.common.timer import Timer
-from fvcore.nn.precise_bn import get_bn_modules, update_bn_stats
+from fvcore.nn.precise_bn import get_bn_modules
+from fvcore.nn.precise_bn import update_bn_stats
 
 import detectron2.utils.comm as comm
+from .train_loop import HookBase
 from detectron2.evaluation.testing import flatten_results_dict
 from detectron2.solver import LRMultiplier
-from detectron2.utils.events import EventStorage, EventWriter
+from detectron2.utils.events import EventStorage
+from detectron2.utils.events import EventWriter
 from detectron2.utils.file_io import PathManager
-
-from .train_loop import HookBase
 
 __all__ = [
     "CallbackHook",
@@ -39,8 +40,6 @@ __all__ = [
     "TorchProfiler",
     "TorchMemoryStats",
 ]
-
-
 """
 Implement some common hooks.
 """
@@ -51,7 +50,12 @@ class CallbackHook(HookBase):
     Create a hook using callback functions provided by the user.
     """
 
-    def __init__(self, *, before_train=None, after_train=None, before_step=None, after_step=None):
+    def __init__(self,
+                 *,
+                 before_train=None,
+                 after_train=None,
+                 before_step=None,
+                 after_step=None):
         """
         Each argument is a function that takes one argument: the trainer.
         """
@@ -115,25 +119,25 @@ class IterationTimer(HookBase):
         total_time_minus_hooks = self._total_timer.seconds()
         hook_time = total_time - total_time_minus_hooks
 
-        num_iter = self.trainer.storage.iter + 1 - self.trainer.start_iter - self._warmup_iter
+        num_iter = (self.trainer.storage.iter + 1 - self.trainer.start_iter -
+                    self._warmup_iter)
 
         if num_iter > 0 and total_time_minus_hooks > 0:
             # Speed is meaningful only after warmup
             # NOTE this format is parsed by grep in some scripts
             logger.info(
-                "Overall training speed: {} iterations in {} ({:.4f} s / it)".format(
+                "Overall training speed: {} iterations in {} ({:.4f} s / it)".
+                format(
                     num_iter,
-                    str(datetime.timedelta(seconds=int(total_time_minus_hooks))),
+                    str(datetime.timedelta(
+                        seconds=int(total_time_minus_hooks))),
                     total_time_minus_hooks / num_iter,
-                )
-            )
+                ))
 
-        logger.info(
-            "Total training time: {} ({} on hooks)".format(
-                str(datetime.timedelta(seconds=int(total_time))),
-                str(datetime.timedelta(seconds=int(hook_time))),
-            )
-        )
+        logger.info("Total training time: {} ({} on hooks)".format(
+            str(datetime.timedelta(seconds=int(total_time))),
+            str(datetime.timedelta(seconds=int(hook_time))),
+        ))
 
     def before_step(self):
         self._step_timer.reset()
@@ -174,8 +178,7 @@ class PeriodicWriter(HookBase):
 
     def after_step(self):
         if (self.trainer.iter + 1) % self._period == 0 or (
-            self.trainer.iter == self.trainer.max_iter - 1
-        ):
+                self.trainer.iter == self.trainer.max_iter - 1):
             for writer in self._writers:
                 writer.write()
 
@@ -234,14 +237,12 @@ class BestCheckpointer(HookBase):
         self._logger = logging.getLogger(__name__)
         self._period = eval_period
         self._val_metric = val_metric
-        assert mode in [
+        assert mode in {
             "max",
             "min",
-        ], f'Mode "{mode}" to `BestCheckpointer` is unknown. It should be one of {"max", "min"}.'
-        if mode == "max":
-            self._compare = operator.gt
-        else:
-            self._compare = operator.lt
+        }, f'Mode "{mode}" to `BestCheckpointer` is unknown. It should be one of {"max", "min"}.'
+
+        self._compare = operator.gt if mode == "max" else operator.lt
         self._checkpointer = checkpointer
         self._file_prefix = file_prefix
         self.best_metric = None
@@ -259,8 +260,7 @@ class BestCheckpointer(HookBase):
         if metric_tuple is None:
             self._logger.warning(
                 f"Given val metric {self._val_metric} does not seem to be computed/stored."
-                "Will not be checkpointing based on it."
-            )
+                "Will not be checkpointing based on it.")
             return
         else:
             latest_metric, metric_iter = metric_tuple
@@ -268,7 +268,8 @@ class BestCheckpointer(HookBase):
         if self.best_metric is None:
             if self._update_best(latest_metric, metric_iter):
                 additional_state = {"iteration": metric_iter}
-                self._checkpointer.save(f"{self._file_prefix}", **additional_state)
+                self._checkpointer.save(f"{self._file_prefix}",
+                                        **additional_state)
                 self._logger.info(
                     f"Saved first model at {self.best_metric:0.5f} @ {self.best_iter} steps"
                 )
@@ -278,8 +279,7 @@ class BestCheckpointer(HookBase):
             self._logger.info(
                 f"Saved best model as latest eval score for {self._val_metric} is"
                 f"{latest_metric:0.5f}, better than last best score "
-                f"{self.best_metric:0.5f} @ iteration {self.best_iter}."
-            )
+                f"{self.best_metric:0.5f} @ iteration {self.best_iter}.")
             self._update_best(latest_metric, metric_iter)
         else:
             self._logger.info(
@@ -290,11 +290,8 @@ class BestCheckpointer(HookBase):
     def after_step(self):
         # same conditions as `EvalHook`
         next_iter = self.trainer.iter + 1
-        if (
-            self._period > 0
-            and next_iter % self._period == 0
-            and next_iter != self.trainer.max_iter
-        ):
+        if (self._period > 0 and next_iter % self._period == 0
+                and next_iter != self.trainer.max_iter):
             self._best_checking()
 
     def after_train(self):
@@ -331,7 +328,8 @@ class LRScheduler(HookBase):
                 self.trainer.max_iter,
                 last_iter=self.trainer.iter - 1,
             )
-        self._best_param_group_id = LRScheduler.get_best_param_group_id(self._optimizer)
+        self._best_param_group_id = LRScheduler.get_best_param_group_id(
+            self._optimizer)
 
     @staticmethod
     def get_best_param_group_id(optimizer):
@@ -391,7 +389,12 @@ class TorchProfiler(HookBase):
     ``tensorboard --logdir OUTPUT_DIR/log``
     """
 
-    def __init__(self, enable_predicate, output_dir, *, activities=None, save_tensorboard=True):
+    def __init__(self,
+                 enable_predicate,
+                 output_dir,
+                 *,
+                 activities=None,
+                 save_tensorboard=True):
         """
         Args:
             enable_predicate (callable[trainer -> bool]): a function which takes a trainer,
@@ -413,9 +416,9 @@ class TorchProfiler(HookBase):
                     os.path.join(
                         self._output_dir,
                         "log",
-                        "profiler-tensorboard-iter{}".format(self.trainer.iter),
-                    )
-                )
+                        "profiler-tensorboard-iter{}".format(
+                            self.trainer.iter),
+                    ))
             else:
                 on_trace_ready = None
             self._profiler = torch.profiler.profile(
@@ -436,13 +439,14 @@ class TorchProfiler(HookBase):
         self._profiler.__exit__(None, None, None)
         PathManager.mkdirs(self._output_dir)
         out_file = os.path.join(
-            self._output_dir, "profiler-trace-iter{}.json".format(self.trainer.iter)
-        )
+            self._output_dir,
+            "profiler-trace-iter{}.json".format(self.trainer.iter))
         if "://" not in out_file:
             self._profiler.export_chrome_trace(out_file)
         else:
             # Support non-posix filesystems
-            with tempfile.TemporaryDirectory(prefix="detectron2_profiler") as d:
+            with tempfile.TemporaryDirectory(
+                    prefix="detectron2_profiler") as d:
                 tmp_file = os.path.join(d, "tmp.json")
                 self._profiler.export_chrome_trace(tmp_file)
                 with open(tmp_file) as f:
@@ -483,14 +487,16 @@ class AutogradProfiler(TorchProfiler):
             output_dir (str): the output directory to dump tracing files.
             use_cuda (bool): same as in `torch.autograd.profiler.profile`.
         """
-        warnings.warn("AutogradProfiler has been deprecated in favor of TorchProfiler.")
+        warnings.warn(
+            "AutogradProfiler has been deprecated in favor of TorchProfiler.")
         self._enable_predicate = enable_predicate
         self._use_cuda = use_cuda
         self._output_dir = output_dir
 
     def before_step(self):
         if self._enable_predicate(self.trainer):
-            self._profiler = torch.autograd.profiler.profile(use_cuda=self._use_cuda)
+            self._profiler = torch.autograd.profiler.profile(
+                use_cuda=self._use_cuda)
             self._profiler.__enter__()
         else:
             self._profiler = None
@@ -525,7 +531,8 @@ class EvalHook(HookBase):
         if results:
             assert isinstance(
                 results, dict
-            ), "Eval function must return a dict. Got {} instead.".format(results)
+            ), "Eval function must return a dict. Got {} instead.".format(
+                results)
 
             flattened_results = flatten_results_dict(results)
             for k, v in flattened_results.items():
@@ -534,9 +541,9 @@ class EvalHook(HookBase):
                 except Exception as e:
                     raise ValueError(
                         "[EvalHook] eval_function should return a nested dict of float. "
-                        "Got '{}: {}' instead.".format(k, v)
-                    ) from e
-            self.trainer.storage.put_scalars(**flattened_results, smoothing_hint=False)
+                        "Got '{}: {}' instead.".format(k, v)) from e
+            self.trainer.storage.put_scalars(**flattened_results,
+                                             smoothing_hint=False)
 
         # Evaluation may take different time among workers.
         # A barrier make them start the next iteration together.
@@ -544,10 +551,9 @@ class EvalHook(HookBase):
 
     def after_step(self):
         next_iter = self.trainer.iter + 1
-        if self._period > 0 and next_iter % self._period == 0:
-            # do the last eval in after_train
-            if next_iter != self.trainer.max_iter:
-                self._do_eval()
+        if (self._period > 0 and next_iter % self._period == 0
+                and next_iter != self.trainer.max_iter):
+            self._do_eval()
 
     def after_train(self):
         # This condition is to prevent the eval from running after a failed training
@@ -617,15 +623,16 @@ class PreciseBN(HookBase):
             for num_iter in itertools.count(1):
                 if num_iter % 100 == 0:
                     self._logger.info(
-                        "Running precise-BN ... {}/{} iterations.".format(num_iter, self._num_iter)
-                    )
+                        "Running precise-BN ... {}/{} iterations.".format(
+                            num_iter, self._num_iter))
                 # This way we can reuse the same iterator
                 yield next(self._data_iter)
 
         with EventStorage():  # capture events in a new storage to discard them
             self._logger.info(
-                "Running precise-BN for {} iterations...  ".format(self._num_iter)
-                + "Note that this could produce different statistics every time."
+                "Running precise-BN for {} iterations...  ".format(
+                    self._num_iter) +
+                "Note that this could produce different statistics every time."
             )
             update_bn_stats(self._model, data_loader(), self._num_iter)
 
@@ -651,34 +658,31 @@ class TorchMemoryStats(HookBase):
         if self._runs > self._max_runs:
             return
 
-        if (self.trainer.iter + 1) % self._period == 0 or (
-            self.trainer.iter == self.trainer.max_iter - 1
-        ):
-            if torch.cuda.is_available():
-                max_reserved_mb = torch.cuda.max_memory_reserved() / 1024.0 / 1024.0
-                reserved_mb = torch.cuda.memory_reserved() / 1024.0 / 1024.0
-                max_allocated_mb = torch.cuda.max_memory_allocated() / 1024.0 / 1024.0
-                allocated_mb = torch.cuda.memory_allocated() / 1024.0 / 1024.0
+        if ((self.trainer.iter + 1) % self._period == 0 or
+            (self.trainer.iter
+             == self.trainer.max_iter - 1)) and torch.cuda.is_available():
+            max_reserved_mb = torch.cuda.max_memory_reserved(
+            ) / 1024.0 / 1024.0
+            reserved_mb = torch.cuda.memory_reserved() / 1024.0 / 1024.0
+            max_allocated_mb = torch.cuda.max_memory_allocated(
+            ) / 1024.0 / 1024.0
+            allocated_mb = torch.cuda.memory_allocated() / 1024.0 / 1024.0
 
-                self._logger.info(
-                    (
-                        " iter: {} "
-                        " max_reserved_mem: {:.0f}MB "
-                        " reserved_mem: {:.0f}MB "
-                        " max_allocated_mem: {:.0f}MB "
-                        " allocated_mem: {:.0f}MB "
-                    ).format(
-                        self.trainer.iter,
-                        max_reserved_mb,
-                        reserved_mb,
-                        max_allocated_mb,
-                        allocated_mb,
-                    )
-                )
+            self._logger.info((" iter: {} "
+                               " max_reserved_mem: {:.0f}MB "
+                               " reserved_mem: {:.0f}MB "
+                               " max_allocated_mem: {:.0f}MB "
+                               " allocated_mem: {:.0f}MB ").format(
+                                   self.trainer.iter,
+                                   max_reserved_mb,
+                                   reserved_mb,
+                                   max_allocated_mb,
+                                   allocated_mb,
+                               ))
 
-                self._runs += 1
-                if self._runs == self._max_runs:
-                    mem_summary = torch.cuda.memory_summary()
-                    self._logger.info("\n" + mem_summary)
+            self._runs += 1
+            if self._runs == self._max_runs:
+                mem_summary = torch.cuda.memory_summary()
+                self._logger.info("\n" + mem_summary)
 
-                torch.cuda.reset_peak_memory_stats()
+            torch.cuda.reset_peak_memory_stats()

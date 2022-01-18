@@ -1,21 +1,26 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 import logging
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
+
 import numpy as np
-from typing import Dict, List, Optional, Tuple
 import torch
 from torch import nn
 
-from detectron2.config import configurable
-from detectron2.data.detection_utils import convert_image_to_rgb
-from detectron2.structures import ImageList, Instances
-from detectron2.utils.events import get_event_storage
-from detectron2.utils.logger import log_first_n
-
-from ..backbone import Backbone, build_backbone
+from ..backbone import Backbone
+from ..backbone import build_backbone
 from ..postprocessing import detector_postprocess
 from ..proposal_generator import build_proposal_generator
 from ..roi_heads import build_roi_heads
 from .build import META_ARCH_REGISTRY
+from detectron2.config import configurable
+from detectron2.data.detection_utils import convert_image_to_rgb
+from detectron2.structures import ImageList
+from detectron2.structures import Instances
+from detectron2.utils.events import get_event_storage
+from detectron2.utils.logger import log_first_n
 
 __all__ = ["GeneralizedRCNN", "ProposalNetwork"]
 
@@ -59,10 +64,13 @@ class GeneralizedRCNN(nn.Module):
         self.input_format = input_format
         self.vis_period = vis_period
         if vis_period > 0:
-            assert input_format is not None, "input_format is required for visualization!"
+            assert (input_format
+                    is not None), "input_format is required for visualization!"
 
-        self.register_buffer("pixel_mean", torch.tensor(pixel_mean).view(-1, 1, 1), False)
-        self.register_buffer("pixel_std", torch.tensor(pixel_std).view(-1, 1, 1), False)
+        self.register_buffer("pixel_mean",
+                             torch.tensor(pixel_mean).view(-1, 1, 1), False)
+        self.register_buffer("pixel_std",
+                             torch.tensor(pixel_std).view(-1, 1, 1), False)
         assert (
             self.pixel_mean.shape == self.pixel_std.shape
         ), f"{self.pixel_mean} and {self.pixel_std} have different shapes!"
@@ -71,13 +79,20 @@ class GeneralizedRCNN(nn.Module):
     def from_config(cls, cfg):
         backbone = build_backbone(cfg)
         return {
-            "backbone": backbone,
-            "proposal_generator": build_proposal_generator(cfg, backbone.output_shape()),
-            "roi_heads": build_roi_heads(cfg, backbone.output_shape()),
-            "input_format": cfg.INPUT.FORMAT,
-            "vis_period": cfg.VIS_PERIOD,
-            "pixel_mean": cfg.MODEL.PIXEL_MEAN,
-            "pixel_std": cfg.MODEL.PIXEL_STD,
+            "backbone":
+            backbone,
+            "proposal_generator":
+            build_proposal_generator(cfg, backbone.output_shape()),
+            "roi_heads":
+            build_roi_heads(cfg, backbone.output_shape()),
+            "input_format":
+            cfg.INPUT.FORMAT,
+            "vis_period":
+            cfg.VIS_PERIOD,
+            "pixel_mean":
+            cfg.MODEL.PIXEL_MEAN,
+            "pixel_std":
+            cfg.MODEL.PIXEL_STD,
         }
 
     @property
@@ -110,8 +125,8 @@ class GeneralizedRCNN(nn.Module):
             box_size = min(len(prop.proposal_boxes), max_vis_prop)
             v_pred = Visualizer(img, None)
             v_pred = v_pred.overlay_instances(
-                boxes=prop.proposal_boxes[0:box_size].tensor.cpu().numpy()
-            )
+                boxes=prop.proposal_boxes[:box_size].tensor.cpu().numpy())
+
             prop_img = v_pred.get_image()
             vis_img = np.concatenate((anno_img, prop_img), axis=1)
             vis_img = vis_img.transpose(2, 0, 1)
@@ -147,20 +162,26 @@ class GeneralizedRCNN(nn.Module):
 
         images = self.preprocess_image(batched_inputs)
         if "instances" in batched_inputs[0]:
-            gt_instances = [x["instances"].to(self.device) for x in batched_inputs]
+            gt_instances = [
+                x["instances"].to(self.device) for x in batched_inputs
+            ]
         else:
             gt_instances = None
 
         features = self.backbone(images.tensor)
 
         if self.proposal_generator is not None:
-            proposals, proposal_losses = self.proposal_generator(images, features, gt_instances)
+            proposals, proposal_losses = self.proposal_generator(
+                images, features, gt_instances)
         else:
             assert "proposals" in batched_inputs[0]
-            proposals = [x["proposals"].to(self.device) for x in batched_inputs]
+            proposals = [
+                x["proposals"].to(self.device) for x in batched_inputs
+            ]
             proposal_losses = {}
 
-        _, detector_losses = self.roi_heads(images, features, proposals, gt_instances)
+        _, detector_losses = self.roi_heads(images, features, proposals,
+                                            gt_instances)
         if self.vis_period > 0:
             storage = get_event_storage()
             if storage.iter % self.vis_period == 0:
@@ -204,16 +225,23 @@ class GeneralizedRCNN(nn.Module):
                 proposals, _ = self.proposal_generator(images, features, None)
             else:
                 assert "proposals" in batched_inputs[0]
-                proposals = [x["proposals"].to(self.device) for x in batched_inputs]
+                proposals = [
+                    x["proposals"].to(self.device) for x in batched_inputs
+                ]
 
             results, _ = self.roi_heads(images, features, proposals, None)
         else:
-            detected_instances = [x.to(self.device) for x in detected_instances]
-            results = self.roi_heads.forward_with_given_boxes(features, detected_instances)
+            detected_instances = [
+                x.to(self.device) for x in detected_instances
+            ]
+            results = self.roi_heads.forward_with_given_boxes(
+                features, detected_instances)
 
         if do_postprocess:
-            assert not torch.jit.is_scripting(), "Scripting is not supported for postprocess."
-            return GeneralizedRCNN._postprocess(results, batched_inputs, images.image_sizes)
+            assert (not torch.jit.is_scripting()
+                    ), "Scripting is not supported for postprocess."
+            return GeneralizedRCNN._postprocess(results, batched_inputs,
+                                                images.image_sizes)
         else:
             return results
 
@@ -223,19 +251,20 @@ class GeneralizedRCNN(nn.Module):
         """
         images = [x["image"].to(self.device) for x in batched_inputs]
         images = [(x - self.pixel_mean) / self.pixel_std for x in images]
-        images = ImageList.from_tensors(images, self.backbone.size_divisibility)
+        images = ImageList.from_tensors(images,
+                                        self.backbone.size_divisibility)
         return images
 
     @staticmethod
-    def _postprocess(instances, batched_inputs: List[Dict[str, torch.Tensor]], image_sizes):
+    def _postprocess(instances, batched_inputs: List[Dict[str, torch.Tensor]],
+                     image_sizes):
         """
         Rescale the output instances to the target size.
         """
         # note: private function; subject to changes
         processed_results = []
         for results_per_image, input_per_image, image_size in zip(
-            instances, batched_inputs, image_sizes
-        ):
+                instances, batched_inputs, image_sizes):
             height = input_per_image.get("height", image_size[0])
             width = input_per_image.get("width", image_size[1])
             r = detector_postprocess(results_per_image, height, width)
@@ -268,17 +297,23 @@ class ProposalNetwork(nn.Module):
         super().__init__()
         self.backbone = backbone
         self.proposal_generator = proposal_generator
-        self.register_buffer("pixel_mean", torch.tensor(pixel_mean).view(-1, 1, 1), False)
-        self.register_buffer("pixel_std", torch.tensor(pixel_std).view(-1, 1, 1), False)
+        self.register_buffer("pixel_mean",
+                             torch.tensor(pixel_mean).view(-1, 1, 1), False)
+        self.register_buffer("pixel_std",
+                             torch.tensor(pixel_std).view(-1, 1, 1), False)
 
     @classmethod
     def from_config(cls, cfg):
         backbone = build_backbone(cfg)
         return {
-            "backbone": backbone,
-            "proposal_generator": build_proposal_generator(cfg, backbone.output_shape()),
-            "pixel_mean": cfg.MODEL.PIXEL_MEAN,
-            "pixel_std": cfg.MODEL.PIXEL_STD,
+            "backbone":
+            backbone,
+            "proposal_generator":
+            build_proposal_generator(cfg, backbone.output_shape()),
+            "pixel_mean":
+            cfg.MODEL.PIXEL_MEAN,
+            "pixel_std":
+            cfg.MODEL.PIXEL_STD,
         }
 
     @property
@@ -298,19 +333,27 @@ class ProposalNetwork(nn.Module):
         """
         images = [x["image"].to(self.device) for x in batched_inputs]
         images = [(x - self.pixel_mean) / self.pixel_std for x in images]
-        images = ImageList.from_tensors(images, self.backbone.size_divisibility)
+        images = ImageList.from_tensors(images,
+                                        self.backbone.size_divisibility)
         features = self.backbone(images.tensor)
 
         if "instances" in batched_inputs[0]:
-            gt_instances = [x["instances"].to(self.device) for x in batched_inputs]
+            gt_instances = [
+                x["instances"].to(self.device) for x in batched_inputs
+            ]
         elif "targets" in batched_inputs[0]:
             log_first_n(
-                logging.WARN, "'targets' in the model inputs is now renamed to 'instances'!", n=10
+                logging.WARN,
+                "'targets' in the model inputs is now renamed to 'instances'!",
+                n=10,
             )
-            gt_instances = [x["targets"].to(self.device) for x in batched_inputs]
+            gt_instances = [
+                x["targets"].to(self.device) for x in batched_inputs
+            ]
         else:
             gt_instances = None
-        proposals, proposal_losses = self.proposal_generator(images, features, gt_instances)
+        proposals, proposal_losses = self.proposal_generator(
+            images, features, gt_instances)
         # In training, the proposals are not useful at all but we generate them anyway.
         # This makes RPN-only models about 5% slower.
         if self.training:
@@ -318,8 +361,7 @@ class ProposalNetwork(nn.Module):
 
         processed_results = []
         for results_per_image, input_per_image, image_size in zip(
-            proposals, batched_inputs, images.image_sizes
-        ):
+                proposals, batched_inputs, images.image_sizes):
             height = input_per_image.get("height", image_size[0])
             width = input_per_image.get("width", image_size[1])
             r = detector_postprocess(results_per_image, height, width)

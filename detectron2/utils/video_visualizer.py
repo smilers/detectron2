@@ -2,14 +2,11 @@
 import numpy as np
 import pycocotools.mask as mask_util
 
-from detectron2.utils.visualizer import (
-    ColorMode,
-    Visualizer,
-    _create_text_labels,
-    _PanopticPrediction,
-)
-
 from .colormap import random_color
+from detectron2.utils.visualizer import _create_text_labels
+from detectron2.utils.visualizer import _PanopticPrediction
+from detectron2.utils.visualizer import ColorMode
+from detectron2.utils.visualizer import Visualizer
 
 
 class _DetectedInstance:
@@ -37,6 +34,7 @@ class _DetectedInstance:
 
 
 class VideoVisualizer:
+
     def __init__(self, metadata, instance_mode=ColorMode.IMAGE):
         """
         Args:
@@ -68,38 +66,39 @@ class VideoVisualizer:
         if num_instances == 0:
             return frame_visualizer.output
 
-        boxes = predictions.pred_boxes.tensor.numpy() if predictions.has("pred_boxes") else None
+        boxes = (predictions.pred_boxes.tensor.numpy()
+                 if predictions.has("pred_boxes") else None)
         scores = predictions.scores if predictions.has("scores") else None
-        classes = predictions.pred_classes.numpy() if predictions.has("pred_classes") else None
-        keypoints = predictions.pred_keypoints if predictions.has("pred_keypoints") else None
+        classes = (predictions.pred_classes.numpy()
+                   if predictions.has("pred_classes") else None)
+        keypoints = (predictions.pred_keypoints
+                     if predictions.has("pred_keypoints") else None)
 
-        if predictions.has("pred_masks"):
-            masks = predictions.pred_masks
-            # mask IOU is not yet enabled
-            # masks_rles = mask_util.encode(np.asarray(masks.permute(1, 2, 0), order="F"))
-            # assert len(masks_rles) == num_instances
-        else:
-            masks = None
-
+        masks = predictions.pred_masks if predictions.has(
+            "pred_masks") else None
         detected = [
-            _DetectedInstance(classes[i], boxes[i], mask_rle=None, color=None, ttl=8)
-            for i in range(num_instances)
+            _DetectedInstance(classes[i],
+                              boxes[i],
+                              mask_rle=None,
+                              color=None,
+                              ttl=8) for i in range(num_instances)
         ]
         colors = self._assign_colors(detected)
 
-        labels = _create_text_labels(classes, scores, self.metadata.get("thing_classes", None))
+        labels = _create_text_labels(classes, scores,
+                                     self.metadata.get("thing_classes", None))
 
         if self._instance_mode == ColorMode.IMAGE_BW:
             # any() returns uint8 tensor
             frame_visualizer.output.img = frame_visualizer._create_grayscale_image(
-                (masks.any(dim=0) > 0).numpy() if masks is not None else None
-            )
+                (masks.any(dim=0) > 0).numpy() if masks is not None else None)
             alpha = 0.3
         else:
             alpha = 0.5
 
         frame_visualizer.overlay_instances(
-            boxes=None if masks is not None else boxes,  # boxes are a bit distracting
+            boxes=None
+            if masks is not None else boxes,  # boxes are a bit distracting
             masks=masks,
             labels=labels,
             keypoints=keypoints,
@@ -121,22 +120,26 @@ class VideoVisualizer:
         frame_visualizer.draw_sem_seg(sem_seg, area_threshold=None)
         return frame_visualizer.output
 
-    def draw_panoptic_seg_predictions(
-        self, frame, panoptic_seg, segments_info, area_threshold=None, alpha=0.5
-    ):
+    def draw_panoptic_seg_predictions(self,
+                                      frame,
+                                      panoptic_seg,
+                                      segments_info,
+                                      area_threshold=None,
+                                      alpha=0.5):
         frame_visualizer = Visualizer(frame, self.metadata)
         pred = _PanopticPrediction(panoptic_seg, segments_info, self.metadata)
 
         if self._instance_mode == ColorMode.IMAGE_BW:
             frame_visualizer.output.img = frame_visualizer._create_grayscale_image(
-                pred.non_empty_mask()
-            )
+                pred.non_empty_mask())
 
         # draw mask for all semantic segments first i.e. "stuff"
         for mask, sinfo in pred.semantic_masks():
             category_idx = sinfo["category_id"]
             try:
-                mask_color = [x / 255 for x in self.metadata.stuff_colors[category_idx]]
+                mask_color = [
+                    x / 255 for x in self.metadata.stuff_colors[category_idx]
+                ]
             except AttributeError:
                 mask_color = None
 
@@ -149,20 +152,24 @@ class VideoVisualizer:
             )
 
         all_instances = list(pred.instance_masks())
-        if len(all_instances) == 0:
+        if not all_instances:
             return frame_visualizer.output
         # draw mask for all instances second
         masks, sinfo = list(zip(*all_instances))
         num_instances = len(masks)
         masks_rles = mask_util.encode(
-            np.asarray(np.asarray(masks).transpose(1, 2, 0), dtype=np.uint8, order="F")
-        )
+            np.asarray(np.asarray(masks).transpose(1, 2, 0),
+                       dtype=np.uint8,
+                       order="F"))
         assert len(masks_rles) == num_instances
 
         category_ids = [x["category_id"] for x in sinfo]
         detected = [
-            _DetectedInstance(category_ids[i], bbox=None, mask_rle=masks_rles[i], color=None, ttl=8)
-            for i in range(num_instances)
+            _DetectedInstance(category_ids[i],
+                              bbox=None,
+                              mask_rle=masks_rles[i],
+                              color=None,
+                              ttl=8) for i in range(num_instances)
         ]
         colors = self._assign_colors(detected)
         labels = [self.metadata.thing_classes[k] for k in category_ids]
@@ -187,7 +194,7 @@ class VideoVisualizer:
         """
 
         # Compute iou with either boxes or masks:
-        is_crowd = np.zeros((len(instances),), dtype=np.bool)
+        is_crowd = np.zeros((len(instances), ), dtype=np.bool)
         if instances[0].bbox is None:
             assert instances[0].mask_rle is not None
             # use mask iou only when box iou is None
@@ -202,7 +209,8 @@ class VideoVisualizer:
             ious = mask_util.iou(boxes_old, boxes_new, is_crowd)
             threshold = 0.6
         if len(ious) == 0:
-            ious = np.zeros((len(self._old_instances), len(instances)), dtype="float32")
+            ious = np.zeros((len(self._old_instances), len(instances)),
+                            dtype="float32")
 
         # Only allow matching instances of the same label:
         for old_idx, old in enumerate(self._old_instances):

@@ -1,6 +1,10 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 from __future__ import division
-from typing import Any, List, Tuple
+
+from typing import Any
+from typing import List
+from typing import Tuple
+
 import torch
 from torch import device
 from torch.nn import functional as F
@@ -14,7 +18,8 @@ def _as_tensor(x: Tuple[int, int]) -> torch.Tensor:
     """
     if torch.jit.is_scripting():
         return torch.as_tensor(x)
-    if isinstance(x, (list, tuple)) and all([isinstance(t, torch.Tensor) for t in x]):
+    if isinstance(x, (list, tuple)) and all(
+            isinstance(t, torch.Tensor) for t in x):
         return torch.stack(x)
     return torch.as_tensor(x)
 
@@ -31,7 +36,8 @@ class ImageList(object):
             During tracing, it becomes list[Tensor] instead.
     """
 
-    def __init__(self, tensor: torch.Tensor, image_sizes: List[Tuple[int, int]]):
+    def __init__(self, tensor: torch.Tensor, image_sizes: List[Tuple[int,
+                                                                     int]]):
         """
         Arguments:
             tensor (Tensor): of shape (N, H, W) or (N, C_1, ..., C_K, H, W) where K >= 1
@@ -55,7 +61,7 @@ class ImageList(object):
             Tensor: an image of shape (H, W) or (C_1, ..., C_K, H, W) where K >= 1
         """
         size = self.image_sizes[idx]
-        return self.tensor[idx, ..., : size[0], : size[1]]
+        return self.tensor[idx, ..., :size[0], :size[1]]
 
     @torch.jit.unused
     def to(self, *args: Any, **kwargs: Any) -> "ImageList":
@@ -67,9 +73,9 @@ class ImageList(object):
         return self.tensor.device
 
     @staticmethod
-    def from_tensors(
-        tensors: List[torch.Tensor], size_divisibility: int = 0, pad_value: float = 0.0
-    ) -> "ImageList":
+    def from_tensors(tensors: List[torch.Tensor],
+                     size_divisibility: int = 0,
+                     pad_value: float = 0.0) -> "ImageList":
         """
         Args:
             tensors: a tuple or list of `torch.Tensor`, each of shape (Hi, Wi) or
@@ -101,21 +107,27 @@ class ImageList(object):
         # handle weirdness of scripting and tracing ...
         if torch.jit.is_scripting():
             max_size: List[int] = max_size.to(dtype=torch.long).tolist()
-        else:
-            if torch.jit.is_tracing():
-                image_sizes = image_sizes_tensor
+        elif torch.jit.is_tracing():
+            image_sizes = image_sizes_tensor
 
         if len(tensors) == 1:
             # This seems slightly (2%) faster.
             # TODO: check whether it's faster for multiple images as well
             image_size = image_sizes[0]
-            padding_size = [0, max_size[-1] - image_size[1], 0, max_size[-2] - image_size[0]]
-            batched_imgs = F.pad(tensors[0], padding_size, value=pad_value).unsqueeze_(0)
+            padding_size = [
+                0,
+                max_size[-1] - image_size[1],
+                0,
+                max_size[-2] - image_size[0],
+            ]
+            batched_imgs = F.pad(tensors[0], padding_size,
+                                 value=pad_value).unsqueeze_(0)
         else:
             # max_size can be a tensor in tracing mode, therefore convert to list
-            batch_shape = [len(tensors)] + list(tensors[0].shape[:-2]) + list(max_size)
+            batch_shape = [len(tensors)] + list(
+                tensors[0].shape[:-2]) + list(max_size)
             batched_imgs = tensors[0].new_full(batch_shape, pad_value)
             for img, pad_img in zip(tensors, batched_imgs):
-                pad_img[..., : img.shape[-2], : img.shape[-1]].copy_(img)
+                pad_img[..., :img.shape[-2], :img.shape[-1]].copy_(img)
 
         return ImageList(batched_imgs.contiguous(), image_sizes)

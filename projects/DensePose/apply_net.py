@@ -1,47 +1,43 @@
 #!/usr/bin/env python3
 # Copyright (c) Facebook, Inc. and its affiliates.
-
 import argparse
 import glob
 import logging
 import os
 import pickle
 import sys
-from typing import Any, ClassVar, Dict, List
-import torch
+from typing import Any
+from typing import ClassVar
+from typing import Dict
+from typing import List
 
-from detectron2.config import CfgNode, get_cfg
+import torch
+from densepose import add_densepose_config
+from densepose.structures import DensePoseChartPredictorOutput
+from densepose.structures import DensePoseEmbeddingPredictorOutput
+from densepose.utils.logger import verbosity_to_level
+from densepose.vis.base import CompoundVisualizer
+from densepose.vis.bounding_box import ScoredBoundingBoxVisualizer
+from densepose.vis.densepose_outputs_vertex import DensePoseOutputsTextureVisualizer
+from densepose.vis.densepose_outputs_vertex import DensePoseOutputsVertexVisualizer
+from densepose.vis.densepose_outputs_vertex import get_texture_atlases
+from densepose.vis.densepose_results import DensePoseResultsContourVisualizer
+from densepose.vis.densepose_results import DensePoseResultsFineSegmentationVisualizer
+from densepose.vis.densepose_results import DensePoseResultsUVisualizer
+from densepose.vis.densepose_results import DensePoseResultsVVisualizer
+from densepose.vis.densepose_results_textures import DensePoseResultsVisualizerWithTexture
+from densepose.vis.densepose_results_textures import get_texture_atlas
+from densepose.vis.extractor import CompoundExtractor
+from densepose.vis.extractor import create_extractor
+from densepose.vis.extractor import DensePoseOutputsExtractor
+from densepose.vis.extractor import DensePoseResultExtractor
+
+from detectron2.config import CfgNode
+from detectron2.config import get_cfg
 from detectron2.data.detection_utils import read_image
 from detectron2.engine.defaults import DefaultPredictor
 from detectron2.structures.instances import Instances
 from detectron2.utils.logger import setup_logger
-
-from densepose import add_densepose_config
-from densepose.structures import DensePoseChartPredictorOutput, DensePoseEmbeddingPredictorOutput
-from densepose.utils.logger import verbosity_to_level
-from densepose.vis.base import CompoundVisualizer
-from densepose.vis.bounding_box import ScoredBoundingBoxVisualizer
-from densepose.vis.densepose_outputs_vertex import (
-    DensePoseOutputsTextureVisualizer,
-    DensePoseOutputsVertexVisualizer,
-    get_texture_atlases,
-)
-from densepose.vis.densepose_results import (
-    DensePoseResultsContourVisualizer,
-    DensePoseResultsFineSegmentationVisualizer,
-    DensePoseResultsUVisualizer,
-    DensePoseResultsVVisualizer,
-)
-from densepose.vis.densepose_results_textures import (
-    DensePoseResultsVisualizerWithTexture,
-    get_texture_atlas,
-)
-from densepose.vis.extractor import (
-    CompoundExtractor,
-    DensePoseOutputsExtractor,
-    DensePoseResultExtractor,
-    create_extractor,
-)
 
 DOC = """Apply Net - a tool to print / visualize DensePose results
 """
@@ -53,6 +49,7 @@ _ACTION_REGISTRY: Dict[str, "Action"] = {}
 
 
 class Action(object):
+
     @classmethod
     def add_arguments(cls: type, parser: argparse.ArgumentParser):
         parser.add_argument(
@@ -73,6 +70,7 @@ def register_action(cls: type):
 
 
 class InferenceAction(Action):
+
     @classmethod
     def add_arguments(cls: type, parser: argparse.ArgumentParser):
         super(InferenceAction, cls).add_arguments(parser)
@@ -81,7 +79,8 @@ class InferenceAction(Action):
         parser.add_argument("input", metavar="<input>", help="Input data")
         parser.add_argument(
             "--opts",
-            help="Modify config options using the command-line 'KEY VALUE' pairs",
+            help=
+            "Modify config options using the command-line 'KEY VALUE' pairs",
             default=[],
             nargs=argparse.REMAINDER,
         )
@@ -100,15 +99,23 @@ class InferenceAction(Action):
             return
         context = cls.create_context(args, cfg)
         for file_name in file_list:
-            img = read_image(file_name, format="BGR")  # predictor expects BGR image.
+            img = read_image(file_name,
+                             format="BGR")  # predictor expects BGR image.
             with torch.no_grad():
                 outputs = predictor(img)["instances"]
-                cls.execute_on_outputs(context, {"file_name": file_name, "image": img}, outputs)
+                cls.execute_on_outputs(context, {
+                    "file_name": file_name,
+                    "image": img
+                }, outputs)
         cls.postexecute(context)
 
     @classmethod
     def setup_config(
-        cls: type, config_fpath: str, model_fpath: str, args: argparse.Namespace, opts: List[str]
+        cls: type,
+        config_fpath: str,
+        model_fpath: str,
+        args: argparse.Namespace,
+        opts: List[str],
     ):
         cfg = get_cfg()
         add_densepose_config(cfg)
@@ -123,16 +130,15 @@ class InferenceAction(Action):
     @classmethod
     def _get_input_file_list(cls: type, input_spec: str):
         if os.path.isdir(input_spec):
-            file_list = [
+            return [
                 os.path.join(input_spec, fname)
                 for fname in os.listdir(input_spec)
                 if os.path.isfile(os.path.join(input_spec, fname))
             ]
         elif os.path.isfile(input_spec):
-            file_list = [input_spec]
+            return [input_spec]
         else:
-            file_list = glob.glob(input_spec)
-        return file_list
+            return glob.glob(input_spec)
 
 
 @register_action
@@ -145,7 +151,8 @@ class DumpAction(InferenceAction):
 
     @classmethod
     def add_parser(cls: type, subparsers: argparse._SubParsersAction):
-        parser = subparsers.add_parser(cls.COMMAND, help="Dump model outputs to a file.")
+        parser = subparsers.add_parser(cls.COMMAND,
+                                       help="Dump model outputs to a file.")
         cls.add_arguments(parser)
         parser.set_defaults(func=cls.execute)
 
@@ -160,9 +167,8 @@ class DumpAction(InferenceAction):
         )
 
     @classmethod
-    def execute_on_outputs(
-        cls: type, context: Dict[str, Any], entry: Dict[str, Any], outputs: Instances
-    ):
+    def execute_on_outputs(cls: type, context: Dict[str, Any],
+                           entry: Dict[str, Any], outputs: Instances):
         image_fpath = entry["file_name"]
         logger.info(f"Processing {image_fpath}")
         result = {"file_name": image_fpath}
@@ -171,17 +177,18 @@ class DumpAction(InferenceAction):
         if outputs.has("pred_boxes"):
             result["pred_boxes_XYXY"] = outputs.get("pred_boxes").tensor.cpu()
             if outputs.has("pred_densepose"):
-                if isinstance(outputs.pred_densepose, DensePoseChartPredictorOutput):
+                if isinstance(outputs.pred_densepose,
+                              DensePoseChartPredictorOutput):
                     extractor = DensePoseResultExtractor()
-                elif isinstance(outputs.pred_densepose, DensePoseEmbeddingPredictorOutput):
+                elif isinstance(outputs.pred_densepose,
+                                DensePoseEmbeddingPredictorOutput):
                     extractor = DensePoseOutputsExtractor()
                 result["pred_densepose"] = extractor(outputs)[0]
         context["results"].append(result)
 
     @classmethod
     def create_context(cls: type, args: argparse.Namespace, cfg: CfgNode):
-        context = {"results": [], "out_fname": args.output}
-        return context
+        return {"results": [], "out_fname": args.output}
 
     @classmethod
     def postexecute(cls: type, context: Dict[str, Any]):
@@ -214,7 +221,8 @@ class ShowAction(InferenceAction):
 
     @classmethod
     def add_parser(cls: type, subparsers: argparse._SubParsersAction):
-        parser = subparsers.add_parser(cls.COMMAND, help="Visualize selected entries")
+        parser = subparsers.add_parser(cls.COMMAND,
+                                       help="Visualize selected entries")
         cls.add_arguments(parser)
         parser.set_defaults(func=cls.execute)
 
@@ -235,7 +243,11 @@ class ShowAction(InferenceAction):
             help="Minimum detection score to visualize",
         )
         parser.add_argument(
-            "--nms_thresh", metavar="<threshold>", default=None, type=float, help="NMS threshold"
+            "--nms_thresh",
+            metavar="<threshold>",
+            default=None,
+            type=float,
+            help="NMS threshold",
         )
         parser.add_argument(
             "--texture_atlas",
@@ -247,7 +259,8 @@ class ShowAction(InferenceAction):
             "--texture_atlases_map",
             metavar="<texture_atlases_map>",
             default=None,
-            help="JSON string of a dict containing texture atlas files for each mesh",
+            help=
+            "JSON string of a dict containing texture atlas files for each mesh",
         )
         parser.add_argument(
             "--output",
@@ -258,22 +271,25 @@ class ShowAction(InferenceAction):
 
     @classmethod
     def setup_config(
-        cls: type, config_fpath: str, model_fpath: str, args: argparse.Namespace, opts: List[str]
+        cls: type,
+        config_fpath: str,
+        model_fpath: str,
+        args: argparse.Namespace,
+        opts: List[str],
     ):
         opts.append("MODEL.ROI_HEADS.SCORE_THRESH_TEST")
         opts.append(str(args.min_score))
         if args.nms_thresh is not None:
             opts.append("MODEL.ROI_HEADS.NMS_THRESH_TEST")
             opts.append(str(args.nms_thresh))
-        cfg = super(ShowAction, cls).setup_config(config_fpath, model_fpath, args, opts)
-        return cfg
+        return super(ShowAction, cls).setup_config(config_fpath, model_fpath,
+                                                   args, opts)
 
     @classmethod
-    def execute_on_outputs(
-        cls: type, context: Dict[str, Any], entry: Dict[str, Any], outputs: Instances
-    ):
-        import cv2
+    def execute_on_outputs(cls: type, context: Dict[str, Any],
+                           entry: Dict[str, Any], outputs: Instances):
         import numpy as np
+        import cv2
 
         visualizer = context["visualizer"]
         extractor = context["extractor"]
@@ -302,13 +318,15 @@ class ShowAction(InferenceAction):
         return base + ".{0:04d}".format(entry_idx) + ext
 
     @classmethod
-    def create_context(cls: type, args: argparse.Namespace, cfg: CfgNode) -> Dict[str, Any]:
+    def create_context(cls: type, args: argparse.Namespace,
+                       cfg: CfgNode) -> Dict[str, Any]:
         vis_specs = args.visualizations.split(",")
         visualizers = []
         extractors = []
         for vis_spec in vis_specs:
             texture_atlas = get_texture_atlas(args.texture_atlas)
-            texture_atlases_dict = get_texture_atlases(args.texture_atlases_map)
+            texture_atlases_dict = get_texture_atlases(
+                args.texture_atlases_map)
             vis = cls.VISUALIZERS[vis_spec](
                 cfg=cfg,
                 texture_atlas=texture_atlas,
@@ -319,19 +337,19 @@ class ShowAction(InferenceAction):
             extractors.append(extractor)
         visualizer = CompoundVisualizer(visualizers)
         extractor = CompoundExtractor(extractors)
-        context = {
+        return {
             "extractor": extractor,
             "visualizer": visualizer,
             "out_fname": args.output,
             "entry_idx": 0,
         }
-        return context
 
 
 def create_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=DOC,
-        formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=120),
+        formatter_class=lambda prog: argparse.HelpFormatter(
+            prog, max_help_position=120),
     )
     parser.set_defaults(func=lambda _: parser.print_help(sys.stdout))
     subparsers = parser.add_subparsers(title="Actions")

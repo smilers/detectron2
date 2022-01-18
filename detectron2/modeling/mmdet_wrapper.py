@@ -1,19 +1,28 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 import itertools
 import logging
-import numpy as np
 from collections import OrderedDict
 from collections.abc import Mapping
-from typing import Dict, List, Optional, Tuple, Union
-import torch
-from omegaconf import DictConfig, OmegaConf
-from torch import Tensor, nn
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
+from typing import Union
 
-from detectron2.layers import ShapeSpec
-from detectron2.structures import BitMasks, Boxes, ImageList, Instances
-from detectron2.utils.events import get_event_storage
+import numpy as np
+import torch
+from omegaconf import DictConfig
+from omegaconf import OmegaConf
+from torch import nn
+from torch import Tensor
 
 from .backbone import Backbone
+from detectron2.layers import ShapeSpec
+from detectron2.structures import BitMasks
+from detectron2.structures import Boxes
+from detectron2.structures import ImageList
+from detectron2.structures import Instances
+from detectron2.utils.events import get_event_storage
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +90,8 @@ class MMDetBackbone(Backbone):
         # but "neck" weights, if any, are part of neck itself. This is the interface
         # of mmdet so we follow it. Reference:
         # https://github.com/open-mmlab/mmdetection/blob/master/mmdet/models/detectors/two_stage.py
-        logger.info(f"Initializing mmdet backbone weights: {pretrained_backbone} ...")
+        logger.info(
+            f"Initializing mmdet backbone weights: {pretrained_backbone} ...")
         self.backbone.init_weights(pretrained_backbone)
         # train() in mmdet modules is non-trivial, and has to be explicitly
         # called. Reference:
@@ -106,17 +116,17 @@ class MMDetBackbone(Backbone):
         if self.neck is not None:
             outs = self.neck(outs)
         assert isinstance(
-            outs, (list, tuple)
-        ), "mmdet backbone should return a list/tuple of tensors!"
+            outs,
+            (list,
+             tuple)), "mmdet backbone should return a list/tuple of tensors!"
         if len(outs) != len(self._output_shapes):
             raise ValueError(
                 "Length of output_shapes does not match outputs from the mmdet backbone: "
-                f"{len(outs)} != {len(self._output_shapes)}"
-            )
-        return {k: v for k, v in zip(self._output_names, outs)}
+                f"{len(outs)} != {len(self._output_shapes)}")
+        return dict(zip(self._output_names, outs))
 
     def output_shape(self) -> Dict[str, ShapeSpec]:
-        return {k: v for k, v in zip(self._output_names, self._output_shapes)}
+        return dict(zip(self._output_names, self._output_shapes))
 
 
 class MMDetDetector(nn.Module):
@@ -151,8 +161,10 @@ class MMDetDetector(nn.Module):
         self.detector = detector
         self.size_divisibility = size_divisibility
 
-        self.register_buffer("pixel_mean", torch.tensor(pixel_mean).view(-1, 1, 1), False)
-        self.register_buffer("pixel_std", torch.tensor(pixel_std).view(-1, 1, 1), False)
+        self.register_buffer("pixel_mean",
+                             torch.tensor(pixel_mean).view(-1, 1, 1), False)
+        self.register_buffer("pixel_std",
+                             torch.tensor(pixel_std).view(-1, 1, 1), False)
         assert (
             self.pixel_mean.shape == self.pixel_std.shape
         ), f"{self.pixel_mean} and {self.pixel_std} have different shapes!"
@@ -160,11 +172,13 @@ class MMDetDetector(nn.Module):
     def forward(self, batched_inputs: List[Dict[str, torch.Tensor]]):
         images = [x["image"].to(self.device) for x in batched_inputs]
         images = [(x - self.pixel_mean) / self.pixel_std for x in images]
-        images = ImageList.from_tensors(images, size_divisibility=self.size_divisibility).tensor
+        images = ImageList.from_tensors(
+            images, size_divisibility=self.size_divisibility).tensor
         metas = []
         rescale = {"height" in x for x in batched_inputs}
         if len(rescale) != 1:
-            raise ValueError("Some inputs have original height/width, but some don't!")
+            raise ValueError(
+                "Some inputs have original height/width, but some don't!")
         rescale = list(rescale)[0]
         output_shapes = []
         for input in batched_inputs:
@@ -173,11 +187,11 @@ class MMDetDetector(nn.Module):
             meta["img_shape"] = meta["ori_shape"] = (h, w, c)
             if rescale:
                 scale_factor = np.array(
-                    [w / input["width"], h / input["height"]] * 2, dtype="float32"
-                )
+                    [w / input["width"], h / input["height"]] * 2,
+                    dtype="float32")
                 ori_shape = (input["height"], input["width"])
                 output_shapes.append(ori_shape)
-                meta["ori_shape"] = ori_shape + (c,)
+                meta["ori_shape"] = ori_shape + (c, )
             else:
                 scale_factor = 1.0
                 output_shapes.append((h, w))
@@ -188,18 +202,25 @@ class MMDetDetector(nn.Module):
             metas.append(meta)
 
         if self.training:
-            gt_instances = [x["instances"].to(self.device) for x in batched_inputs]
+            gt_instances = [
+                x["instances"].to(self.device) for x in batched_inputs
+            ]
             if gt_instances[0].has("gt_masks"):
-                from mmdet.core import PolygonMasks as mm_PolygonMasks, BitmapMasks as mm_BitMasks
+                from mmdet.core import BitmapMasks as mm_BitMasks
+                from mmdet.core import PolygonMasks as mm_PolygonMasks
 
                 def convert_mask(m, shape):
                     # mmdet mask format
                     if isinstance(m, BitMasks):
-                        return mm_BitMasks(m.tensor.cpu().numpy(), shape[0], shape[1])
+                        return mm_BitMasks(m.tensor.cpu().numpy(), shape[0],
+                                           shape[1])
                     else:
                         return mm_PolygonMasks(m.polygons, shape[0], shape[1])
 
-                gt_masks = [convert_mask(x.gt_masks, x.image_size) for x in gt_instances]
+                gt_masks = [
+                    convert_mask(x.gt_masks, x.image_size)
+                    for x in gt_instances
+                ]
                 losses_and_metrics = self.detector.forward_train(
                     images,
                     metas,
@@ -217,10 +238,9 @@ class MMDetDetector(nn.Module):
             return _parse_losses(losses_and_metrics)
         else:
             results = self.detector.simple_test(images, metas, rescale=rescale)
-            results = [
-                {"instances": _convert_mmdet_result(r, shape)}
-                for r, shape in zip(results, output_shapes)
-            ]
+            results = [{
+                "instances": _convert_mmdet_result(r, shape)
+            } for r, shape in zip(results, output_shapes)]
             return results
 
     @property
@@ -241,7 +261,8 @@ def _convert_mmdet_result(result, shape: Tuple[int, int]) -> Instances:
     bboxes = torch.from_numpy(np.vstack(bbox_result))  # Nx5
     bboxes, scores = bboxes[:, :4], bboxes[:, -1]
     labels = [
-        torch.full((bbox.shape[0],), i, dtype=torch.int32) for i, bbox in enumerate(bbox_result)
+        torch.full((bbox.shape[0], ), i, dtype=torch.int32)
+        for i, bbox in enumerate(bbox_result)
     ]
     labels = torch.cat(labels)
     inst = Instances(shape)
@@ -251,7 +272,10 @@ def _convert_mmdet_result(result, shape: Tuple[int, int]) -> Instances:
 
     if segm_result is not None and len(labels) > 0:
         segm_result = list(itertools.chain(*segm_result))
-        segm_result = [torch.from_numpy(x) if isinstance(x, np.ndarray) else x for x in segm_result]
+        segm_result = [
+            torch.from_numpy(x) if isinstance(x, np.ndarray) else x
+            for x in segm_result
+        ]
         segm_result = torch.stack(segm_result, dim=0)
         inst.pred_masks = segm_result
     return inst

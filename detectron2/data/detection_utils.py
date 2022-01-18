@@ -1,31 +1,29 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Facebook, Inc. and its affiliates.
-
 """
 Common data processing utilities that are used in a
 typical object detection data pipeline.
 """
 import logging
+from typing import List
+from typing import Union
+
 import numpy as np
-from typing import List, Union
 import pycocotools.mask as mask_util
 import torch
 from PIL import Image
 
-from detectron2.structures import (
-    BitMasks,
-    Boxes,
-    BoxMode,
-    Instances,
-    Keypoints,
-    PolygonMasks,
-    RotatedBoxes,
-    polygons_to_bitmask,
-)
-from detectron2.utils.file_io import PathManager
-
 from . import transforms as T
 from .catalog import MetadataCatalog
+from detectron2.structures import BitMasks
+from detectron2.structures import Boxes
+from detectron2.structures import BoxMode
+from detectron2.structures import Instances
+from detectron2.structures import Keypoints
+from detectron2.structures import PolygonMasks
+from detectron2.structures import polygons_to_bitmask
+from detectron2.structures import RotatedBoxes
+from detectron2.utils.file_io import PathManager
 
 __all__ = [
     "SizeMismatchError",
@@ -50,8 +48,13 @@ class SizeMismatchError(ValueError):
 
 
 # https://en.wikipedia.org/wiki/YUV#SDTV_with_BT.601
-_M_RGB2YUV = [[0.299, 0.587, 0.114], [-0.14713, -0.28886, 0.436], [0.615, -0.51499, -0.10001]]
-_M_YUV2RGB = [[1.0, 0.0, 1.13983], [1.0, -0.39465, -0.58060], [1.0, 2.03211, 0.0]]
+_M_RGB2YUV = [
+    [0.299, 0.587, 0.114],
+    [-0.14713, -0.28886, 0.436],
+    [0.615, -0.51499, -0.10001],
+]
+_M_YUV2RGB = [[1.0, 0.0, 1.13983], [1.0, -0.39465, -0.58060],
+              [1.0, 2.03211, 0.0]]
 
 # https://www.exiv2.org/tags.html
 _EXIF_ORIENT = 274  # exif 'Orientation' tag
@@ -71,7 +74,7 @@ def convert_PIL_to_numpy(image, format):
     if format is not None:
         # PIL only supports RGB, so convert to RGB and flip channels over below
         conversion_format = format
-        if format in ["BGR", "YUV-BT.601"]:
+        if conversion_format in ["BGR", "YUV-BT.601"]:
             conversion_format = "RGB"
         image = image.convert(conversion_format)
     image = np.asarray(image)
@@ -192,17 +195,14 @@ def check_image_size(dataset_dict, image):
     if "width" in dataset_dict or "height" in dataset_dict:
         image_wh = (image.shape[1], image.shape[0])
         expected_wh = (dataset_dict["width"], dataset_dict["height"])
-        if not image_wh == expected_wh:
+        if image_wh != expected_wh:
             raise SizeMismatchError(
                 "Mismatched image shape{}, got {}, expect {}.".format(
-                    " for image " + dataset_dict["file_name"]
-                    if "file_name" in dataset_dict
-                    else "",
+                    " for image " + dataset_dict["file_name"] if "file_name" in
+                    dataset_dict else "",
                     image_wh,
                     expected_wh,
-                )
-                + " Please check the width/height in your annotation."
-            )
+                ) + " Please check the width/height in your annotation.")
 
     # To ensure bbox always remap to original image size
     if "width" not in dataset_dict:
@@ -211,7 +211,12 @@ def check_image_size(dataset_dict, image):
         dataset_dict["height"] = image.shape[0]
 
 
-def transform_proposals(dataset_dict, image_shape, transforms, *, proposal_topk, min_box_size=0):
+def transform_proposals(dataset_dict,
+                        image_shape,
+                        transforms,
+                        *,
+                        proposal_topk,
+                        min_box_size=0):
     """
     Apply transformations to the proposals in dataset_dict, if any.
 
@@ -236,12 +241,10 @@ def transform_proposals(dataset_dict, image_shape, transforms, *, proposal_topk,
                 dataset_dict.pop("proposal_boxes"),
                 dataset_dict.pop("proposal_bbox_mode"),
                 BoxMode.XYXY_ABS,
-            )
-        )
+            ))
         boxes = Boxes(boxes)
         objectness_logits = torch.as_tensor(
-            dataset_dict.pop("proposal_objectness_logits").astype("float32")
-        )
+            dataset_dict.pop("proposal_objectness_logits").astype("float32"))
 
         boxes.clip(image_shape)
         keep = boxes.nonempty(threshold=min_box_size)
@@ -254,9 +257,11 @@ def transform_proposals(dataset_dict, image_shape, transforms, *, proposal_topk,
         dataset_dict["proposals"] = proposals
 
 
-def transform_instance_annotations(
-    annotation, transforms, image_size, *, keypoint_hflip_indices=None
-):
+def transform_instance_annotations(annotation,
+                                   transforms,
+                                   image_size,
+                                   *,
+                                   keypoint_hflip_indices=None):
     """
     Apply transforms to box, segmentation and keypoints annotations of a single instance.
 
@@ -281,7 +286,8 @@ def transform_instance_annotations(
     if isinstance(transforms, (tuple, list)):
         transforms = T.TransformList(transforms)
     # bbox is 1d (per-instance bounding box)
-    bbox = BoxMode.convert(annotation["bbox"], annotation["bbox_mode"], BoxMode.XYXY_ABS)
+    bbox = BoxMode.convert(annotation["bbox"], annotation["bbox_mode"],
+                           BoxMode.XYXY_ABS)
     # clip transformed bbox to image size
     bbox = transforms.apply_box(np.array([bbox]))[0].clip(min=0)
     annotation["bbox"] = np.minimum(bbox, list(image_size + image_size)[::-1])
@@ -306,19 +312,21 @@ def transform_instance_annotations(
             raise ValueError(
                 "Cannot transform segmentation of type '{}'!"
                 "Supported types are: polygons as list[list[float] or ndarray],"
-                " COCO-style RLE as a dict.".format(type(segm))
-            )
+                " COCO-style RLE as a dict.".format(type(segm)))
 
     if "keypoints" in annotation:
-        keypoints = transform_keypoint_annotations(
-            annotation["keypoints"], transforms, image_size, keypoint_hflip_indices
-        )
+        keypoints = transform_keypoint_annotations(annotation["keypoints"],
+                                                   transforms, image_size,
+                                                   keypoint_hflip_indices)
         annotation["keypoints"] = keypoints
 
     return annotation
 
 
-def transform_keypoint_annotations(keypoints, transforms, image_size, keypoint_hflip_indices=None):
+def transform_keypoint_annotations(keypoints,
+                                   transforms,
+                                   image_size,
+                                   keypoint_hflip_indices=None):
     """
     Transform keypoint annotations of an image.
     If a keypoint is transformed out of image boundary, it will be marked "unlabeled" (visibility=0)
@@ -337,13 +345,16 @@ def transform_keypoint_annotations(keypoints, transforms, image_size, keypoint_h
     keypoints_xy = transforms.apply_coords(keypoints[:, :2])
 
     # Set all out-of-boundary points to "unlabeled"
-    inside = (keypoints_xy >= np.array([0, 0])) & (keypoints_xy <= np.array(image_size[::-1]))
+    inside = (keypoints_xy >= np.array([0, 0])) & (keypoints_xy <= np.array(
+        image_size[::-1]))
     inside = inside.all(axis=1)
     keypoints[:, :2] = keypoints_xy
     keypoints[:, 2][~inside] = 0
 
     # This assumes that HorizFlipTransform is the only one that does flip
-    do_hflip = sum(isinstance(t, T.HFlipTransform) for t in transforms.transforms) % 2 == 1
+    do_hflip = (
+        sum(isinstance(t, T.HFlipTransform)
+            for t in transforms.transforms) % 2 == 1)
 
     # Alternative way: check if probe points was horizontally flipped.
     # probe = np.asarray([[0.0, 0.0], [image_width, 0.0]])
@@ -353,13 +364,14 @@ def transform_keypoint_annotations(keypoints, transforms, image_size, keypoint_h
     # If flipped, swap each keypoint with its opposite-handed equivalent
     if do_hflip:
         if keypoint_hflip_indices is None:
-            raise ValueError("Cannot flip keypoints without providing flip indices!")
-        if len(keypoints) != len(keypoint_hflip_indices):
             raise ValueError(
-                "Keypoint data has {} points, but metadata "
-                "contains {} points!".format(len(keypoints), len(keypoint_hflip_indices))
-            )
-        keypoints = keypoints[np.asarray(keypoint_hflip_indices, dtype=np.int32), :]
+                "Cannot flip keypoints without providing flip indices!")
+        if len(keypoints) != len(keypoint_hflip_indices):
+            raise ValueError("Keypoint data has {} points, but metadata "
+                             "contains {} points!".format(
+                                 len(keypoints), len(keypoint_hflip_indices)))
+        keypoints = keypoints[
+            np.asarray(keypoint_hflip_indices, dtype=np.int32), :]
 
     # Maintain COCO convention that if visibility == 0 (unlabeled), then x, y = 0
     keypoints[keypoints[:, 2] == 0] = 0
@@ -382,13 +394,10 @@ def annotations_to_instances(annos, image_size, mask_format="polygon"):
             "gt_masks", "gt_keypoints", if they can be obtained from `annos`.
             This is the format that builtin models expect.
     """
-    boxes = (
-        np.stack(
-            [BoxMode.convert(obj["bbox"], obj["bbox_mode"], BoxMode.XYXY_ABS) for obj in annos]
-        )
-        if len(annos)
-        else np.zeros((0, 4))
-    )
+    boxes = (np.stack([
+        BoxMode.convert(obj["bbox"], obj["bbox_mode"], BoxMode.XYXY_ABS)
+        for obj in annos
+    ]) if len(annos) else np.zeros((0, 4)))
     target = Instances(image_size)
     target.gt_boxes = Boxes(boxes)
 
@@ -416,9 +425,10 @@ def annotations_to_instances(annos, image_size, mask_format="polygon"):
                     # COCO RLE
                     masks.append(mask_util.decode(segm))
                 elif isinstance(segm, np.ndarray):
-                    assert segm.ndim == 2, "Expect segmentation of 2 dimensions, got {}.".format(
-                        segm.ndim
-                    )
+                    assert (
+                        segm.ndim == 2
+                    ), "Expect segmentation of 2 dimensions, got {}.".format(
+                        segm.ndim)
                     # mask array
                     masks.append(segm)
                 else:
@@ -426,12 +436,13 @@ def annotations_to_instances(annos, image_size, mask_format="polygon"):
                         "Cannot convert segmentation of type '{}' to BitMasks!"
                         "Supported types are: polygons as list[list[float] or ndarray],"
                         " COCO-style RLE as a dict, or a binary segmentation mask "
-                        " in a 2D numpy array of shape HxW.".format(type(segm))
-                    )
+                        " in a 2D numpy array of shape HxW.".format(
+                            type(segm)))
             # torch.from_numpy does not support array with negative stride.
             masks = BitMasks(
-                torch.stack([torch.from_numpy(np.ascontiguousarray(x)) for x in masks])
-            )
+                torch.stack([
+                    torch.from_numpy(np.ascontiguousarray(x)) for x in masks
+                ]))
         target.gt_masks = masks
 
     if len(annos) and "keypoints" in annos[0]:
@@ -470,9 +481,11 @@ def annotations_to_instances_rotated(annos, image_size):
     return target
 
 
-def filter_empty_instances(
-    instances, by_box=True, by_mask=True, box_threshold=1e-5, return_mask=False
-):
+def filter_empty_instances(instances,
+                           by_box=True,
+                           by_mask=True,
+                           box_threshold=1e-5,
+                           return_mask=False):
     """
     Filter out empty instances in an `Instances` object.
 
@@ -506,7 +519,8 @@ def filter_empty_instances(
     return instances[m]
 
 
-def create_keypoint_hflip_indices(dataset_names: Union[str, List[str]]) -> List[int]:
+def create_keypoint_hflip_indices(
+        dataset_names: Union[str, List[str]]) -> List[int]:
     """
     Args:
         dataset_names: list of dataset names
@@ -527,8 +541,7 @@ def create_keypoint_hflip_indices(dataset_names: Union[str, List[str]]) -> List[
     flip_map = dict(meta.keypoint_flip_map)
     flip_map.update({v: k for k, v in flip_map.items()})
     flipped_names = [i if i not in flip_map else flip_map[i] for i in names]
-    flip_indices = [names.index(i) for i in flipped_names]
-    return flip_indices
+    return [names.index(i) for i in flipped_names]
 
 
 def gen_crop_transform_with_instance(crop_size, image_size, instance):
@@ -543,14 +556,13 @@ def gen_crop_transform_with_instance(crop_size, image_size, instance):
             dataset format.
     """
     crop_size = np.asarray(crop_size, dtype=np.int32)
-    bbox = BoxMode.convert(instance["bbox"], instance["bbox_mode"], BoxMode.XYXY_ABS)
+    bbox = BoxMode.convert(instance["bbox"], instance["bbox_mode"],
+                           BoxMode.XYXY_ABS)
     center_yx = (bbox[1] + bbox[3]) * 0.5, (bbox[0] + bbox[2]) * 0.5
-    assert (
-        image_size[0] >= center_yx[0] and image_size[1] >= center_yx[1]
-    ), "The annotation bounding box is outside of the image!"
-    assert (
-        image_size[0] >= crop_size[0] and image_size[1] >= crop_size[1]
-    ), "Crop size is larger than image size!"
+    assert (image_size[0] >= center_yx[0] and image_size[1] >= center_yx[1]
+            ), "The annotation bounding box is outside of the image!"
+    assert (image_size[0] >= crop_size[0] and image_size[1] >= crop_size[1]
+            ), "Crop size is larger than image size!"
 
     min_yx = np.maximum(np.floor(center_yx).astype(np.int32) - crop_size, 0)
     max_yx = np.maximum(np.asarray(image_size, dtype=np.int32) - crop_size, 0)
@@ -576,18 +588,17 @@ def check_metadata_consistency(key, dataset_names):
     if len(dataset_names) == 0:
         return
     logger = logging.getLogger(__name__)
-    entries_per_dataset = [getattr(MetadataCatalog.get(d), key) for d in dataset_names]
+    entries_per_dataset = [
+        getattr(MetadataCatalog.get(d), key) for d in dataset_names
+    ]
     for idx, entry in enumerate(entries_per_dataset):
         if entry != entries_per_dataset[0]:
-            logger.error(
-                "Metadata '{}' for dataset '{}' is '{}'".format(key, dataset_names[idx], str(entry))
-            )
-            logger.error(
-                "Metadata '{}' for dataset '{}' is '{}'".format(
-                    key, dataset_names[0], str(entries_per_dataset[0])
-                )
-            )
-            raise ValueError("Datasets have different metadata '{}'!".format(key))
+            logger.error("Metadata '{}' for dataset '{}' is '{}'".format(
+                key, dataset_names[idx], str(entry)))
+            logger.error("Metadata '{}' for dataset '{}' is '{}'".format(
+                key, dataset_names[0], str(entries_per_dataset[0])))
+            raise ValueError(
+                "Datasets have different metadata '{}'!".format(key))
 
 
 def build_augmentation(cfg, is_train):
@@ -612,8 +623,7 @@ def build_augmentation(cfg, is_train):
             T.RandomFlip(
                 horizontal=cfg.INPUT.RANDOM_FLIP == "horizontal",
                 vertical=cfg.INPUT.RANDOM_FLIP == "vertical",
-            )
-        )
+            ))
     return augmentation
 
 

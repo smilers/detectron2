@@ -1,22 +1,23 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 import logging
 import math
-from typing import List, Tuple, Union
+from typing import List
+from typing import Tuple
+from typing import Union
+
 import torch
 
-from detectron2.layers import batched_nms, cat
-from detectron2.structures import Boxes, Instances
+from detectron2.layers import batched_nms
+from detectron2.layers import cat
+from detectron2.structures import Boxes
+from detectron2.structures import Instances
 
 logger = logging.getLogger(__name__)
 
 
 def _is_tracing():
     # (fixed in TORCH_VERSION >= 1.9)
-    if torch.jit.is_scripting():
-        # https://github.com/pytorch/pytorch/issues/47379
-        return False
-    else:
-        return torch.jit.is_tracing()
+    return False if torch.jit.is_scripting() else torch.jit.is_tracing()
 
 
 def find_top_rpn_proposals(
@@ -65,7 +66,8 @@ def find_top_rpn_proposals(
     topk_proposals = []
     level_ids = []  # #lvl Tensor, each of shape (topk,)
     batch_idx = torch.arange(num_images, device=device)
-    for level_id, (proposals_i, logits_i) in enumerate(zip(proposals, pred_objectness_logits)):
+    for level_id, (proposals_i, logits_i) in enumerate(
+            zip(proposals, pred_objectness_logits)):
         Hi_Wi_A = logits_i.shape[1]
         if isinstance(Hi_Wi_A, torch.Tensor):  # it's a tensor in tracing
             num_proposals_i = torch.clamp(Hi_Wi_A, max=pre_nms_topk)
@@ -79,11 +81,16 @@ def find_top_rpn_proposals(
         topk_idx = idx.narrow(1, 0, num_proposals_i)
 
         # each is N x topk
-        topk_proposals_i = proposals_i[batch_idx[:, None], topk_idx]  # N x topk x 4
+        topk_proposals_i = proposals_i[batch_idx[:, None],
+                                       topk_idx]  # N x topk x 4
 
         topk_proposals.append(topk_proposals_i)
         topk_scores.append(topk_scores_i)
-        level_ids.append(torch.full((num_proposals_i,), level_id, dtype=torch.int64, device=device))
+        level_ids.append(
+            torch.full((num_proposals_i, ),
+                       level_id,
+                       dtype=torch.int64,
+                       device=device))
 
     # 2. Concat all levels together
     topk_scores = cat(topk_scores, dim=1)
@@ -97,7 +104,8 @@ def find_top_rpn_proposals(
         scores_per_img = topk_scores[n]
         lvl = level_ids
 
-        valid_mask = torch.isfinite(boxes.tensor).all(dim=1) & torch.isfinite(scores_per_img)
+        valid_mask = torch.isfinite(
+            boxes.tensor).all(dim=1) & torch.isfinite(scores_per_img)
         if not valid_mask.all():
             if training:
                 raise FloatingPointError(
@@ -111,7 +119,8 @@ def find_top_rpn_proposals(
         # filter empty boxes
         keep = boxes.nonempty(threshold=min_box_size)
         if _is_tracing() or keep.sum().item() != len(boxes):
-            boxes, scores_per_img, lvl = boxes[keep], scores_per_img[keep], lvl[keep]
+            boxes, scores_per_img, lvl = boxes[keep], scores_per_img[
+                keep], lvl[keep]
 
         keep = batched_nms(boxes.tensor, scores_per_img, lvl, nms_thresh)
         # In Detectron1, there was different behavior during training vs. testing.
@@ -131,8 +140,8 @@ def find_top_rpn_proposals(
 
 
 def add_ground_truth_to_proposals(
-    gt: Union[List[Instances], List[Boxes]], proposals: List[Instances]
-) -> List[Instances]:
+        gt: Union[List[Instances],
+                  List[Boxes]], proposals: List[Instances]) -> List[Instances]:
     """
     Call `add_ground_truth_to_proposals_single_image` for all images.
 
@@ -149,8 +158,10 @@ def add_ground_truth_to_proposals(
     assert gt is not None
 
     if len(proposals) != len(gt):
-        raise ValueError("proposals and gt should have the same length as the number of images!")
-    if len(proposals) == 0:
+        raise ValueError(
+            "proposals and gt should have the same length as the number of images!"
+        )
+    if not proposals:
         return proposals
 
     return [
@@ -160,8 +171,7 @@ def add_ground_truth_to_proposals(
 
 
 def add_ground_truth_to_proposals_single_image(
-    gt: Union[Instances, Boxes], proposals: Instances
-) -> Instances:
+        gt: Union[Instances, Boxes], proposals: Instances) -> Instances:
     """
     Augment `proposals` with `gt`.
 
@@ -191,10 +201,7 @@ def add_ground_truth_to_proposals_single_image(
     for key in proposals.get_fields().keys():
         assert gt_proposal.has(
             key
-        ), "The attribute '{}' in `proposals` does not exist in `gt`".format(key)
+        ), "The attribute '{}' in `proposals` does not exist in `gt`".format(
+            key)
 
-    # NOTE: Instances.cat only use fields from the first item. Extra fields in latter items
-    # will be thrown away.
-    new_proposals = Instances.cat([proposals, gt_proposal])
-
-    return new_proposals
+    return Instances.cat([proposals, gt_proposal])

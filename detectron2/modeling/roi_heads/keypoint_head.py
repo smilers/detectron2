@@ -1,17 +1,21 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 from typing import List
+
 import torch
 from torch import nn
 from torch.nn import functional as F
 
 from detectron2.config import configurable
-from detectron2.layers import Conv2d, ConvTranspose2d, cat, interpolate
-from detectron2.structures import Instances, heatmaps_to_keypoints
+from detectron2.layers import cat
+from detectron2.layers import Conv2d
+from detectron2.layers import ConvTranspose2d
+from detectron2.layers import interpolate
+from detectron2.structures import heatmaps_to_keypoints
+from detectron2.structures import Instances
 from detectron2.utils.events import get_event_storage
 from detectron2.utils.registry import Registry
 
 _TOTAL_SKIPPED = 0
-
 
 __all__ = [
     "ROI_KEYPOINT_HEAD_REGISTRY",
@@ -19,7 +23,6 @@ __all__ = [
     "BaseKeypointRCNNHead",
     "KRCNNConvDeconvUpsampleHead",
 ]
-
 
 ROI_KEYPOINT_HEAD_REGISTRY = Registry("ROI_KEYPOINT_HEAD")
 ROI_KEYPOINT_HEAD_REGISTRY.__doc__ = """
@@ -62,8 +65,7 @@ def keypoint_rcnn_loss(pred_keypoint_logits, instances, normalizer):
             continue
         keypoints = instances_per_image.gt_keypoints
         heatmaps_per_image, valid_per_image = keypoints.to_heatmap(
-            instances_per_image.proposal_boxes.tensor, keypoint_side_len
-        )
+            instances_per_image.proposal_boxes.tensor, keypoint_side_len)
         heatmaps.append(heatmaps_per_image.view(-1))
         valid.append(valid_per_image.view(-1))
 
@@ -74,19 +76,21 @@ def keypoint_rcnn_loss(pred_keypoint_logits, instances, normalizer):
 
     # torch.mean (in binary_cross_entropy_with_logits) doesn't
     # accept empty tensors, so handle it separately
-    if len(heatmaps) == 0 or valid.numel() == 0:
+    if not heatmaps or valid.numel() == 0:
         global _TOTAL_SKIPPED
         _TOTAL_SKIPPED += 1
         storage = get_event_storage()
-        storage.put_scalar("kpts_num_skipped_batches", _TOTAL_SKIPPED, smoothing_hint=False)
+        storage.put_scalar("kpts_num_skipped_batches",
+                           _TOTAL_SKIPPED,
+                           smoothing_hint=False)
         return pred_keypoint_logits.sum() * 0
 
     N, K, H, W = pred_keypoint_logits.shape
     pred_keypoint_logits = pred_keypoint_logits.view(N * K, H * W)
 
-    keypoint_loss = F.cross_entropy(
-        pred_keypoint_logits[valid], keypoint_targets[valid], reduction="sum"
-    )
+    keypoint_loss = F.cross_entropy(pred_keypoint_logits[valid],
+                                    keypoint_targets[valid],
+                                    reduction="sum")
 
     # If a normalizer isn't specified, normalize by the number of visible keypoints in the minibatch
     if normalizer is None:
@@ -96,7 +100,8 @@ def keypoint_rcnn_loss(pred_keypoint_logits, instances, normalizer):
     return keypoint_loss
 
 
-def keypoint_rcnn_inference(pred_keypoint_logits: torch.Tensor, pred_instances: List[Instances]):
+def keypoint_rcnn_inference(pred_keypoint_logits: torch.Tensor,
+                            pred_instances: List[Instances]):
     """
     Post process each predicted keypoint heatmap in `pred_keypoint_logits` into (x, y, score)
         and add it to the `pred_instances` as a `pred_keypoints` field.
@@ -118,14 +123,19 @@ def keypoint_rcnn_inference(pred_keypoint_logits: torch.Tensor, pred_instances: 
     bboxes_flat = cat([b.pred_boxes.tensor for b in pred_instances], dim=0)
 
     pred_keypoint_logits = pred_keypoint_logits.detach()
-    keypoint_results = heatmaps_to_keypoints(pred_keypoint_logits, bboxes_flat.detach())
+    keypoint_results = heatmaps_to_keypoints(pred_keypoint_logits,
+                                             bboxes_flat.detach())
     num_instances_per_image = [len(i) for i in pred_instances]
-    keypoint_results = keypoint_results[:, :, [0, 1, 3]].split(num_instances_per_image, dim=0)
-    heatmap_results = pred_keypoint_logits.split(num_instances_per_image, dim=0)
+    keypoint_results = keypoint_results[:, :, [0, 1, 3]].split(
+        num_instances_per_image, dim=0)
+    heatmap_results = pred_keypoint_logits.split(num_instances_per_image,
+                                                 dim=0)
 
-    for keypoint_results_per_image, heatmap_results_per_image, instances_per_image in zip(
-        keypoint_results, heatmap_results, pred_instances
-    ):
+    for (
+            keypoint_results_per_image,
+            heatmap_results_per_image,
+            instances_per_image,
+    ) in zip(keypoint_results, heatmap_results, pred_instances):
         # keypoint_results_per_image is (num instances)x(num keypoints)x(x, y, score)
         # heatmap_results_per_image is (num instances)x(num keypoints)x(side)x(side)
         instances_per_image.pred_keypoints = keypoint_results_per_image
@@ -154,7 +164,8 @@ class BaseKeypointRCNNHead(nn.Module):
         super().__init__()
         self.num_keypoints = num_keypoints
         self.loss_weight = loss_weight
-        assert loss_normalizer == "visible" or isinstance(loss_normalizer, float), loss_normalizer
+        assert loss_normalizer == "visible" or isinstance(
+            loss_normalizer, float), loss_normalizer
         self.loss_normalizer = loss_normalizer
 
     @classmethod
@@ -169,9 +180,9 @@ class BaseKeypointRCNNHead(nn.Module):
         if not normalize_by_visible:
             batch_size_per_image = cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE
             positive_sample_fraction = cfg.MODEL.ROI_HEADS.POSITIVE_FRACTION
-            ret["loss_normalizer"] = (
-                ret["num_keypoints"] * batch_size_per_image * positive_sample_fraction
-            )
+            ret["loss_normalizer"] = (ret["num_keypoints"] *
+                                      batch_size_per_image *
+                                      positive_sample_fraction)
         else:
             ret["loss_normalizer"] = "visible"
         return ret
@@ -193,12 +204,12 @@ class BaseKeypointRCNNHead(nn.Module):
         x = self.layers(x)
         if self.training:
             num_images = len(instances)
-            normalizer = (
-                None if self.loss_normalizer == "visible" else num_images * self.loss_normalizer
-            )
+            normalizer = (None if self.loss_normalizer == "visible" else
+                          num_images * self.loss_normalizer)
             return {
-                "loss_keypoint": keypoint_rcnn_loss(x, instances, normalizer=normalizer)
-                * self.loss_weight
+                "loss_keypoint":
+                keypoint_rcnn_loss(x, instances, normalizer=normalizer) *
+                self.loss_weight
             }
         else:
             keypoint_rcnn_inference(x, instances)
@@ -239,14 +250,22 @@ class KRCNNConvDeconvUpsampleHead(BaseKeypointRCNNHead, nn.Sequential):
         in_channels = input_shape.channels
 
         for idx, layer_channels in enumerate(conv_dims, 1):
-            module = Conv2d(in_channels, layer_channels, 3, stride=1, padding=1)
+            module = Conv2d(in_channels,
+                            layer_channels,
+                            3,
+                            stride=1,
+                            padding=1)
             self.add_module("conv_fcn{}".format(idx), module)
             self.add_module("conv_fcn_relu{}".format(idx), nn.ReLU())
             in_channels = layer_channels
 
         deconv_kernel = 4
         self.score_lowres = ConvTranspose2d(
-            in_channels, num_keypoints, deconv_kernel, stride=2, padding=deconv_kernel // 2 - 1
+            in_channels,
+            num_keypoints,
+            deconv_kernel,
+            stride=2,
+            padding=deconv_kernel // 2 - 1,
         )
         self.up_scale = up_scale
 
@@ -256,7 +275,9 @@ class KRCNNConvDeconvUpsampleHead(BaseKeypointRCNNHead, nn.Sequential):
             elif "weight" in name:
                 # Caffe2 implementation uses MSRAFill, which in fact
                 # corresponds to kaiming_normal_ in PyTorch
-                nn.init.kaiming_normal_(param, mode="fan_out", nonlinearity="relu")
+                nn.init.kaiming_normal_(param,
+                                        mode="fan_out",
+                                        nonlinearity="relu")
 
     @classmethod
     def from_config(cls, cfg, input_shape):
@@ -268,5 +289,8 @@ class KRCNNConvDeconvUpsampleHead(BaseKeypointRCNNHead, nn.Sequential):
     def layers(self, x):
         for layer in self:
             x = layer(x)
-        x = interpolate(x, scale_factor=self.up_scale, mode="bilinear", align_corners=False)
+        x = interpolate(x,
+                        scale_factor=self.up_scale,
+                        mode="bilinear",
+                        align_corners=False)
         return x
