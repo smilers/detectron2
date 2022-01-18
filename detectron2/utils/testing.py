@@ -86,11 +86,7 @@ def assert_instances_allclose(input, other, *, rtol=1e-5, msg="", size_as_tensor
     if not isinstance(other, Instances):
         other = convert_scripted_instances(other)
 
-    if not msg:
-        msg = "Two Instances are different! "
-    else:
-        msg = msg.rstrip() + " "
-
+    msg = "Two Instances are different! " if not msg else msg.rstrip() + " "
     size_error_msg = msg + f"image_size is {input.image_size} vs. {other.image_size}!"
     if size_as_tensor:
         assert torch.equal(

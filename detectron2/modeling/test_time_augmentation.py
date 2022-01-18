@@ -153,11 +153,11 @@ class GeneralizedRCNNWithTTA(nn.Module):
         if len(old.keys()) == 0:
             yield
         else:
-            for attr in old.keys():
+            for attr in old:
                 setattr(roi_heads, attr, False)
             yield
-            for attr in old.keys():
-                setattr(roi_heads, attr, old[attr])
+            for attr, value in old.items():
+                setattr(roi_heads, attr, value)
 
     def _batch_inference(self, batched_inputs, detected_instances=None):
         """
@@ -232,9 +232,7 @@ class GeneralizedRCNNWithTTA(nn.Module):
             # average the predictions
             merged_instances.pred_masks = self._reduce_pred_masks(outputs, tfms)
             merged_instances = detector_postprocess(merged_instances, *orig_shape)
-            return {"instances": merged_instances}
-        else:
-            return {"instances": merged_instances}
+        return {"instances": merged_instances}
 
     def _get_augmented_inputs(self, input):
         augmented_inputs = self.tta_mapper(input)
@@ -303,5 +301,4 @@ class GeneralizedRCNNWithTTA(nn.Module):
             if any(isinstance(t, HFlipTransform) for t in tfm.transforms):
                 output.pred_masks = output.pred_masks.flip(dims=[3])
         all_pred_masks = torch.stack([o.pred_masks for o in outputs], dim=0)
-        avg_pred_masks = torch.mean(all_pred_masks, dim=0)
-        return avg_pred_masks
+        return torch.mean(all_pred_masks, dim=0)

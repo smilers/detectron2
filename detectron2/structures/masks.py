@@ -247,8 +247,9 @@ class BitMasks:
         assert len(bitmasks_list) > 0
         assert all(isinstance(bitmask, BitMasks) for bitmask in bitmasks_list)
 
-        cat_bitmasks = type(bitmasks_list[0])(torch.cat([bm.tensor for bm in bitmasks_list], dim=0))
-        return cat_bitmasks
+        return type(bitmasks_list[0])(
+            torch.cat([bm.tensor for bm in bitmasks_list], dim=0)
+        )
 
 
 class PolygonMasks:
@@ -412,7 +413,7 @@ class PolygonMasks:
         poly: list[list[float]], the polygons for one instance
         box: a tensor of shape (4,)
         """
-        if len(results) == 0:
+        if not results:
             return torch.empty(0, mask_size, mask_size, dtype=torch.bool, device=device)
         return torch.stack(results, dim=0).to(device=device)
 
@@ -428,9 +429,10 @@ class PolygonMasks:
 
         area = []
         for polygons_per_instance in self.polygons:
-            area_per_instance = 0
-            for p in polygons_per_instance:
-                area_per_instance += polygon_area(p[0::2], p[1::2])
+            area_per_instance = sum(
+                polygon_area(p[0::2], p[1::2]) for p in polygons_per_instance
+            )
+
             area.append(area_per_instance)
 
         return torch.tensor(area)
@@ -450,10 +452,9 @@ class PolygonMasks:
         assert len(polymasks_list) > 0
         assert all(isinstance(polymask, PolygonMasks) for polymask in polymasks_list)
 
-        cat_polymasks = type(polymasks_list[0])(
+        return type(polymasks_list[0])(
             list(itertools.chain.from_iterable(pm.polygons for pm in polymasks_list))
         )
-        return cat_polymasks
 
 
 class ROIMasks:

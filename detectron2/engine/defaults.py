@@ -313,8 +313,7 @@ class DefaultPredictor:
             image = torch.as_tensor(image.astype("float32").transpose(2, 0, 1))
 
             inputs = {"image": image, "height": height, "width": width}
-            predictions = self.model([inputs])[0]
-            return predictions
+            return self.model([inputs])[0]
 
 
 class DefaultTrainer(TrainerBase):
@@ -662,7 +661,7 @@ Alternatively, you can call evaluation functions yourself (see Colab balloon tut
             CfgNode: a new config. Same as original if ``cfg.SOLVER.REFERENCE_WORLD_SIZE==0``.
         """
         old_world_size = cfg.SOLVER.REFERENCE_WORLD_SIZE
-        if old_world_size == 0 or old_world_size == num_workers:
+        if old_world_size in [0, num_workers]:
             return cfg
         cfg = cfg.clone()
         frozen = cfg.is_frozen()

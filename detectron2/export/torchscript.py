@@ -54,8 +54,7 @@ def scripting_with_instances(model, fields):
     ), "Currently we only support exporting models in evaluation mode to torchscript"
 
     with freeze_training_mode(model), patch_instances(fields):
-        scripted_model = torch.jit.script(model)
-        return scripted_model
+        return torch.jit.script(model)
 
 
 # alias for old name

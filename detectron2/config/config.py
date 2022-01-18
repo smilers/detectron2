@@ -203,11 +203,10 @@ def configurable(init_func=None, *, from_config=None):
         def wrapper(orig_func):
             @functools.wraps(orig_func)
             def wrapped(*args, **kwargs):
-                if _called_with_cfg(*args, **kwargs):
-                    explicit_args = _get_args_from_config(from_config, *args, **kwargs)
-                    return orig_func(**explicit_args)
-                else:
+                if not _called_with_cfg(*args, **kwargs):
                     return orig_func(*args, **kwargs)
+                explicit_args = _get_args_from_config(from_config, *args, **kwargs)
+                return orig_func(**explicit_args)
 
             wrapped.from_config = from_config
             return wrapped
@@ -238,10 +237,12 @@ def _get_args_from_config(from_config_func, *args, **kwargs):
     else:
         # forward supported arguments to from_config
         supported_arg_names = set(signature.parameters.keys())
-        extra_kwargs = {}
-        for name in list(kwargs.keys()):
-            if name not in supported_arg_names:
-                extra_kwargs[name] = kwargs.pop(name)
+        extra_kwargs = {
+            name: kwargs.pop(name)
+            for name in list(kwargs.keys())
+            if name not in supported_arg_names
+        }
+
         ret = from_config_func(*args, **kwargs)
         # forward the other arguments to __init__
         ret.update(extra_kwargs)

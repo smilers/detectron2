@@ -231,18 +231,14 @@ class COCOEvaluator(DatasetEvaluator):
         )
         for task in sorted(tasks):
             assert task in {"bbox", "segm", "keypoints"}, f"Got unknown task: {task}!"
-            coco_eval = (
-                _evaluate_predictions_on_coco(
+            coco_eval = _evaluate_predictions_on_coco(
                     self._coco_api,
                     coco_results,
                     task,
                     kpt_oks_sigmas=self._kpt_oks_sigmas,
                     use_fast_impl=self._use_fast_impl,
                     img_ids=img_ids,
-                )
-                if len(coco_results) > 0
-                else None  # cocoapi does not handle empty results very well
-            )
+                ) if coco_results else None
 
             res = self._derive_coco_results(
                 coco_eval, task, class_names=self._metadata.get("thing_classes")

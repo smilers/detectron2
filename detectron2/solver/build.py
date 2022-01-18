@@ -103,11 +103,10 @@ def maybe_add_gradient_clipping(
     OptimizerWithGradientClip = _generate_optimizer_class_with_gradient_clipping(
         optimizer_type, per_param_clipper=grad_clipper
     )
-    if isinstance(optimizer, torch.optim.Optimizer):
-        optimizer.__class__ = OptimizerWithGradientClip  # a bit hacky, not recommended
-        return optimizer
-    else:
+    if not isinstance(optimizer, torch.optim.Optimizer):
         return OptimizerWithGradientClip
+    optimizer.__class__ = OptimizerWithGradientClip  # a bit hacky, not recommended
+    return optimizer
 
 
 def build_optimizer(cfg: CfgNode, model: torch.nn.Module) -> torch.optim.Optimizer:

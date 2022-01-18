@@ -113,9 +113,11 @@ class CityscapesInstanceEvaluator(CityscapesEvaluator):
         ), "Cannot find any ground truth images to use for evaluation. Searched for: {}".format(
             cityscapes_eval.args.groundTruthSearch
         )
-        predictionImgList = []
-        for gt in groundTruthImgList:
-            predictionImgList.append(cityscapes_eval.getPrediction(gt, cityscapes_eval.args))
+        predictionImgList = [
+            cityscapes_eval.getPrediction(gt, cityscapes_eval.args)
+            for gt in groundTruthImgList
+        ]
+
         results = cityscapes_eval.evaluateImgLists(
             predictionImgList, groundTruthImgList, cityscapes_eval.args
         )["averages"]
@@ -177,9 +179,11 @@ class CityscapesSemSegEvaluator(CityscapesEvaluator):
         ), "Cannot find any ground truth images to use for evaluation. Searched for: {}".format(
             cityscapes_eval.args.groundTruthSearch
         )
-        predictionImgList = []
-        for gt in groundTruthImgList:
-            predictionImgList.append(cityscapes_eval.getPrediction(cityscapes_eval.args, gt))
+        predictionImgList = [
+            cityscapes_eval.getPrediction(cityscapes_eval.args, gt)
+            for gt in groundTruthImgList
+        ]
+
         results = cityscapes_eval.evaluateImgLists(
             predictionImgList, groundTruthImgList, cityscapes_eval.args
         )

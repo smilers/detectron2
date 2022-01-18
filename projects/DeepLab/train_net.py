@@ -70,7 +70,7 @@ class Trainer(DefaultTrainer):
                 torch.cuda.device_count() > comm.get_rank()
             ), "CityscapesEvaluator currently do not work with multiple machines."
             return CityscapesSemSegEvaluator(dataset_name)
-        if len(evaluator_list) == 0:
+        if not evaluator_list:
             raise NotImplementedError(
                 "no Evaluator for the dataset {} with the type {}".format(
                     dataset_name, evaluator_type
@@ -118,8 +118,7 @@ def main(args):
         DetectionCheckpointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
             cfg.MODEL.WEIGHTS, resume=args.resume
         )
-        res = Trainer.test(cfg, model)
-        return res
+        return Trainer.test(cfg, model)
 
     trainer = Trainer(cfg)
     trainer.resume_or_load(resume=args.resume)

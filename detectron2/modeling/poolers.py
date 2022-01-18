@@ -88,11 +88,13 @@ def convert_boxes_to_pooler_format(box_lists: List[Boxes]):
             where batch index is the index in [0, N) identifying which batch image the
             rotated box (x_ctr, y_ctr, width, height, angle_degrees) comes from.
     """
-    pooler_fmt_boxes = cat(
-        [_fmt_box_list(box_list.tensor, i) for i, box_list in enumerate(box_lists)], dim=0
+    return cat(
+        [
+            _fmt_box_list(box_list.tensor, i)
+            for i, box_list in enumerate(box_lists)
+        ],
+        dim=0,
     )
-
-    return pooler_fmt_boxes
 
 
 class ROIPooler(nn.Module):
@@ -182,7 +184,7 @@ class ROIPooler(nn.Module):
         assert (
             len(scales) == self.max_level - self.min_level + 1
         ), "[ROIPooler] Sizes of input featuremaps do not form a pyramid!"
-        assert 0 <= self.min_level and self.min_level <= self.max_level
+        assert self.min_level >= 0 and self.min_level <= self.max_level
         self.canonical_level = canonical_level
         assert canonical_box_size > 0
         self.canonical_box_size = canonical_box_size
@@ -218,7 +220,7 @@ class ROIPooler(nn.Module):
         ), "unequal value, x[0] batch dim 0 is {}, but box_list has length {}".format(
             x[0].size(0), len(box_lists)
         )
-        if len(box_lists) == 0:
+        if not box_lists:
             return torch.zeros(
                 (0, x[0].shape[1]) + self.output_size, device=x[0].device, dtype=x[0].dtype
             )

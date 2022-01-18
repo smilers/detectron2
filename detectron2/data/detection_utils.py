@@ -71,7 +71,7 @@ def convert_PIL_to_numpy(image, format):
     if format is not None:
         # PIL only supports RGB, so convert to RGB and flip channels over below
         conversion_format = format
-        if format in ["BGR", "YUV-BT.601"]:
+        if conversion_format in ["BGR", "YUV-BT.601"]:
             conversion_format = "RGB"
         image = image.convert(conversion_format)
     image = np.asarray(image)
@@ -192,7 +192,7 @@ def check_image_size(dataset_dict, image):
     if "width" in dataset_dict or "height" in dataset_dict:
         image_wh = (image.shape[1], image.shape[0])
         expected_wh = (dataset_dict["width"], dataset_dict["height"])
-        if not image_wh == expected_wh:
+        if image_wh != expected_wh:
             raise SizeMismatchError(
                 "Mismatched image shape{}, got {}, expect {}.".format(
                     " for image " + dataset_dict["file_name"]
@@ -527,8 +527,7 @@ def create_keypoint_hflip_indices(dataset_names: Union[str, List[str]]) -> List[
     flip_map = dict(meta.keypoint_flip_map)
     flip_map.update({v: k for k, v in flip_map.items()})
     flipped_names = [i if i not in flip_map else flip_map[i] for i in names]
-    flip_indices = [names.index(i) for i in flipped_names]
-    return flip_indices
+    return [names.index(i) for i in flipped_names]
 
 
 def gen_crop_transform_with_instance(crop_size, image_size, instance):

@@ -190,9 +190,11 @@ class Augmentation:
             classname = type(self).__name__
             argstr = []
             for name, param in sig.parameters.items():
-                assert (
-                    param.kind != param.VAR_POSITIONAL and param.kind != param.VAR_KEYWORD
-                ), "The default __repr__ doesn't support *args or **kwargs"
+                assert param.kind not in [
+                    param.VAR_POSITIONAL,
+                    param.VAR_KEYWORD,
+                ], "The default __repr__ doesn't support *args or **kwargs"
+
                 assert hasattr(self, name), (
                     "Attribute {} not found! "
                     "Default __repr__ only works if attributes match the constructor.".format(name)

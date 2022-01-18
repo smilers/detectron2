@@ -114,8 +114,7 @@ def _serialize_to_tensor(data, group):
             )
         )
     storage = torch.ByteStorage.from_buffer(buffer)
-    tensor = torch.ByteTensor(storage).to(device=device)
-    return tensor
+    return torch.ByteTensor(storage).to(device=device)
 
 
 def _pad_to_largest_tensor(tensor, group):
@@ -268,5 +267,5 @@ def reduce_dict(input_dict, average=True):
             # only main process gets accumulated, so only divide by
             # world_size in this case
             values /= world_size
-        reduced_dict = {k: v for k, v in zip(names, values)}
+        reduced_dict = dict(zip(names, values))
     return reduced_dict

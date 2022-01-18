@@ -87,13 +87,14 @@ def load_coco_json(json_file, image_root, dataset_name=None, extra_annotation_ke
         # It works by looking at the "categories" field in the json, therefore
         # if users' own json also have incontiguous ids, we'll
         # apply this mapping as well but print a warning.
-        if not (min(cat_ids) == 1 and max(cat_ids) == len(cat_ids)):
-            if "coco" not in dataset_name:
-                logger.warning(
-                    """
+        if (
+            min(cat_ids) != 1 or max(cat_ids) != len(cat_ids)
+        ) and "coco" not in dataset_name:
+            logger.warning(
+                """
 Category ids in annotations are not in [1, #categories]! We'll apply a mapping for you.
 """
-                )
+            )
         id_map = {v: i for i, v in enumerate(cat_ids)}
         meta.thing_dataset_id_to_contiguous_id = id_map
 
@@ -124,7 +125,7 @@ Category ids in annotations are not in [1, #categories]! We'll apply a mapping f
     #   'id': 42986},
     #  ...]
     anns = [coco_api.imgToAnns[img_id] for img_id in img_ids]
-    total_num_valid_anns = sum([len(x) for x in anns])
+    total_num_valid_anns = sum(len(x) for x in anns)
     total_num_anns = len(coco_api.anns)
     if total_num_valid_anns < total_num_anns:
         logger.warning(
@@ -151,8 +152,7 @@ Category ids in annotations are not in [1, #categories]! We'll apply a mapping f
     num_instances_without_valid_segmentation = 0
 
     for (img_dict, anno_dict_list) in imgs_anns:
-        record = {}
-        record["file_name"] = os.path.join(image_root, img_dict["file_name"])
+        record = {'file_name': os.path.join(image_root, img_dict["file_name"])}
         record["height"] = img_dict["height"]
         record["width"] = img_dict["width"]
         image_id = record["image_id"] = img_dict["id"]
@@ -186,7 +186,7 @@ Category ids in annotations are not in [1, #categories]! We'll apply a mapping f
                 else:
                     # filter out invalid polygons (< 3 points)
                     segm = [poly for poly in segm if len(poly) % 2 == 0 and len(poly) >= 6]
-                    if len(segm) == 0:
+                    if not segm:
                         num_instances_without_valid_segmentation += 1
                         continue  # ignore this instance
                 obj["segmentation"] = segm

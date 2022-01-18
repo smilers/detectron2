@@ -56,10 +56,7 @@ def filter_images_with_only_crowd_annotations(dataset_dicts):
     num_before = len(dataset_dicts)
 
     def valid(anns):
-        for ann in anns:
-            if ann.get("iscrowd", 0) == 0:
-                return True
-        return False
+        return any(ann.get("iscrowd", 0) == 0 for ann in anns)
 
     dataset_dicts = [x for x in dataset_dicts if valid(x["annotations"])]
     num_after = len(dataset_dicts)
@@ -185,9 +182,7 @@ def print_instances_class_histogram(dataset_dicts, class_names):
 
     def short_name(x):
         # make long class names shorter. useful for lvis
-        if len(x) > 13:
-            return x[:11] + ".."
-        return x
+        return x[:11] + ".." if len(x) > 13 else x
 
     data = list(
         itertools.chain(*[[short_name(class_names[i]), int(v)] for i, v in enumerate(histogram)])
@@ -294,15 +289,7 @@ def build_batch_data_loader(
     else:
         dataset = ToIterableDataset(dataset, sampler)
 
-    if aspect_ratio_grouping:
-        data_loader = torchdata.DataLoader(
-            dataset,
-            num_workers=num_workers,
-            collate_fn=operator.itemgetter(0),  # don't batch, but yield individual elements
-            worker_init_fn=worker_init_reset_seed,
-        )  # yield individual mapped dict
-        return AspectRatioGroupedDataset(data_loader, batch_size)
-    else:
+    if not aspect_ratio_grouping:
         return torchdata.DataLoader(
             dataset,
             batch_size=batch_size,
@@ -311,6 +298,13 @@ def build_batch_data_loader(
             collate_fn=trivial_batch_collator,
             worker_init_fn=worker_init_reset_seed,
         )
+    data_loader = torchdata.DataLoader(
+        dataset,
+        num_workers=num_workers,
+        collate_fn=operator.itemgetter(0),  # don't batch, but yield individual elements
+        worker_init_fn=worker_init_reset_seed,
+    )  # yield individual mapped dict
+    return AspectRatioGroupedDataset(data_loader, batch_size)
 
 
 def _train_loader_from_config(cfg, mapper=None, *, dataset=None, sampler=None):
@@ -471,13 +465,12 @@ def build_detection_test_loader(dataset, *, mapper, sampler=None, num_workers=0)
     # Always use 1 image per worker during inference since this is the
     # standard when reporting inference time in papers.
     batch_sampler = torchdata.sampler.BatchSampler(sampler, 1, drop_last=False)
-    data_loader = torchdata.DataLoader(
+    return torchdata.DataLoader(
         dataset,
         num_workers=num_workers,
         batch_sampler=batch_sampler,
         collate_fn=trivial_batch_collator,
     )
-    return data_loader
 
 
 def trivial_batch_collator(batch):

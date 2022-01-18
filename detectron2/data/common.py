@@ -144,10 +144,7 @@ class DatasetFromList(data.Dataset):
             logger.info("Serialized dataset takes {:.2f} MiB".format(len(self._lst) / 1024 ** 2))
 
     def __len__(self):
-        if self._serialize:
-            return len(self._addr)
-        else:
-            return len(self._lst)
+        return len(self._addr) if self._serialize else len(self._lst)
 
     def __getitem__(self, idx):
         if self._serialize:

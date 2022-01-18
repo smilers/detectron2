@@ -67,8 +67,7 @@ class ModelCatalog(object):
         prefix = ModelCatalog.S3_C2_DETECTRON_PREFIX
         name = name[len("ImageNetPretrained/") :]
         name = ModelCatalog.C2_IMAGENET_MODELS[name]
-        url = "/".join([prefix, name])
-        return url
+        return "/".join([prefix, name])
 
     @staticmethod
     def _get_c2_detectron_baseline(name):
@@ -79,12 +78,7 @@ class ModelCatalog(object):
         else:
             dataset = ModelCatalog.C2_DATASET_COCO
 
-        if "35998355/rpn_R-50-C4_1x" in name:
-            # this one model is somehow different from others ..
-            type = "rpn"
-        else:
-            type = "generalized_rcnn"
-
+        type = "rpn" if "35998355/rpn_R-50-C4_1x" in name else "generalized_rcnn"
         # Detectron C2 models are stored in the structure defined in `C2_DETECTRON_PATH_FORMAT`.
         url = ModelCatalog.C2_DETECTRON_PATH_FORMAT.format(
             prefix=ModelCatalog.S3_C2_DETECTRON_PREFIX, url=url, type=type, dataset=dataset

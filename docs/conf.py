@@ -145,11 +145,7 @@ napoleon_use_rtype = False
 autodoc_inherit_docstrings = False
 autodoc_member_order = "bysource"
 
-if DEPLOY:
-    intersphinx_timeout = 10
-else:
-    # skip this when building locally
-    intersphinx_timeout = 0.5
+intersphinx_timeout = 10 if DEPLOY else 0.5
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3.6", None),
     "numpy": ("https://docs.scipy.org/doc/numpy/", None),

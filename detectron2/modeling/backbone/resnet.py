@@ -87,11 +87,7 @@ class BasicBlock(CNNBlockBase):
         out = F.relu_(out)
         out = self.conv2(out)
 
-        if self.shortcut is not None:
-            shortcut = self.shortcut(x)
-        else:
-            shortcut = x
-
+        shortcut = self.shortcut(x) if self.shortcut is not None else x
         out += shortcut
         out = F.relu_(out)
         return out
@@ -200,11 +196,7 @@ class BottleneckBlock(CNNBlockBase):
 
         out = self.conv3(out)
 
-        if self.shortcut is not None:
-            shortcut = self.shortcut(x)
-        else:
-            shortcut = x
-
+        shortcut = self.shortcut(x) if self.shortcut is not None else x
         out += shortcut
         out = F.relu_(out)
         return out
@@ -317,11 +309,7 @@ class DeformBottleneckBlock(CNNBlockBase):
 
         out = self.conv3(out)
 
-        if self.shortcut is not None:
-            shortcut = self.shortcut(x)
-        else:
-            shortcut = x
-
+        shortcut = self.shortcut(x) if self.shortcut is not None else x
         out += shortcut
         out = F.relu_(out)
         return out
@@ -392,8 +380,10 @@ class ResNet(Backbone):
             # Avoid keeping unused layers in this module. They consume extra memory
             # and may cause allreduce to fail
             num_stages = max(
-                [{"res2": 1, "res3": 2, "res4": 3, "res5": 4}.get(f, 0) for f in out_features]
+                {"res2": 1, "res3": 2, "res4": 3, "res5": 4}.get(f, 0)
+                for f in out_features
             )
+
             stages = stages[:num_stages]
         for i, blocks in enumerate(stages):
             assert len(blocks) > 0, len(blocks)

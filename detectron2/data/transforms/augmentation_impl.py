@@ -60,17 +60,11 @@ class RandomApply(Augmentation):
 
     def get_transform(self, *args):
         do = self._rand_range() < self.prob
-        if do:
-            return self.aug.get_transform(*args)
-        else:
-            return NoOpTransform()
+        return self.aug.get_transform(*args) if do else NoOpTransform()
 
     def __call__(self, aug_input):
         do = self._rand_range() < self.prob
-        if do:
-            return self.aug(aug_input)
-        else:
-            return NoOpTransform()
+        return self.aug(aug_input) if do else NoOpTransform()
 
 
 class RandomFlip(Augmentation):
@@ -165,10 +159,7 @@ class ResizeShortestEdge(Augmentation):
             return NoOpTransform()
 
         scale = size * 1.0 / min(h, w)
-        if h < w:
-            newh, neww = size, scale * w
-        else:
-            newh, neww = scale * h, size
+        newh, neww = (size, scale * w) if h < w else (scale * h, size)
         if max(newh, neww) > self.max_size:
             scale = self.max_size * 1.0 / max(newh, neww)
             newh = newh * scale
@@ -358,7 +349,13 @@ class RandomCrop(Augmentation):
         # TODO style of relative_range and absolute_range are not consistent:
         # one takes (h, w) but another takes (min, max)
         super().__init__()
-        assert crop_type in ["relative_range", "relative", "absolute", "absolute_range"]
+        assert crop_type in {
+            "relative_range",
+            "relative",
+            "absolute",
+            "absolute_range",
+        }
+
         self._init(locals())
 
     def get_transform(self, image):
@@ -426,20 +423,18 @@ class RandomCrop_CategoryAreaConstraint(Augmentation):
     def get_transform(self, image, sem_seg):
         if self.single_category_max_area >= 1.0:
             return self.crop_aug.get_transform(image)
-        else:
-            h, w = sem_seg.shape
-            for _ in range(10):
-                crop_size = self.crop_aug.get_crop_size((h, w))
-                y0 = np.random.randint(h - crop_size[0] + 1)
-                x0 = np.random.randint(w - crop_size[1] + 1)
-                sem_seg_temp = sem_seg[y0 : y0 + crop_size[0], x0 : x0 + crop_size[1]]
-                labels, cnt = np.unique(sem_seg_temp, return_counts=True)
-                if self.ignored_category is not None:
-                    cnt = cnt[labels != self.ignored_category]
-                if len(cnt) > 1 and np.max(cnt) < np.sum(cnt) * self.single_category_max_area:
-                    break
-            crop_tfm = CropTransform(x0, y0, crop_size[1], crop_size[0])
-            return crop_tfm
+        h, w = sem_seg.shape
+        for _ in range(10):
+            crop_size = self.crop_aug.get_crop_size((h, w))
+            y0 = np.random.randint(h - crop_size[0] + 1)
+            x0 = np.random.randint(w - crop_size[1] + 1)
+            sem_seg_temp = sem_seg[y0 : y0 + crop_size[0], x0 : x0 + crop_size[1]]
+            labels, cnt = np.unique(sem_seg_temp, return_counts=True)
+            if self.ignored_category is not None:
+                cnt = cnt[labels != self.ignored_category]
+            if len(cnt) > 1 and np.max(cnt) < np.sum(cnt) * self.single_category_max_area:
+                break
+        return CropTransform(x0, y0, crop_size[1], crop_size[0])
 
 
 class RandomExtent(Augmentation):

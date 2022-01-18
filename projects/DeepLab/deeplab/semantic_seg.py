@@ -197,9 +197,11 @@ class DeepLabV3PlusHead(nn.Module):
         decoder_channels = [cfg.MODEL.SEM_SEG_HEAD.CONVS_DIM] * (
             len(cfg.MODEL.SEM_SEG_HEAD.IN_FEATURES) - 1
         ) + [cfg.MODEL.SEM_SEG_HEAD.ASPP_CHANNELS]
-        ret = dict(
+        return dict(
             input_shape={
-                k: v for k, v in input_shape.items() if k in cfg.MODEL.SEM_SEG_HEAD.IN_FEATURES
+                k: v
+                for k, v in input_shape.items()
+                if k in cfg.MODEL.SEM_SEG_HEAD.IN_FEATURES
             },
             project_channels=cfg.MODEL.SEM_SEG_HEAD.PROJECT_CHANNELS,
             aspp_dilations=cfg.MODEL.SEM_SEG_HEAD.ASPP_DILATIONS,
@@ -214,7 +216,6 @@ class DeepLabV3PlusHead(nn.Module):
             num_classes=cfg.MODEL.SEM_SEG_HEAD.NUM_CLASSES,
             use_depthwise_separable_conv=cfg.MODEL.SEM_SEG_HEAD.USE_DEPTHWISE_SEPARABLE_CONV,
         )
-        return ret
 
     def forward(self, features, targets=None):
         """
@@ -228,11 +229,10 @@ class DeepLabV3PlusHead(nn.Module):
             return y
         if self.training:
             return None, self.losses(y, targets)
-        else:
-            y = F.interpolate(
-                y, scale_factor=self.common_stride, mode="bilinear", align_corners=False
-            )
-            return y, {}
+        y = F.interpolate(
+            y, scale_factor=self.common_stride, mode="bilinear", align_corners=False
+        )
+        return y, {}
 
     def layers(self, features):
         # Reverse feature maps into top-down order (from low to high resolution)
@@ -256,8 +256,7 @@ class DeepLabV3PlusHead(nn.Module):
             predictions, scale_factor=self.common_stride, mode="bilinear", align_corners=False
         )
         loss = self.loss(predictions, targets)
-        losses = {"loss_sem_seg": loss * self.loss_weight}
-        return losses
+        return {"loss_sem_seg": loss * self.loss_weight}
 
 
 @SEM_SEG_HEADS_REGISTRY.register()
@@ -333,16 +332,14 @@ class DeepLabV3Head(nn.Module):
         x = self.predictor(x)
         if self.training:
             return None, self.losses(x, targets)
-        else:
-            x = F.interpolate(
-                x, scale_factor=self.common_stride, mode="bilinear", align_corners=False
-            )
-            return x, {}
+        x = F.interpolate(
+            x, scale_factor=self.common_stride, mode="bilinear", align_corners=False
+        )
+        return x, {}
 
     def losses(self, predictions, targets):
         predictions = F.interpolate(
             predictions, scale_factor=self.common_stride, mode="bilinear", align_corners=False
         )
         loss = self.loss(predictions, targets)
-        losses = {"loss_sem_seg": loss * self.loss_weight}
-        return losses
+        return {"loss_sem_seg": loss * self.loss_weight}

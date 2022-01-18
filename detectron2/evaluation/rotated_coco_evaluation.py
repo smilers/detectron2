@@ -23,11 +23,12 @@ class RotatedCOCOeval(COCOeval):
             return np.all(
                 np.array(
                     [
-                        (len(obj) == 5) and ((type(obj) == list) or (type(obj) == np.ndarray))
+                        len(obj) == 5 and type(obj) in [list, np.ndarray]
                         for obj in box_list
                     ]
                 )
             )
+
         return False
 
     @staticmethod
@@ -55,15 +56,14 @@ class RotatedCOCOeval(COCOeval):
         return box_tensor
 
     def compute_iou_dt_gt(self, dt, gt, is_crowd):
-        if self.is_rotated(dt) or self.is_rotated(gt):
-            # TODO: take is_crowd into consideration
-            assert all(c == 0 for c in is_crowd)
-            dt = RotatedBoxes(self.boxlist_to_tensor(dt, output_box_dim=5))
-            gt = RotatedBoxes(self.boxlist_to_tensor(gt, output_box_dim=5))
-            return pairwise_iou_rotated(dt, gt)
-        else:
+        if not self.is_rotated(dt) and not self.is_rotated(gt):
             # This is the same as the classical COCO evaluation
             return maskUtils.iou(dt, gt, is_crowd)
+        # TODO: take is_crowd into consideration
+        assert all(c == 0 for c in is_crowd)
+        dt = RotatedBoxes(self.boxlist_to_tensor(dt, output_box_dim=5))
+        gt = RotatedBoxes(self.boxlist_to_tensor(gt, output_box_dim=5))
+        return pairwise_iou_rotated(dt, gt)
 
     def computeIoU(self, imgId, catId):
         p = self.params
@@ -78,7 +78,7 @@ class RotatedCOCOeval(COCOeval):
         inds = np.argsort([-d["score"] for d in dt], kind="mergesort")
         dt = [dt[i] for i in inds]
         if len(dt) > p.maxDets[-1]:
-            dt = dt[0 : p.maxDets[-1]]
+            dt = dt[:p.maxDets[-1]]
 
         assert p.iouType == "bbox", "unsupported iouType for iou computation"
 
@@ -88,10 +88,7 @@ class RotatedCOCOeval(COCOeval):
         # compute iou between each dt and gt region
         iscrowd = [int(o["iscrowd"]) for o in gt]
 
-        # Note: this function is copied from cocoeval.py in cocoapi
-        # and the major difference is here.
-        ious = self.compute_iou_dt_gt(d, g, iscrowd)
-        return ious
+        return self.compute_iou_dt_gt(d, g, iscrowd)
 
 
 class RotatedCOCOEvaluator(COCOEvaluator):
@@ -145,7 +142,7 @@ class RotatedCOCOEvaluator(COCOEvaluator):
             results.append(result)
         return results
 
-    def _eval_predictions(self, predictions, img_ids=None):  # img_ids: unused
+    def _eval_predictions(self, predictions, img_ids=None):    # img_ids: unused
         """
         Evaluate predictions on the given tasks.
         Fill self._results with the metrics of the tasks.
@@ -179,9 +176,10 @@ class RotatedCOCOEvaluator(COCOEvaluator):
         }, "[RotatedCOCOEvaluator] Only bbox evaluation is supported"
         coco_eval = (
             self._evaluate_predictions_on_coco(self._coco_api, coco_results)
-            if len(coco_results) > 0
-            else None  # cocoapi does not handle empty results very well
+            if coco_results
+            else None
         )
+
 
         task = "bbox"
         res = self._derive_coco_results(

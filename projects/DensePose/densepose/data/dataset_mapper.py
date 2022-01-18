@@ -115,7 +115,9 @@ class DatasetMapper:
 
         instances = utils.annotations_to_instances(annos, image_shape, mask_format="bitmask")
         densepose_annotations = [obj.get("densepose") for obj in annos]
-        if densepose_annotations and not all(v is None for v in densepose_annotations):
+        if densepose_annotations and any(
+            v is not None for v in densepose_annotations
+        ):
             instances.gt_densepose = DensePoseList(
                 densepose_annotations, instances.gt_boxes, image_shape
             )

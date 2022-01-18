@@ -34,19 +34,18 @@ def get_env_module():
 def detect_compute_compatibility(CUDA_HOME, so_file):
     try:
         cuobjdump = os.path.join(CUDA_HOME, "bin", "cuobjdump")
-        if os.path.isfile(cuobjdump):
-            output = subprocess.check_output(
-                "'{}' --list-elf '{}'".format(cuobjdump, so_file), shell=True
-            )
-            output = output.decode("utf-8").strip().split("\n")
-            arch = []
-            for line in output:
-                line = re.findall(r"\.sm_([0-9]*)\.", line)[0]
-                arch.append(".".join(line))
-            arch = sorted(set(arch))
-            return ", ".join(arch)
-        else:
+        if not os.path.isfile(cuobjdump):
             return so_file + "; cannot find cuobjdump"
+        output = subprocess.check_output(
+            "'{}' --list-elf '{}'".format(cuobjdump, so_file), shell=True
+        )
+        output = output.decode("utf-8").strip().split("\n")
+        arch = []
+        for line in output:
+            line = re.findall(r"\.sm_([0-9]*)\.", line)[0]
+            arch.append(".".join(line))
+        arch = sorted(set(arch))
+        return ", ".join(arch)
     except Exception:
         # unhandled failure
         return so_file

@@ -148,16 +148,17 @@ class COCOPanopticEvaluator(DatasetEvaluator):
                     pred_folder=pred_dir,
                 )
 
-        res = {}
-        res["PQ"] = 100 * pq_res["All"]["pq"]
-        res["SQ"] = 100 * pq_res["All"]["sq"]
-        res["RQ"] = 100 * pq_res["All"]["rq"]
-        res["PQ_th"] = 100 * pq_res["Things"]["pq"]
-        res["SQ_th"] = 100 * pq_res["Things"]["sq"]
-        res["RQ_th"] = 100 * pq_res["Things"]["rq"]
-        res["PQ_st"] = 100 * pq_res["Stuff"]["pq"]
-        res["SQ_st"] = 100 * pq_res["Stuff"]["sq"]
-        res["RQ_st"] = 100 * pq_res["Stuff"]["rq"]
+        res = {
+            'PQ': 100 * pq_res["All"]["pq"],
+            'SQ': 100 * pq_res["All"]["sq"],
+            'RQ': 100 * pq_res["All"]["rq"],
+            'PQ_th': 100 * pq_res["Things"]["pq"],
+            'SQ_th': 100 * pq_res["Things"]["sq"],
+            'RQ_th': 100 * pq_res["Things"]["rq"],
+            'PQ_st': 100 * pq_res["Stuff"]["pq"],
+            'SQ_st': 100 * pq_res["Stuff"]["sq"],
+            'RQ_st': 100 * pq_res["Stuff"]["rq"],
+        }
 
         results = OrderedDict({"panoptic_seg": res})
         _print_panoptic_results(pq_res)

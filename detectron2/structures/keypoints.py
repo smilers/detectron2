@@ -106,10 +106,9 @@ class Keypoints:
         assert len(keypoints_list) > 0
         assert all(isinstance(keypoints, Keypoints) for keypoints in keypoints_list)
 
-        cat_kpts = type(keypoints_list[0])(
+        return type(keypoints_list[0])(
             torch.cat([kpts.tensor for kpts in keypoints_list], dim=0)
         )
-        return cat_kpts
 
 
 # TODO make this nicer, this is a direct translation from C2 (but removing the inner loop)

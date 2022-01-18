@@ -111,9 +111,6 @@ def setup_environment():
 
     if custom_module_path:
         setup_custom_environment(custom_module_path)
-    else:
-        # The default setup is a no-op
-        pass
 
 
 def setup_custom_environment(custom_module):
