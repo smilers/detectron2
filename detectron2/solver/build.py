@@ -72,21 +72,22 @@ def _generate_optimizer_class_with_gradient_clipping(
         else:
             # global clipper for future use with detr
             # (https://github.com/facebookresearch/detr/pull/287)
-            all_params = itertools.chain(*[g["params"] for g in self.param_groups])
+            all_params = itertools.chain(
+                *[g["params"] for g in self.param_groups])
             global_clipper(all_params)
         super(type(self), self).step(closure)
 
     OptimizerWithGradientClip = type(
         optimizer.__name__ + "WithGradientClip",
-        (optimizer,),
+        (optimizer, ),
         {"step": optimizer_wgc_step},
     )
     return OptimizerWithGradientClip
 
 
 def maybe_add_gradient_clipping(
-    cfg: CfgNode, optimizer: Type[torch.optim.Optimizer]
-) -> Type[torch.optim.Optimizer]:
+        cfg: CfgNode,
+        optimizer: Type[torch.optim.Optimizer]) -> Type[torch.optim.Optimizer]:
     """
     If gradient clipping is enabled through config options, wraps the existing
     optimizer type to become a new dynamically created class OptimizerWithGradientClip
@@ -111,15 +112,15 @@ def maybe_add_gradient_clipping(
 
     grad_clipper = _create_gradient_clipper(cfg.SOLVER.CLIP_GRADIENTS)
     OptimizerWithGradientClip = _generate_optimizer_class_with_gradient_clipping(
-        optimizer_type, per_param_clipper=grad_clipper
-    )
+        optimizer_type, per_param_clipper=grad_clipper)
     if not isinstance(optimizer, torch.optim.Optimizer):
         return OptimizerWithGradientClip
     optimizer.__class__ = OptimizerWithGradientClip  # a bit hacky, not recommended
     return optimizer
 
 
-def build_optimizer(cfg: CfgNode, model: torch.nn.Module) -> torch.optim.Optimizer:
+def build_optimizer(cfg: CfgNode,
+                    model: torch.nn.Module) -> torch.optim.Optimizer:
     """
     Build an optimizer from config.
     """
@@ -219,7 +220,8 @@ def get_default_optimizer_params(
             memo.add(value)
 
             hyperparams = copy.copy(defaults)
-            if isinstance(module, norm_module_types) and weight_decay_norm is not None:
+            if isinstance(module,
+                          norm_module_types) and weight_decay_norm is not None:
                 hyperparams["weight_decay"] = weight_decay_norm
             hyperparams.update(overrides.get(module_param_name, {}))
             params.append({"params": [value], **hyperparams})
@@ -227,7 +229,7 @@ def get_default_optimizer_params(
 
 
 def build_lr_scheduler(
-    cfg: CfgNode, optimizer: torch.optim.Optimizer
+        cfg: CfgNode, optimizer: torch.optim.Optimizer
 ) -> torch.optim.lr_scheduler._LRScheduler:
     """
     Build a LR scheduler from config.
@@ -240,10 +242,9 @@ def build_lr_scheduler(
             logger = logging.getLogger(__name__)
             logger.warning(
                 "SOLVER.STEPS contains values larger than SOLVER.MAX_ITER. "
-                "These values will be ignored."
-            )
+                "These values will be ignored.")
         sched = MultiStepParamScheduler(
-            values=[cfg.SOLVER.GAMMA ** k for k in range(len(steps) + 1)],
+            values=[cfg.SOLVER.GAMMA**k for k in range(len(steps) + 1)],
             milestones=steps,
             num_updates=cfg.SOLVER.MAX_ITER,
         )
@@ -258,4 +259,6 @@ def build_lr_scheduler(
         min(cfg.SOLVER.WARMUP_ITERS / cfg.SOLVER.MAX_ITER, 1.0),
         cfg.SOLVER.WARMUP_METHOD,
     )
-    return LRMultiplier(optimizer, multiplier=sched, max_iter=cfg.SOLVER.MAX_ITER)
+    return LRMultiplier(optimizer,
+                        multiplier=sched,
+                        max_iter=cfg.SOLVER.MAX_ITER)

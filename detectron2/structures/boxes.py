@@ -14,7 +14,6 @@ from detectron2.utils.env import TORCH_VERSION
 
 _RawBoxType = Union[List[float], Tuple[float, ...], torch.Tensor, np.ndarray]
 
-
 if TORCH_VERSION < (1, 8):
     _maybe_jit_unused = torch.jit.unused
 else:
@@ -55,9 +54,8 @@ class BoxMode(IntEnum):
     """
 
     @staticmethod
-    def convert(
-        box: _RawBoxType, from_mode: "BoxMode", to_mode: "BoxMode"
-    ) -> _RawBoxType:
+    def convert(box: _RawBoxType, from_mode: "BoxMode",
+                to_mode: "BoxMode") -> _RawBoxType:
         """
         Args:
             box: can be a k-tuple, k-list or an Nxk array/tensor, where k = 4 or 5
@@ -75,8 +73,7 @@ class BoxMode(IntEnum):
         if single_box:
             assert len(box) == 4 or len(box) == 5, (
                 "BoxMode.convert takes either a k-tuple/list or an Nxk array/tensor,"
-                " where k == 4 or 5"
-            )
+                " where k == 4 or 5")
             arr = torch.tensor(box)[None, :]
         else:
             # avoid modifying the input box
@@ -133,10 +130,8 @@ class BoxMode(IntEnum):
                 arr[:, 3] -= arr[:, 1]
             else:
                 raise NotImplementedError(
-                    "Conversion from BoxMode {} to {} is not supported yet".format(
-                        from_mode, to_mode
-                    )
-                )
+                    "Conversion from BoxMode {} to {} is not supported yet".
+                    format(from_mode, to_mode))
 
         if single_box:
             return original_type(arr.flatten().tolist())
@@ -163,14 +158,14 @@ class Boxes:
         Args:
             tensor (Tensor[float]): a Nx4 matrix.  Each row is (x1, y1, x2, y2).
         """
-        device = (
-            tensor.device if isinstance(tensor, torch.Tensor) else torch.device("cpu")
-        )
+        device = (tensor.device
+                  if isinstance(tensor, torch.Tensor) else torch.device("cpu"))
         tensor = torch.as_tensor(tensor, dtype=torch.float32, device=device)
         if tensor.numel() == 0:
             # Use reshape, so we don't end up creating a new tensor that does not depend on
             # the inputs (and consequently confuses jit)
-            tensor = tensor.reshape((-1, 4)).to(dtype=torch.float32, device=device)
+            tensor = tensor.reshape((-1, 4)).to(dtype=torch.float32,
+                                                device=device)
         assert tensor.dim() == 2 and tensor.size(-1) == 4, tensor.size()
 
         self.tensor = tensor
@@ -207,7 +202,8 @@ class Boxes:
         Args:
             box_size (height, width): The clipping box's size.
         """
-        assert torch.isfinite(self.tensor).all(), "Box tensor contains infinite or NaN!"
+        assert torch.isfinite(
+            self.tensor).all(), "Box tensor contains infinite or NaN!"
         h, w = box_size
         x1 = self.tensor[:, 0].clamp(min=0, max=w)
         y1 = self.tensor[:, 1].clamp(min=0, max=h)
@@ -262,9 +258,9 @@ class Boxes:
     def __repr__(self) -> str:
         return "Boxes(" + str(self.tensor) + ")"
 
-    def inside_box(
-        self, box_size: Tuple[int, int], boundary_threshold: int = 0
-    ) -> torch.Tensor:
+    def inside_box(self,
+                   box_size: Tuple[int, int],
+                   boundary_threshold: int = 0) -> torch.Tensor:
         """
         Args:
             box_size (height, width): Size of the reference box.
@@ -275,12 +271,10 @@ class Boxes:
             a binary vector, indicating whether each box is inside the reference box.
         """
         height, width = box_size
-        return (
-            (self.tensor[..., 0] >= -boundary_threshold)
-            & (self.tensor[..., 1] >= -boundary_threshold)
-            & (self.tensor[..., 2] < width + boundary_threshold)
-            & (self.tensor[..., 3] < height + boundary_threshold)
-        )
+        return ((self.tensor[..., 0] >= -boundary_threshold)
+                & (self.tensor[..., 1] >= -boundary_threshold)
+                & (self.tensor[..., 2] < width + boundary_threshold)
+                & (self.tensor[..., 3] < height + boundary_threshold))
 
     def get_centers(self) -> torch.Tensor:
         """
@@ -343,8 +337,7 @@ def pairwise_intersection(boxes1: Boxes, boxes2: Boxes) -> torch.Tensor:
     """
     boxes1, boxes2 = boxes1.tensor, boxes2.tensor
     width_height = torch.min(boxes1[:, None, 2:], boxes2[:, 2:]) - torch.max(
-        boxes1[:, None, :2], boxes2[:, :2]
-    )  # [N,M,2]
+        boxes1[:, None, :2], boxes2[:, :2])  # [N,M,2]
 
     width_height.clamp_(min=0)  # [N,M,2]
     return width_height.prod(dim=2)
@@ -429,8 +422,7 @@ def matched_pairwise_iou(boxes1: Boxes, boxes2: Boxes) -> torch.Tensor:
     assert len(boxes1) == len(
         boxes2
     ), "boxlists should have the same" "number of entries, got {}, {}".format(
-        len(boxes1), len(boxes2)
-    )
+        len(boxes1), len(boxes2))
     area1 = boxes1.area()  # [N]
     area2 = boxes2.area()  # [N]
     box1, box2 = boxes1.tensor, boxes2.tensor

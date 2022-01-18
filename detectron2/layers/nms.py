@@ -7,9 +7,8 @@ from torchvision.ops import boxes as box_ops
 from torchvision.ops import nms  # BC-compat
 
 
-def batched_nms(
-    boxes: torch.Tensor, scores: torch.Tensor, idxs: torch.Tensor, iou_threshold: float
-):
+def batched_nms(boxes: torch.Tensor, scores: torch.Tensor, idxs: torch.Tensor,
+                iou_threshold: float):
     """
     Same as torchvision.ops.boxes.batched_nms, but safer.
     """
@@ -125,7 +124,7 @@ def batched_nms_rotated(boxes, scores, idxs, iou_threshold):
     assert boxes.shape[-1] == 5
 
     if boxes.numel() == 0:
-        return torch.empty((0,), dtype=torch.int64, device=boxes.device)
+        return torch.empty((0, ), dtype=torch.int64, device=boxes.device)
     boxes = boxes.float()  # fp16 does not have enough range for batched NMS
     # Strategy: in order to perform NMS independently per class,
     # we add an offset to all the boxes. The offset is dependent
@@ -136,13 +135,12 @@ def batched_nms_rotated(boxes, scores, idxs, iou_threshold):
     # which won't handle negative coordinates correctly.
     # Here by using min_coordinate we can make sure the negative coordinates are
     # correctly handled.
-    max_coordinate = (
-        torch.max(boxes[:, 0], boxes[:, 1]) + torch.max(boxes[:, 2], boxes[:, 3]) / 2
-    ).max()
-    min_coordinate = (
-        torch.min(boxes[:, 0], boxes[:, 1]) - torch.max(boxes[:, 2], boxes[:, 3]) / 2
-    ).min()
+    max_coordinate = (torch.max(boxes[:, 0], boxes[:, 1]) +
+                      torch.max(boxes[:, 2], boxes[:, 3]) / 2).max()
+    min_coordinate = (torch.min(boxes[:, 0], boxes[:, 1]) -
+                      torch.max(boxes[:, 2], boxes[:, 3]) / 2).min()
     offsets = idxs.to(boxes) * (max_coordinate - min_coordinate + 1)
-    boxes_for_nms = boxes.clone()  # avoid modifying the original values in boxes
+    boxes_for_nms = boxes.clone(
+    )  # avoid modifying the original values in boxes
     boxes_for_nms[:, :2] += offsets[:, None]
     return nms_rotated(boxes_for_nms, scores, iou_threshold)

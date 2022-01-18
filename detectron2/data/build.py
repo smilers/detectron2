@@ -29,7 +29,6 @@ from detectron2.utils.env import seed_all_rng
 from detectron2.utils.file_io import PathManager
 from detectron2.utils.logger import _log_api_usage
 from detectron2.utils.logger import log_first_n
-
 """
 This file contains the default logic to build a dataloader for training or testing.
 """
@@ -66,9 +65,7 @@ def filter_images_with_only_crowd_annotations(dataset_dicts):
     logger = logging.getLogger(__name__)
     logger.info(
         "Removed {} images with no usable annotations. {} images left.".format(
-            num_before - num_after, num_after
-        )
-    )
+            num_before - num_after, num_after))
     return dataset_dicts
 
 
@@ -87,24 +84,17 @@ def filter_images_with_few_keypoints(dataset_dicts, min_keypoints_per_image):
     def visible_keypoints_in_image(dic):
         # Each keypoints field has the format [x1, y1, v1, ...], where v is visibility
         annotations = dic["annotations"]
-        return sum(
-            (np.array(ann["keypoints"][2::3]) > 0).sum()
-            for ann in annotations
-            if "keypoints" in ann
-        )
+        return sum((np.array(ann["keypoints"][2::3]) > 0).sum()
+                   for ann in annotations if "keypoints" in ann)
 
     dataset_dicts = [
-        x
-        for x in dataset_dicts
+        x for x in dataset_dicts
         if visible_keypoints_in_image(x) >= min_keypoints_per_image
     ]
     num_after = len(dataset_dicts)
     logger = logging.getLogger(__name__)
-    logger.info(
-        "Removed {} images with fewer than {} keypoints.".format(
-            num_before - num_after, min_keypoints_per_image
-        )
-    )
+    logger.info("Removed {} images with fewer than {} keypoints.".format(
+        num_before - num_after, min_keypoints_per_image))
     return dataset_dicts
 
 
@@ -143,15 +133,13 @@ def load_proposals_into_dataset(dataset_dicts, proposal_file):
     # Convert image_id to str since they could be int.
     img_ids = set({str(record["image_id"]) for record in dataset_dicts})
     id_to_index = {
-        str(id): i for i, id in enumerate(proposals["ids"]) if str(id) in img_ids
+        str(id): i
+        for i, id in enumerate(proposals["ids"]) if str(id) in img_ids
     }
 
     # Assuming default bbox_mode of precomputed proposals are 'XYXY_ABS'
-    bbox_mode = (
-        BoxMode(proposals["bbox_mode"])
-        if "bbox_mode" in proposals
-        else BoxMode.XYXY_ABS
-    )
+    bbox_mode = (BoxMode(proposals["bbox_mode"])
+                 if "bbox_mode" in proposals else BoxMode.XYXY_ABS)
 
     for record in dataset_dicts:
         # Get the index of the proposal
@@ -176,14 +164,15 @@ def print_instances_class_histogram(dataset_dicts, class_names):
     """
     num_classes = len(class_names)
     hist_bins = np.arange(num_classes + 1)
-    histogram = np.zeros((num_classes,), dtype=np.int)
+    histogram = np.zeros((num_classes, ), dtype=np.int)
     for entry in dataset_dicts:
         annos = entry["annotations"]
         classes = np.asarray(
-            [x["category_id"] for x in annos if not x.get("iscrowd", 0)], dtype=np.int
-        )
+            [x["category_id"] for x in annos if not x.get("iscrowd", 0)],
+            dtype=np.int)
         if len(classes):
-            assert classes.min() >= 0, f"Got an invalid category_id={classes.min()}"
+            assert classes.min(
+            ) >= 0, f"Got an invalid category_id={classes.min()}"
             assert (
                 classes.max() < num_classes
             ), f"Got an invalid category_id={classes.max()} for a dataset of {num_classes} classes"
@@ -197,9 +186,8 @@ def print_instances_class_histogram(dataset_dicts, class_names):
 
     data = list(
         itertools.chain(
-            *[[short_name(class_names[i]), int(v)] for i, v in enumerate(histogram)]
-        )
-    )
+            *[[short_name(class_names[i]), int(v)]
+              for i, v in enumerate(histogram)]))
     total_num_instances = sum(data[1::2])
     data.extend([None] * (N_COLS - (len(data) % N_COLS)))
     if num_classes > 1:
@@ -214,15 +202,16 @@ def print_instances_class_histogram(dataset_dicts, class_names):
     )
     log_first_n(
         logging.INFO,
-        "Distribution of instances among all {} categories:\n".format(num_classes)
-        + colored(table, "cyan"),
+        "Distribution of instances among all {} categories:\n".format(
+            num_classes) + colored(table, "cyan"),
         key="message",
     )
 
 
-def get_detection_dataset_dicts(
-    names, filter_empty=True, min_keypoints=0, proposal_files=None
-):
+def get_detection_dataset_dicts(names,
+                                filter_empty=True,
+                                min_keypoints=0,
+                                proposal_files=None):
     """
     Load and prepare dataset dicts for instance detection/segmentation and semantic segmentation.
 
@@ -240,7 +229,9 @@ def get_detection_dataset_dicts(
     if isinstance(names, str):
         names = [names]
     assert len(names), names
-    dataset_dicts = [DatasetCatalog.get(dataset_name) for dataset_name in names]
+    dataset_dicts = [
+        DatasetCatalog.get(dataset_name) for dataset_name in names
+    ]
     for dataset_name, dicts in zip(names, dataset_dicts):
         assert len(dicts), "Dataset '{}' is empty!".format(dataset_name)
 
@@ -249,16 +240,19 @@ def get_detection_dataset_dicts(
         # load precomputed proposals from proposal files
         dataset_dicts = [
             load_proposals_into_dataset(dataset_i_dicts, proposal_file)
-            for dataset_i_dicts, proposal_file in zip(dataset_dicts, proposal_files)
+            for dataset_i_dicts, proposal_file in zip(dataset_dicts,
+                                                      proposal_files)
         ]
 
     dataset_dicts = list(itertools.chain.from_iterable(dataset_dicts))
 
     has_instances = "annotations" in dataset_dicts[0]
     if filter_empty and has_instances:
-        dataset_dicts = filter_images_with_only_crowd_annotations(dataset_dicts)
+        dataset_dicts = filter_images_with_only_crowd_annotations(
+            dataset_dicts)
     if min_keypoints > 0 and has_instances:
-        dataset_dicts = filter_images_with_few_keypoints(dataset_dicts, min_keypoints)
+        dataset_dicts = filter_images_with_few_keypoints(
+            dataset_dicts, min_keypoints)
 
     if has_instances:
         try:
@@ -268,13 +262,17 @@ def get_detection_dataset_dicts(
         except AttributeError:  # class names are not available for this dataset
             pass
 
-    assert len(dataset_dicts), "No valid data found in {}.".format(",".join(names))
+    assert len(dataset_dicts), "No valid data found in {}.".format(
+        ",".join(names))
     return dataset_dicts
 
 
-def build_batch_data_loader(
-    dataset, sampler, total_batch_size, *, aspect_ratio_grouping=False, num_workers=0
-):
+def build_batch_data_loader(dataset,
+                            sampler,
+                            total_batch_size,
+                            *,
+                            aspect_ratio_grouping=False,
+                            num_workers=0):
     """
     Build a batched dataloader. The main differences from `torch.utils.data.DataLoader` are:
     1. support aspect ratio grouping options
@@ -295,8 +293,7 @@ def build_batch_data_loader(
     assert (
         total_batch_size > 0 and total_batch_size % world_size == 0
     ), "Total batch size ({}) must be divisible by the number of gpus ({}).".format(
-        total_batch_size, world_size
-    )
+        total_batch_size, world_size)
     batch_size = total_batch_size // world_size
 
     if isinstance(dataset, torchdata.IterableDataset):
@@ -316,7 +313,8 @@ def build_batch_data_loader(
     data_loader = torchdata.DataLoader(
         dataset,
         num_workers=num_workers,
-        collate_fn=operator.itemgetter(0),  # don't batch, but yield individual elements
+        collate_fn=operator.itemgetter(
+            0),  # don't batch, but yield individual elements
         worker_init_fn=worker_init_reset_seed,
     )  # yield individual mapped dict
     return AspectRatioGroupedDataset(data_loader, batch_size)
@@ -328,11 +326,9 @@ def _train_loader_from_config(cfg, mapper=None, *, dataset=None, sampler=None):
             cfg.DATASETS.TRAIN,
             filter_empty=cfg.DATALOADER.FILTER_EMPTY_ANNOTATIONS,
             min_keypoints=cfg.MODEL.ROI_KEYPOINT_HEAD.MIN_KEYPOINTS_PER_IMAGE
-            if cfg.MODEL.KEYPOINT_ON
-            else 0,
+            if cfg.MODEL.KEYPOINT_ON else 0,
             proposal_files=cfg.DATASETS.PROPOSAL_FILES_TRAIN
-            if cfg.MODEL.LOAD_PROPOSALS
-            else None,
+            if cfg.MODEL.LOAD_PROPOSALS else None,
         )
         _log_api_usage("dataset." + cfg.DATASETS.TRAIN[0])
 
@@ -346,18 +342,16 @@ def _train_loader_from_config(cfg, mapper=None, *, dataset=None, sampler=None):
         if sampler_name == "TrainingSampler":
             sampler = TrainingSampler(len(dataset))
         elif sampler_name == "RepeatFactorTrainingSampler":
-            repeat_factors = (
-                RepeatFactorTrainingSampler.repeat_factors_from_category_frequency(
-                    dataset, cfg.DATALOADER.REPEAT_THRESHOLD
-                )
-            )
+            repeat_factors = (RepeatFactorTrainingSampler.
+                              repeat_factors_from_category_frequency(
+                                  dataset, cfg.DATALOADER.REPEAT_THRESHOLD))
             sampler = RepeatFactorTrainingSampler(repeat_factors)
         elif sampler_name == "RandomSubsetTrainingSampler":
             sampler = RandomSubsetTrainingSampler(
-                len(dataset), cfg.DATALOADER.RANDOM_SUBSET_RATIO
-            )
+                len(dataset), cfg.DATALOADER.RANDOM_SUBSET_RATIO)
         else:
-            raise ValueError("Unknown training sampler: {}".format(sampler_name))
+            raise ValueError(
+                "Unknown training sampler: {}".format(sampler_name))
 
     return {
         "dataset": dataset,
@@ -419,8 +413,8 @@ def build_detection_train_loader(
         if sampler is None:
             sampler = TrainingSampler(len(dataset))
         assert isinstance(
-            sampler, torchdata.Sampler
-        ), f"Expect a Sampler but got {type(sampler)}"
+            sampler,
+            torchdata.Sampler), f"Expect a Sampler but got {type(sampler)}"
     return build_batch_data_loader(
         dataset,
         sampler,
@@ -444,9 +438,7 @@ def _test_loader_from_config(cfg, dataset_name, mapper=None):
         proposal_files=[
             cfg.DATASETS.PROPOSAL_FILES_TEST[list(cfg.DATASETS.TEST).index(x)]
             for x in dataset_name
-        ]
-        if cfg.MODEL.LOAD_PROPOSALS
-        else None,
+        ] if cfg.MODEL.LOAD_PROPOSALS else None,
     )
     if mapper is None:
         mapper = DatasetMapper(cfg, False)
@@ -458,7 +450,11 @@ def _test_loader_from_config(cfg, dataset_name, mapper=None):
 
 
 @configurable(from_config=_test_loader_from_config)
-def build_detection_test_loader(dataset, *, mapper, sampler=None, num_workers=0):
+def build_detection_test_loader(dataset,
+                                *,
+                                mapper,
+                                sampler=None,
+                                num_workers=0):
     """
     Similar to `build_detection_train_loader`, but uses a batch size of 1,
     and :class:`InferenceSampler`. This sampler coordinates all workers to
@@ -515,5 +511,5 @@ def trivial_batch_collator(batch):
 
 
 def worker_init_reset_seed(worker_id):
-    initial_seed = torch.initial_seed() % 2 ** 31
+    initial_seed = torch.initial_seed() % 2**31
     seed_all_rng(initial_seed + worker_id)

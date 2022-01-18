@@ -108,8 +108,7 @@ class JSONWriter(EventWriter):
         to_save = defaultdict(dict)
 
         for k, (v, iter) in storage.latest_with_smoothing_hint(
-            self._window_size
-        ).items():
+                self._window_size).items():
             # keep scalars that have not been written
             if iter <= self._last_write:
                 continue
@@ -120,7 +119,8 @@ class JSONWriter(EventWriter):
 
         for itr, scalars_per_iter in to_save.items():
             scalars_per_iter["iteration"] = itr
-            self._file_handle.write(json.dumps(scalars_per_iter, sort_keys=True) + "\n")
+            self._file_handle.write(
+                json.dumps(scalars_per_iter, sort_keys=True) + "\n")
         self._file_handle.flush()
         try:
             os.fsync(self._file_handle.fileno())
@@ -154,8 +154,7 @@ class TensorboardXWriter(EventWriter):
         storage = get_event_storage()
         new_last_write = self._last_write
         for k, (v, iter) in storage.latest_with_smoothing_hint(
-            self._window_size
-        ).items():
+                self._window_size).items():
             if iter > self._last_write:
                 self._writer.add_scalar(k, v, iter)
                 new_last_write = max(new_last_write, iter)
@@ -179,7 +178,8 @@ class TensorboardXWriter(EventWriter):
             storage.clear_histograms()
 
     def close(self):
-        if hasattr(self, "_writer"):  # doesn't exist when the code fails at import
+        if hasattr(self,
+                   "_writer"):  # doesn't exist when the code fails at import
             self._writer.close()
 
 
@@ -213,18 +213,19 @@ class CommonMetricPrinter(EventWriter):
         iteration = storage.iter
         try:
             eta_seconds = storage.history("time").median(1000) * (
-                self._max_iter - iteration - 1
-            )
-            storage.put_scalar("eta_seconds", eta_seconds, smoothing_hint=False)
+                self._max_iter - iteration - 1)
+            storage.put_scalar("eta_seconds",
+                               eta_seconds,
+                               smoothing_hint=False)
             return str(datetime.timedelta(seconds=int(eta_seconds)))
         except KeyError:
             # estimate eta on our own - more noisy
             eta_string = None
             if self._last_write is not None:
-                estimate_iter_time = (time.perf_counter() - self._last_write[1]) / (
-                    iteration - self._last_write[0]
-                )
-                eta_seconds = estimate_iter_time * (self._max_iter - iteration - 1)
+                estimate_iter_time = (time.perf_counter() - self._last_write[1]
+                                      ) / (iteration - self._last_write[0])
+                eta_seconds = estimate_iter_time * (self._max_iter -
+                                                    iteration - 1)
                 eta_string = str(datetime.timedelta(seconds=int(eta_seconds)))
             self._last_write = (iteration, time.perf_counter())
             return eta_string
@@ -262,28 +263,22 @@ class CommonMetricPrinter(EventWriter):
 
         # NOTE: max_mem is parsed by grep in "dev/parse_results.sh"
         self.logger.info(
-            " {eta}iter: {iter}  {losses}  {time}{data_time}lr: {lr}  {memory}".format(
+            " {eta}iter: {iter}  {losses}  {time}{data_time}lr: {lr}  {memory}"
+            .format(
                 eta=f"eta: {eta_string}  " if eta_string else "",
                 iter=iteration,
-                losses="  ".join(
-                    [
-                        "{}: {:.4g}".format(k, v.median(self._window_size))
-                        for k, v in storage.histories().items()
-                        if "loss" in k
-                    ]
-                ),
+                losses="  ".join([
+                    "{}: {:.4g}".format(k, v.median(self._window_size))
+                    for k, v in storage.histories().items() if "loss" in k
+                ]),
                 time="time: {:.4f}  ".format(iter_time)
-                if iter_time is not None
-                else "",
+                if iter_time is not None else "",
                 data_time="data_time: {:.4f}  ".format(data_time)
-                if data_time is not None
-                else "",
+                if data_time is not None else "",
                 lr=lr,
                 memory="max_mem: {:.0f}M".format(max_mem_mb)
-                if max_mem_mb is not None
-                else "",
-            )
-        )
+                if max_mem_mb is not None else "",
+            ))
 
 
 class EventStorage:
@@ -344,7 +339,8 @@ class EventStorage:
         if existing_hint is not None:
             assert (
                 existing_hint == smoothing_hint
-            ), "Scalar {} was put with a different smoothing_hint!".format(name)
+            ), "Scalar {} was put with a different smoothing_hint!".format(
+                name)
         else:
             self._smoothing_hints[name] = smoothing_hint
 
@@ -373,9 +369,10 @@ class EventStorage:
 
         # Create a histogram with PyTorch
         hist_counts = torch.histc(hist_tensor, bins=bins)
-        hist_edges = torch.linspace(
-            start=ht_min, end=ht_max, steps=bins + 1, dtype=torch.float32
-        )
+        hist_edges = torch.linspace(start=ht_min,
+                                    end=ht_max,
+                                    steps=bins + 1,
+                                    dtype=torch.float32)
 
         # Parameter for the add_histogram_raw function of SummaryWriter
         hist_params = dict(
@@ -384,7 +381,7 @@ class EventStorage:
             max=ht_max,
             num=len(hist_tensor),
             sum=float(hist_tensor.sum()),
-            sum_squares=float(torch.sum(hist_tensor ** 2)),
+            sum_squares=float(torch.sum(hist_tensor**2)),
             bucket_limits=hist_edges[1:].tolist(),
             bucket_counts=hist_counts.tolist(),
             global_step=self._iter,
@@ -427,7 +424,8 @@ class EventStorage:
         """
         return {
             k: (
-                self._history[k].median(window_size) if self._smoothing_hints[k] else v,
+                self._history[k].median(window_size)
+                if self._smoothing_hints[k] else v,
                 itr,
             )
             for k, (v, itr) in self._latest_scalars.items()

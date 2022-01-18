@@ -29,7 +29,6 @@ logger = logging.getLogger(__name__)
 
 __all__ = ["ColorMode", "VisImage", "Visualizer"]
 
-
 _SMALL_OBJECT_AREA_THRESH = 1000
 _LARGE_MASK_AREA_THRESH = 120000
 _OFF_WHITE = (1.0, 1.0, 240.0 / 255)
@@ -97,8 +96,8 @@ class GenericMask:
             return
 
         raise ValueError(
-            "GenericMask cannot handle object {} of type '{}'".format(m, type(m))
-        )
+            "GenericMask cannot handle object {} of type '{}'".format(
+                m, type(m)))
 
     @property
     def mask(self):
@@ -116,7 +115,8 @@ class GenericMask:
     def has_holes(self):
         if self._has_holes is None:
             if self._mask is not None:
-                self._polygons, self._has_holes = self.mask_to_polygons(self._mask)
+                self._polygons, self._has_holes = self.mask_to_polygons(
+                    self._mask)
             else:
                 self._has_holes = (
                     False  # if original format is polygon, does not have holes
@@ -129,11 +129,9 @@ class GenericMask:
         # Internal contours (holes) are placed in hierarchy-2.
         # cv2.CHAIN_APPROX_NONE flag gets vertices of polygons from contours.
         mask = np.ascontiguousarray(
-            mask
-        )  # some versions of cv2 does not support incontiguous arr
-        res = cv2.findContours(
-            mask.astype("uint8"), cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE
-        )
+            mask)  # some versions of cv2 does not support incontiguous arr
+        res = cv2.findContours(mask.astype("uint8"), cv2.RETR_CCOMP,
+                               cv2.CHAIN_APPROX_NONE)
         hierarchy = res[-1]
         if hierarchy is None:  # empty mask
             return [], False
@@ -183,24 +181,25 @@ class _PanopticPrediction:
                     continue
                 pred_class = panoptic_label // label_divisor
                 isthing = (
-                    pred_class in metadata.thing_dataset_id_to_contiguous_id.values()
-                )
-                segments_info.append(
-                    {
-                        "id": int(panoptic_label),
-                        "category_id": int(pred_class),
-                        "isthing": bool(isthing),
-                    }
-                )
+                    pred_class
+                    in metadata.thing_dataset_id_to_contiguous_id.values())
+                segments_info.append({
+                    "id": int(panoptic_label),
+                    "category_id": int(pred_class),
+                    "isthing": bool(isthing),
+                })
         del metadata
 
         self._seg = panoptic_seg
 
         self._sinfo = {s["id"]: s for s in segments_info}  # seg id -> seg info
-        segment_ids, areas = torch.unique(panoptic_seg, sorted=True, return_counts=True)
+        segment_ids, areas = torch.unique(panoptic_seg,
+                                          sorted=True,
+                                          return_counts=True)
         areas = areas.numpy()
         sorted_idxs = np.argsort(-areas)
-        self._seg_ids, self._seg_areas = segment_ids[sorted_idxs], areas[sorted_idxs]
+        self._seg_ids, self._seg_areas = segment_ids[sorted_idxs], areas[
+            sorted_idxs]
         self._seg_ids = self._seg_ids.tolist()
         for sid, area in zip(self._seg_ids, self._seg_areas):
             if sid in self._sinfo:
@@ -258,13 +257,20 @@ def _create_text_labels(classes, scores, class_names, is_crowd=None):
         if labels is None:
             labels = ["{:.0f}%".format(s * 100) for s in scores]
         else:
-            labels = ["{} {:.0f}%".format(l, s * 100) for l, s in zip(labels, scores)]
+            labels = [
+                "{} {:.0f}%".format(l, s * 100)
+                for l, s in zip(labels, scores)
+            ]
     if labels is not None and is_crowd is not None:
-        labels = [l + ("|crowd" if crowd else "") for l, crowd in zip(labels, is_crowd)]
+        labels = [
+            l + ("|crowd" if crowd else "")
+            for l, crowd in zip(labels, is_crowd)
+        ]
     return labels
 
 
 class VisImage:
+
     def __init__(self, img, scale=1.0):
         """
         Args:
@@ -298,7 +304,9 @@ class VisImage:
         ax = fig.add_axes([0.0, 0.0, 1.0, 1.0])
         ax.axis("off")
         # Need to imshow this first so that other patches can be drawn on top
-        ax.imshow(img, extent=(0, self.width, self.height, 0), interpolation="nearest")
+        ax.imshow(img,
+                  extent=(0, self.width, self.height, 0),
+                  interpolation="nearest")
 
         self.fig = fig
         self.ax = ax
@@ -358,9 +366,11 @@ class Visualizer:
 
     # TODO implement a fast, rasterized version using OpenCV
 
-    def __init__(
-        self, img_rgb, metadata=None, scale=1.0, instance_mode=ColorMode.IMAGE
-    ):
+    def __init__(self,
+                 img_rgb,
+                 metadata=None,
+                 scale=1.0,
+                 instance_mode=ColorMode.IMAGE):
         """
         Args:
             img_rgb: a numpy array of shape (H, W, C), where H and W correspond to
@@ -381,8 +391,7 @@ class Visualizer:
 
         # too small texts are useless, therefore clamp to 9
         self._default_font_size = max(
-            np.sqrt(self.output.height * self.output.width) // 90, 10 // scale
-        )
+            np.sqrt(self.output.height * self.output.width) // 90, 10 // scale)
         self._instance_mode = instance_mode
 
     def draw_instance_predictions(self, predictions):
@@ -397,31 +406,27 @@ class Visualizer:
         Returns:
             output (VisImage): image object with visualizations.
         """
-        boxes = predictions.pred_boxes if predictions.has("pred_boxes") else None
+        boxes = predictions.pred_boxes if predictions.has(
+            "pred_boxes") else None
         scores = predictions.scores if predictions.has("scores") else None
-        classes = (
-            predictions.pred_classes.tolist()
-            if predictions.has("pred_classes")
-            else None
-        )
-        labels = _create_text_labels(
-            classes, scores, self.metadata.get("thing_classes", None)
-        )
-        keypoints = (
-            predictions.pred_keypoints if predictions.has("pred_keypoints") else None
-        )
+        classes = (predictions.pred_classes.tolist()
+                   if predictions.has("pred_classes") else None)
+        labels = _create_text_labels(classes, scores,
+                                     self.metadata.get("thing_classes", None))
+        keypoints = (predictions.pred_keypoints
+                     if predictions.has("pred_keypoints") else None)
 
         if predictions.has("pred_masks"):
             masks = np.asarray(predictions.pred_masks)
             masks = [
-                GenericMask(x, self.output.height, self.output.width) for x in masks
+                GenericMask(x, self.output.height, self.output.width)
+                for x in masks
             ]
         else:
             masks = None
 
         if self._instance_mode == ColorMode.SEGMENTATION and self.metadata.get(
-            "thing_colors"
-        ):
+                "thing_colors"):
             colors = [
                 self._jitter([x / 255 for x in self.metadata.thing_colors[c]])
                 for c in classes
@@ -432,11 +437,9 @@ class Visualizer:
             alpha = 0.5
 
         if self._instance_mode == ColorMode.IMAGE_BW:
-            self.output.img = self._create_grayscale_image(
-                (predictions.pred_masks.any(dim=0) > 0).numpy()
-                if predictions.has("pred_masks")
-                else None
-            )
+            self.output.img = self._create_grayscale_image((
+                predictions.pred_masks.any(dim=0) > 0
+            ).numpy() if predictions.has("pred_masks") else None)
             alpha = 0.3
 
         self.overlay_instances(
@@ -467,9 +470,12 @@ class Visualizer:
         labels, areas = np.unique(sem_seg, return_counts=True)
         sorted_idxs = np.argsort(-areas).tolist()
         labels = labels[sorted_idxs]
-        for label in filter(lambda l: l < len(self.metadata.stuff_classes), labels):
+        for label in filter(lambda l: l < len(self.metadata.stuff_classes),
+                            labels):
             try:
-                mask_color = [x / 255 for x in self.metadata.stuff_colors[label]]
+                mask_color = [
+                    x / 255 for x in self.metadata.stuff_colors[label]
+                ]
             except (AttributeError, IndexError):
                 mask_color = None
 
@@ -485,9 +491,11 @@ class Visualizer:
             )
         return self.output
 
-    def draw_panoptic_seg(
-        self, panoptic_seg, segments_info, area_threshold=None, alpha=0.7
-    ):
+    def draw_panoptic_seg(self,
+                          panoptic_seg,
+                          segments_info,
+                          area_threshold=None,
+                          alpha=0.7):
         """
         Draw panoptic prediction annotations or results.
 
@@ -506,13 +514,16 @@ class Visualizer:
         pred = _PanopticPrediction(panoptic_seg, segments_info, self.metadata)
 
         if self._instance_mode == ColorMode.IMAGE_BW:
-            self.output.img = self._create_grayscale_image(pred.non_empty_mask())
+            self.output.img = self._create_grayscale_image(
+                pred.non_empty_mask())
 
         # draw mask for all semantic segments first i.e. "stuff"
         for mask, sinfo in pred.semantic_masks():
             category_idx = sinfo["category_id"]
             try:
-                mask_color = [x / 255 for x in self.metadata.stuff_colors[category_idx]]
+                mask_color = [
+                    x / 255 for x in self.metadata.stuff_colors[category_idx]
+                ]
             except AttributeError:
                 mask_color = None
 
@@ -551,9 +562,10 @@ class Visualizer:
             ]
         except AttributeError:
             colors = None
-        self.overlay_instances(
-            masks=masks, labels=labels, assigned_colors=colors, alpha=alpha
-        )
+        self.overlay_instances(masks=masks,
+                               labels=labels,
+                               assigned_colors=colors,
+                               alpha=alpha)
 
         return self.output
 
@@ -583,18 +595,16 @@ class Visualizer:
 
             boxes = [
                 BoxMode.convert(x["bbox"], x["bbox_mode"], BoxMode.XYXY_ABS)
-                if len(x["bbox"]) == 4
-                else x["bbox"]
-                for x in annos
+                if len(x["bbox"]) == 4 else x["bbox"] for x in annos
             ]
 
             colors = None
             category_ids = [x["category_id"] for x in annos]
             if self._instance_mode == ColorMode.SEGMENTATION and self.metadata.get(
-                "thing_colors"
-            ):
+                    "thing_colors"):
                 colors = [
-                    self._jitter([x / 255 for x in self.metadata.thing_colors[c]])
+                    self._jitter(
+                        [x / 255 for x in self.metadata.thing_colors[c]])
                     for c in category_ids
                 ]
             names = self.metadata.get("thing_classes", None)
@@ -631,19 +641,20 @@ class Visualizer:
         if pan_seg is not None:
             segments_info = dic["segments_info"]
             pan_seg = torch.tensor(pan_seg)
-            self.draw_panoptic_seg(pan_seg, segments_info, area_threshold=0, alpha=0.5)
+            self.draw_panoptic_seg(pan_seg,
+                                   segments_info,
+                                   area_threshold=0,
+                                   alpha=0.5)
         return self.output
 
-    def overlay_instances(
-        self,
-        *,
-        boxes=None,
-        labels=None,
-        masks=None,
-        keypoints=None,
-        assigned_colors=None,
-        alpha=0.5
-    ):
+    def overlay_instances(self,
+                          *,
+                          boxes=None,
+                          labels=None,
+                          masks=None,
+                          keypoints=None,
+                          assigned_colors=None,
+                          alpha=0.5):
         """
         Args:
             boxes (Boxes, RotatedBoxes or ndarray): either a :class:`Boxes`,
@@ -699,8 +710,7 @@ class Visualizer:
             return self.output
         if boxes is not None and boxes.shape[1] == 5:
             return self.overlay_rotated_instances(
-                boxes=boxes, labels=labels, assigned_colors=assigned_colors
-            )
+                boxes=boxes, labels=labels, assigned_colors=assigned_colors)
 
         # Display in largest to smallest order to reduce occlusion.
         areas = None
@@ -713,10 +723,13 @@ class Visualizer:
             sorted_idxs = np.argsort(-areas).tolist()
             # Re-order overlapped instances in descending order.
             boxes = boxes[sorted_idxs] if boxes is not None else None
-            labels = [labels[k] for k in sorted_idxs] if labels is not None else None
-            masks = [masks[idx] for idx in sorted_idxs] if masks is not None else None
+            labels = [labels[k]
+                      for k in sorted_idxs] if labels is not None else None
+            masks = [masks[idx]
+                     for idx in sorted_idxs] if masks is not None else None
             assigned_colors = [assigned_colors[idx] for idx in sorted_idxs]
-            keypoints = keypoints[sorted_idxs] if keypoints is not None else None
+            keypoints = keypoints[
+                sorted_idxs] if keypoints is not None else None
 
         for i in range(num_instances):
             color = assigned_colors[i]
@@ -725,13 +738,17 @@ class Visualizer:
 
             if masks is not None:
                 for segment in masks[i].polygons:
-                    self.draw_polygon(segment.reshape(-1, 2), color, alpha=alpha)
+                    self.draw_polygon(segment.reshape(-1, 2),
+                                      color,
+                                      alpha=alpha)
 
             if labels is not None:
                 # first get a box
                 if boxes is not None:
                     x0, y0, x1, y1 = boxes[i]
-                    text_pos = (x0, y0)  # if drawing boxes, put text on the box corner.
+                    text_pos = (
+                        x0, y0
+                    )  # if drawing boxes, put text on the box corner.
                     horiz_align = "left"
                 elif masks is not None:
                     # skip small mask without polygon
@@ -748,22 +765,19 @@ class Visualizer:
                     continue  # drawing the box confidence for keypoints isn't very useful.
                 # for small objects, draw text at the side to avoid occlusion
                 instance_area = (y1 - y0) * (x1 - x0)
-                if (
-                    instance_area < _SMALL_OBJECT_AREA_THRESH * self.output.scale
-                    or y1 - y0 < 40 * self.output.scale
-                ):
-                    text_pos = (x1, y0) if y1 >= self.output.height - 5 else (x0, y1)
+                if (instance_area <
+                        _SMALL_OBJECT_AREA_THRESH * self.output.scale
+                        or y1 - y0 < 40 * self.output.scale):
+                    text_pos = (x1,
+                                y0) if y1 >= self.output.height - 5 else (x0,
+                                                                          y1)
                 height_ratio = (y1 - y0) / np.sqrt(
-                    self.output.height * self.output.width
-                )
+                    self.output.height * self.output.width)
                 lighter_color = self._change_color_brightness(
-                    color, brightness_factor=0.7
-                )
-                font_size = (
-                    np.clip((height_ratio - 0.02) / 0.08 + 1, 1.2, 2)
-                    * 0.5
-                    * self._default_font_size
-                )
+                    color, brightness_factor=0.7)
+                font_size = (np.clip(
+                    (height_ratio - 0.02) / 0.08 + 1, 1.2, 2) * 0.5 *
+                             self._default_font_size)
                 self.draw_text(
                     labels[i],
                     text_pos,
@@ -779,7 +793,10 @@ class Visualizer:
 
         return self.output
 
-    def overlay_rotated_instances(self, boxes=None, labels=None, assigned_colors=None):
+    def overlay_rotated_instances(self,
+                                  boxes=None,
+                                  labels=None,
+                                  assigned_colors=None):
         """
         Args:
             boxes (ndarray): an Nx5 numpy array of
@@ -809,7 +826,8 @@ class Visualizer:
         sorted_idxs = np.argsort(-areas).tolist()
         # Re-order overlapped instances in descending order.
         boxes = boxes[sorted_idxs]
-        labels = [labels[k] for k in sorted_idxs] if labels is not None else None
+        labels = [labels[k]
+                  for k in sorted_idxs] if labels is not None else None
         colors = [assigned_colors[idx] for idx in sorted_idxs]
 
         for i in range(num_instances):
@@ -859,16 +877,17 @@ class Visualizer:
         try:
             ls_x, ls_y = visible["left_shoulder"]
             rs_x, rs_y = visible["right_shoulder"]
-            mid_shoulder_x, mid_shoulder_y = (ls_x + rs_x) / 2, (ls_y + rs_y) / 2
+            mid_shoulder_x, mid_shoulder_y = (ls_x + rs_x) / 2, (ls_y +
+                                                                 rs_y) / 2
         except KeyError:
             pass
         else:
             # draw line from nose to mid-shoulder
             nose_x, nose_y = visible.get("nose", (None, None))
             if nose_x is not None:
-                self.draw_line(
-                    [nose_x, mid_shoulder_x], [nose_y, mid_shoulder_y], color=_RED
-                )
+                self.draw_line([nose_x, mid_shoulder_x],
+                               [nose_y, mid_shoulder_y],
+                               color=_RED)
 
             try:
                 # draw line from mid-shoulder to mid-hip
@@ -878,25 +897,23 @@ class Visualizer:
                 pass
             else:
                 mid_hip_x, mid_hip_y = (lh_x + rh_x) / 2, (lh_y + rh_y) / 2
-                self.draw_line(
-                    [mid_hip_x, mid_shoulder_x], [mid_hip_y, mid_shoulder_y], color=_RED
-                )
+                self.draw_line([mid_hip_x, mid_shoulder_x],
+                               [mid_hip_y, mid_shoulder_y],
+                               color=_RED)
         return self.output
 
     """
     Primitive drawing functions:
     """
 
-    def draw_text(
-        self,
-        text,
-        position,
-        *,
-        font_size=None,
-        color="g",
-        horizontal_alignment="center",
-        rotation=0
-    ):
+    def draw_text(self,
+                  text,
+                  position,
+                  *,
+                  font_size=None,
+                  color="g",
+                  horizontal_alignment="center",
+                  rotation=0):
         """
         Args:
             text (str): class label
@@ -925,7 +942,12 @@ class Visualizer:
             text,
             size=font_size * self.output.scale,
             family="sans-serif",
-            bbox={"facecolor": "black", "alpha": 0.8, "pad": 0.7, "edgecolor": "none"},
+            bbox={
+                "facecolor": "black",
+                "alpha": 0.8,
+                "pad": 0.7,
+                "edgecolor": "none"
+            },
             verticalalignment="top",
             horizontalalignment=horizontal_alignment,
             color=color,
@@ -964,13 +986,15 @@ class Visualizer:
                 linewidth=linewidth * self.output.scale,
                 alpha=alpha,
                 linestyle=line_style,
-            )
-        )
+            ))
         return self.output
 
-    def draw_rotated_box_with_label(
-        self, rotated_box, alpha=0.5, edge_color="g", line_style="-", label=None
-    ):
+    def draw_rotated_box_with_label(self,
+                                    rotated_box,
+                                    alpha=0.5,
+                                    edge_color="g",
+                                    line_style="-",
+                                    label=None):
         """
         Draw a rotated box with label on its top-left corner.
 
@@ -992,17 +1016,16 @@ class Visualizer:
         area = w * h
         # use thinner lines when the box is small
         linewidth = self._default_font_size / (
-            6 if area < _SMALL_OBJECT_AREA_THRESH * self.output.scale else 3
-        )
+            6 if area < _SMALL_OBJECT_AREA_THRESH * self.output.scale else 3)
 
         theta = angle * math.pi / 180.0
         c = math.cos(theta)
         s = math.sin(theta)
-        rect = [(-w / 2, h / 2), (-w / 2, -h / 2), (w / 2, -h / 2), (w / 2, h / 2)]
+        rect = [(-w / 2, h / 2), (-w / 2, -h / 2), (w / 2, -h / 2),
+                (w / 2, h / 2)]
         # x: left->right ; y: top->down
-        rotated_rect = [
-            (s * yy + c * xx + cnt_x, c * yy - s * xx + cnt_y) for (xx, yy) in rect
-        ]
+        rotated_rect = [(s * yy + c * xx + cnt_x, c * yy - s * xx + cnt_y)
+                        for (xx, yy) in rect]
         for k in range(4):
             j = (k + 1) % 4
             self.draw_line(
@@ -1017,17 +1040,15 @@ class Visualizer:
             text_pos = rotated_rect[1]  # topleft corner
 
             height_ratio = h / np.sqrt(self.output.height * self.output.width)
-            label_color = self._change_color_brightness(
-                edge_color, brightness_factor=0.7
-            )
-            font_size = (
-                np.clip((height_ratio - 0.02) / 0.08 + 1, 1.2, 2)
-                * 0.5
-                * self._default_font_size
-            )
-            self.draw_text(
-                label, text_pos, color=label_color, font_size=font_size, rotation=angle
-            )
+            label_color = self._change_color_brightness(edge_color,
+                                                        brightness_factor=0.7)
+            font_size = (np.clip((height_ratio - 0.02) / 0.08 + 1, 1.2, 2) *
+                         0.5 * self._default_font_size)
+            self.draw_text(label,
+                           text_pos,
+                           color=label_color,
+                           font_size=font_size,
+                           rotation=angle)
 
         return self.output
 
@@ -1045,8 +1066,10 @@ class Visualizer:
         """
         x, y = circle_coord
         self.output.ax.add_patch(
-            mpl.patches.Circle(circle_coord, radius=radius, fill=True, color=color)
-        )
+            mpl.patches.Circle(circle_coord,
+                               radius=radius,
+                               fill=True,
+                               color=color))
         return self.output
 
     def draw_line(self, x_data, y_data, color, linestyle="-", linewidth=None):
@@ -1076,20 +1099,17 @@ class Visualizer:
                 linewidth=linewidth * self.output.scale,
                 color=color,
                 linestyle=linestyle,
-            )
-        )
+            ))
         return self.output
 
-    def draw_binary_mask(
-        self,
-        binary_mask,
-        color=None,
-        *,
-        edge_color=None,
-        text=None,
-        alpha=0.5,
-        area_threshold=0
-    ):
+    def draw_binary_mask(self,
+                         binary_mask,
+                         color=None,
+                         *,
+                         edge_color=None,
+                         text=None,
+                         alpha=0.5,
+                         area_threshold=0):
         """
         Args:
             binary_mask (ndarray): numpy array of shape (H, W), where H is the image height and
@@ -1119,43 +1139,42 @@ class Visualizer:
             # draw polygons for regular masks
             for segment in mask.polygons:
                 area = mask_util.area(
-                    mask_util.frPyObjects([segment], shape2d[0], shape2d[1])
-                )
+                    mask_util.frPyObjects([segment], shape2d[0], shape2d[1]))
                 if area < (area_threshold or 0):
                     continue
                 has_valid_segment = True
                 segment = segment.reshape(-1, 2)
-                self.draw_polygon(
-                    segment, color=color, edge_color=edge_color, alpha=alpha
-                )
+                self.draw_polygon(segment,
+                                  color=color,
+                                  edge_color=edge_color,
+                                  alpha=alpha)
         else:
             # TODO: Use Path/PathPatch to draw vector graphics:
             # https://stackoverflow.com/questions/8919719/how-to-plot-a-complex-polygon
-            rgba = np.zeros(shape2d + (4,), dtype="float32")
+            rgba = np.zeros(shape2d + (4, ), dtype="float32")
             rgba[:, :, :3] = color
             rgba[:, :, 3] = (mask.mask == 1).astype("float32") * alpha
             has_valid_segment = True
-            self.output.ax.imshow(
-                rgba, extent=(0, self.output.width, self.output.height, 0)
-            )
+            self.output.ax.imshow(rgba,
+                                  extent=(0, self.output.width,
+                                          self.output.height, 0))
 
         if text is not None and has_valid_segment:
             # TODO sometimes drawn on wrong objects. the heuristics here can improve.
-            lighter_color = self._change_color_brightness(color, brightness_factor=0.7)
+            lighter_color = self._change_color_brightness(
+                color, brightness_factor=0.7)
             _num_cc, cc_labels, stats, centroids = cv2.connectedComponentsWithStats(
-                binary_mask, 8
-            )
+                binary_mask, 8)
             largest_component_id = np.argmax(stats[1:, -1]) + 1
 
             # draw text on the largest component, as well as other very large components.
             for cid in range(1, _num_cc):
-                if (
-                    cid == largest_component_id
-                    or stats[cid, -1] > _LARGE_MASK_AREA_THRESH
-                ):
+                if (cid == largest_component_id
+                        or stats[cid, -1] > _LARGE_MASK_AREA_THRESH):
                     # median is more stable than centroid
                     # center = centroids[largest_component_id]
-                    center = np.median((cc_labels == cid).nonzero(), axis=1)[::-1]
+                    center = np.median((cc_labels == cid).nonzero(),
+                                       axis=1)[::-1]
                     self.draw_text(text, center, color=lighter_color)
         return self.output
 
@@ -1177,18 +1196,18 @@ class Visualizer:
             # make edge color darker than the polygon color
             if alpha > 0.8:
                 edge_color = self._change_color_brightness(
-                    color, brightness_factor=-0.7
-                )
+                    color, brightness_factor=-0.7)
             else:
                 edge_color = color
-        edge_color = mplc.to_rgb(edge_color) + (1,)
+        edge_color = mplc.to_rgb(edge_color) + (1, )
 
         polygon = mpl.patches.Polygon(
             segment,
             fill=True,
-            facecolor=mplc.to_rgb(color) + (alpha,),
+            facecolor=mplc.to_rgb(color) + (alpha, ),
             edgecolor=edge_color,
-            linewidth=max(self._default_font_size // 15 * self.output.scale, 1),
+            linewidth=max(self._default_font_size // 15 * self.output.scale,
+                          1),
         )
         self.output.ax.add_patch(polygon)
         return self.output
@@ -1246,12 +1265,12 @@ class Visualizer:
         assert brightness_factor >= -1.0 and brightness_factor <= 1.0
         color = mplc.to_rgb(color)
         polygon_color = colorsys.rgb_to_hls(*mplc.to_rgb(color))
-        modified_lightness = polygon_color[1] + (brightness_factor * polygon_color[1])
+        modified_lightness = polygon_color[1] + (brightness_factor *
+                                                 polygon_color[1])
         modified_lightness = max(modified_lightness, 0.0)
         modified_lightness = min(modified_lightness, 1.0)
-        return colorsys.hls_to_rgb(
-            polygon_color[0], modified_lightness, polygon_color[2]
-        )
+        return colorsys.hls_to_rgb(polygon_color[0], modified_lightness,
+                                   polygon_color[2])
 
     def _convert_boxes(self, boxes):
         """
@@ -1282,7 +1301,8 @@ class Visualizer:
             if isinstance(x, GenericMask):
                 ret.append(x)
             else:
-                ret.append(GenericMask(x, self.output.height, self.output.width))
+                ret.append(
+                    GenericMask(x, self.output.height, self.output.width))
         return ret
 
     def _convert_keypoints(self, keypoints):

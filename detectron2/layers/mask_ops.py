@@ -10,14 +10,17 @@ from detectron2.structures import Boxes
 
 __all__ = ["paste_masks_in_image"]
 
-
 BYTES_PER_FLOAT = 4
 # TODO: This memory limit may be too much or too little. It would be better to
 # determine it based on available resources.
-GPU_MEM_LIMIT = 1024 ** 3  # 1 GB memory limit
+GPU_MEM_LIMIT = 1024**3  # 1 GB memory limit
 
 
-def _do_paste_mask(masks, boxes, img_h: int, img_w: int, skip_empty: bool = True):
+def _do_paste_mask(masks,
+                   boxes,
+                   img_h: int,
+                   img_w: int,
+                   skip_empty: bool = True):
     """
     Args:
         masks: N, 1, H, W
@@ -39,15 +42,12 @@ def _do_paste_mask(masks, boxes, img_h: int, img_w: int, skip_empty: bool = True
     device = masks.device
 
     if skip_empty and not torch.jit.is_scripting():
-        x0_int, y0_int = torch.clamp(boxes.min(dim=0).values.floor()[:2] - 1, min=0).to(
-            dtype=torch.int32
-        )
-        x1_int = torch.clamp(boxes[:, 2].max().ceil() + 1, max=img_w).to(
-            dtype=torch.int32
-        )
-        y1_int = torch.clamp(boxes[:, 3].max().ceil() + 1, max=img_h).to(
-            dtype=torch.int32
-        )
+        x0_int, y0_int = torch.clamp(boxes.min(dim=0).values.floor()[:2] - 1,
+                                     min=0).to(dtype=torch.int32)
+        x1_int = torch.clamp(boxes[:, 2].max().ceil() + 1,
+                             max=img_w).to(dtype=torch.int32)
+        y1_int = torch.clamp(boxes[:, 3].max().ceil() + 1,
+                             max=img_h).to(dtype=torch.int32)
     else:
         x0_int, y0_int = 0, 0
         x1_int, y1_int = img_w, img_h
@@ -55,8 +55,10 @@ def _do_paste_mask(masks, boxes, img_h: int, img_w: int, skip_empty: bool = True
 
     N = masks.shape[0]
 
-    img_y = torch.arange(y0_int, y1_int, device=device, dtype=torch.float32) + 0.5
-    img_x = torch.arange(x0_int, x1_int, device=device, dtype=torch.float32) + 0.5
+    img_y = torch.arange(y0_int, y1_int, device=device,
+                         dtype=torch.float32) + 0.5
+    img_x = torch.arange(x0_int, x1_int, device=device,
+                         dtype=torch.float32) + 0.5
     img_y = (img_y - y0) / (y1 - y0) * 2 - 1
     img_x = (img_x - x0) / (x1 - x0) * 2 - 1
     # img_x, img_y have shapes (N, w), (N, h)
@@ -107,12 +109,11 @@ def paste_masks_in_image(
         and height. img_masks[i] is a binary mask for object instance i.
     """
 
-    assert (
-        masks.shape[-1] == masks.shape[-2]
-    ), "Only square mask predictions are supported"
+    assert (masks.shape[-1] == masks.shape[-2]
+            ), "Only square mask predictions are supported"
     N = len(masks)
     if N == 0:
-        return masks.new_empty((0,) + image_shape, dtype=torch.uint8)
+        return masks.new_empty((0, ) + image_shape, dtype=torch.uint8)
     if not isinstance(boxes, torch.Tensor):
         boxes = boxes.tensor
     device = boxes.device
@@ -130,8 +131,8 @@ def paste_masks_in_image(
         # GPU benefits from parallelism for larger chunks, but may have memory issue
         # int(img_h) because shape may be tensors in tracing
         num_chunks = int(
-            np.ceil(N * int(img_h) * int(img_w) * BYTES_PER_FLOAT / GPU_MEM_LIMIT)
-        )
+            np.ceil(N * int(img_h) * int(img_w) * BYTES_PER_FLOAT /
+                    GPU_MEM_LIMIT))
         assert (
             num_chunks <= N
         ), "Default GPU_MEM_LIMIT in mask_ops.py is too small; try increasing it"
@@ -159,10 +160,11 @@ def paste_masks_in_image(
             # for visualization and debugging
             masks_chunk = (masks_chunk * 255).to(dtype=torch.uint8)
 
-        if torch.jit.is_scripting():  # Scripting does not use the optimized codepath
+        if torch.jit.is_scripting(
+        ):  # Scripting does not use the optimized codepath
             img_masks[inds] = masks_chunk
         else:
-            img_masks[(inds,) + spatial_inds] = masks_chunk
+            img_masks[(inds, ) + spatial_inds] = masks_chunk
     return img_masks
 
 
@@ -194,12 +196,15 @@ def paste_mask_in_image_old(mask, box, img_h, img_w, threshold):
     # Conversion from continuous box coordinates to discrete pixel coordinates
     # via truncation (cast to int32). This determines which pixels to paste the
     # mask onto.
-    box = box.to(dtype=torch.int32)  # Continuous to discrete coordinate conversion
+    box = box.to(
+        dtype=torch.int32)  # Continuous to discrete coordinate conversion
     # An example (1D) box with continuous coordinates (x0=0.7, x1=4.3) will map to
     # a discrete coordinates (x0=0, x1=4). Note that box is mapped to 5 = x1 - x0 + 1
     # pixels (not x1 - x0 pixels).
-    samples_w = box[2] - box[0] + 1  # Number of pixel samples, *not* geometric width
-    samples_h = box[3] - box[1] + 1  # Number of pixel samples, *not* geometric height
+    samples_w = box[2] - box[
+        0] + 1  # Number of pixel samples, *not* geometric width
+    samples_h = box[3] - box[
+        1] + 1  # Number of pixel samples, *not* geometric height
 
     # Resample the mask from it's original grid to the new samples_w x samples_h grid
     mask = Image.fromarray(mask.cpu().numpy())
@@ -220,9 +225,8 @@ def paste_mask_in_image_old(mask, box, img_h, img_w, threshold):
     y_0 = max(box[1], 0)
     y_1 = min(box[3] + 1, img_h)
 
-    im_mask[y_0:y_1, x_0:x_1] = mask[
-        (y_0 - box[1]) : (y_1 - box[1]), (x_0 - box[0]) : (x_1 - box[0])
-    ]
+    im_mask[y_0:y_1, x_0:x_1] = mask[(y_0 - box[1]):(y_1 - box[1]),
+                                     (x_0 - box[0]):(x_1 - box[0])]
     return im_mask
 
 

@@ -14,6 +14,7 @@ from detectron2 import _C
 
 
 class _DeformConv(Function):
+
     @staticmethod
     def forward(
         ctx,
@@ -30,9 +31,7 @@ class _DeformConv(Function):
         if input is not None and input.dim() != 4:
             raise ValueError(
                 "Expected 4D tensor as input, got {}D tensor instead.".format(
-                    input.dim()
-                )
-            )
+                    input.dim()))
         ctx.stride = _pair(stride)
         ctx.padding = _pair(padding)
         ctx.dilation = _pair(dilation)
@@ -43,10 +42,8 @@ class _DeformConv(Function):
         ctx.save_for_backward(input, offset, weight)
 
         output = input.new_empty(
-            _DeformConv._output_size(
-                input, weight, ctx.padding, ctx.dilation, ctx.stride
-            )
-        )
+            _DeformConv._output_size(input, weight, ctx.padding, ctx.dilation,
+                                     ctx.stride))
 
         ctx.bufs_ = [input.new_empty(0), input.new_empty(0)]  # columns, ones
 
@@ -55,16 +52,17 @@ class _DeformConv(Function):
                 raise NotImplementedError(
                     "Deformable Conv with deformable_groups != 1 is not supported on CPUs!"
                 )
-            return deform_conv2d(
-                input, offset, weight, stride=stride, padding=padding, dilation=dilation
-            )
+            return deform_conv2d(input,
+                                 offset,
+                                 weight,
+                                 stride=stride,
+                                 padding=padding,
+                                 dilation=dilation)
         else:
             cur_im2col_step = _DeformConv._cal_im2col_step(
-                input.shape[0], ctx.im2col_step
-            )
-            assert (
-                input.shape[0] % cur_im2col_step
-            ) == 0, "im2col step must divide batchsize"
+                input.shape[0], ctx.im2col_step)
+            assert (input.shape[0] %
+                    cur_im2col_step) == 0, "im2col step must divide batchsize"
 
             _C.deform_conv_forward(
                 input,
@@ -95,11 +93,12 @@ class _DeformConv(Function):
         grad_input = grad_offset = grad_weight = None
 
         if not grad_output.is_cuda:
-            raise NotImplementedError("Deformable Conv is not supported on CPUs!")
-        cur_im2col_step = _DeformConv._cal_im2col_step(input.shape[0], ctx.im2col_step)
-        assert (
-            input.shape[0] % cur_im2col_step
-        ) == 0, "im2col step must divide batchsize"
+            raise NotImplementedError(
+                "Deformable Conv is not supported on CPUs!")
+        cur_im2col_step = _DeformConv._cal_im2col_step(input.shape[0],
+                                                       ctx.im2col_step)
+        assert (input.shape[0] %
+                cur_im2col_step) == 0, "im2col step must divide batchsize"
 
         if ctx.needs_input_grad[0] or ctx.needs_input_grad[1]:
             grad_input = torch.zeros_like(input)
@@ -159,13 +158,11 @@ class _DeformConv(Function):
             pad = padding[d]
             kernel = dilation[d] * (weight.size(d + 2) - 1) + 1
             stride_ = stride[d]
-            output_size += ((in_size + (2 * pad) - kernel) // stride_ + 1,)
+            output_size += ((in_size + (2 * pad) - kernel) // stride_ + 1, )
         if not all(map(lambda s: s > 0, output_size)):
             raise ValueError(
                 "convolution input is too small (output would be {})".format(
-                    "x".join(map(str, output_size))
-                )
-            )
+                    "x".join(map(str, output_size))))
         return output_size
 
     @staticmethod
@@ -183,7 +180,8 @@ class _DeformConv(Function):
         if input_size <= default_size:
             return input_size
         best_step = 1
-        for step in range(2, min(int(math.sqrt(input_size)) + 1, default_size)):
+        for step in range(2, min(int(math.sqrt(input_size)) + 1,
+                                 default_size)):
             if input_size % step == 0:
                 if input_size // step <= default_size:
                     return input_size // step
@@ -193,6 +191,7 @@ class _DeformConv(Function):
 
 
 class _ModulatedDeformConv(Function):
+
     @staticmethod
     def forward(
         ctx,
@@ -216,15 +215,13 @@ class _ModulatedDeformConv(Function):
         if not ctx.with_bias:
             bias = input.new_empty(1)  # fake tensor
         if not input.is_cuda:
-            raise NotImplementedError("Deformable Conv is not supported on CPUs!")
-        if (
-            weight.requires_grad
-            or mask.requires_grad
-            or offset.requires_grad
-            or input.requires_grad
-        ):
+            raise NotImplementedError(
+                "Deformable Conv is not supported on CPUs!")
+        if (weight.requires_grad or mask.requires_grad or offset.requires_grad
+                or input.requires_grad):
             ctx.save_for_backward(input, offset, mask, weight, bias)
-        output = input.new_empty(_ModulatedDeformConv._infer_shape(ctx, input, weight))
+        output = input.new_empty(
+            _ModulatedDeformConv._infer_shape(ctx, input, weight))
         ctx._bufs = [input.new_empty(0), input.new_empty(0)]
         _C.modulated_deform_conv_forward(
             input,
@@ -253,7 +250,8 @@ class _ModulatedDeformConv(Function):
     @once_differentiable
     def backward(ctx, grad_output):
         if not grad_output.is_cuda:
-            raise NotImplementedError("Deformable Conv is not supported on CPUs!")
+            raise NotImplementedError(
+                "Deformable Conv is not supported on CPUs!")
         input, offset, mask, weight, bias = ctx.saved_tensors
         grad_input = torch.zeros_like(input)
         grad_offset = torch.zeros_like(offset)
@@ -308,12 +306,10 @@ class _ModulatedDeformConv(Function):
         channels_out = weight.size(0)
         height, width = input.shape[2:4]
         kernel_h, kernel_w = weight.shape[2:4]
-        height_out = (
-            height + 2 * ctx.padding - (ctx.dilation * (kernel_h - 1) + 1)
-        ) // ctx.stride + 1
-        width_out = (
-            width + 2 * ctx.padding - (ctx.dilation * (kernel_w - 1) + 1)
-        ) // ctx.stride + 1
+        height_out = (height + 2 * ctx.padding -
+                      (ctx.dilation * (kernel_h - 1) + 1)) // ctx.stride + 1
+        width_out = (width + 2 * ctx.padding -
+                     (ctx.dilation * (kernel_w - 1) + 1)) // ctx.stride + 1
         return n, channels_out, height_out, width_out
 
 
@@ -322,6 +318,7 @@ modulated_deform_conv = _ModulatedDeformConv.apply
 
 
 class DeformConv(nn.Module):
+
     def __init__(
         self,
         in_channels,
@@ -349,14 +346,12 @@ class DeformConv(nn.Module):
         super(DeformConv, self).__init__()
 
         assert not bias
-        assert (
-            in_channels % groups == 0
-        ), "in_channels {} cannot be divisible by groups {}".format(in_channels, groups)
-        assert (
-            out_channels % groups == 0
-        ), "out_channels {} cannot be divisible by groups {}".format(
-            out_channels, groups
-        )
+        assert (in_channels % groups == 0
+                ), "in_channels {} cannot be divisible by groups {}".format(
+                    in_channels, groups)
+        assert (out_channels % groups == 0
+                ), "out_channels {} cannot be divisible by groups {}".format(
+                    out_channels, groups)
 
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -370,8 +365,8 @@ class DeformConv(nn.Module):
         self.activation = activation
 
         self.weight = nn.Parameter(
-            torch.Tensor(out_channels, in_channels // self.groups, *self.kernel_size)
-        )
+            torch.Tensor(out_channels, in_channels // self.groups,
+                         *self.kernel_size))
         self.bias = None
 
         nn.init.kaiming_uniform_(self.weight, nonlinearity="relu")
@@ -382,16 +377,14 @@ class DeformConv(nn.Module):
             # So that the following operations will not panic
             # if they check for the shape of the tensor.
             # This computes the height and width of the output tensor
-            output_shape = [
-                (i + 2 * p - (di * (k - 1) + 1)) // s + 1
-                for i, p, di, k, s in zip(
-                    x.shape[-2:],
-                    self.padding,
-                    self.dilation,
-                    self.kernel_size,
-                    self.stride,
-                )
-            ]
+            output_shape = [(i + 2 * p - (di * (k - 1) + 1)) // s + 1
+                            for i, p, di, k, s in zip(
+                                x.shape[-2:],
+                                self.padding,
+                                self.dilation,
+                                self.kernel_size,
+                                self.stride,
+                            )]
             output_shape = [x.shape[0], self.weight.shape[0]] + output_shape
             return _NewEmptyTensorOp.apply(x, output_shape)
 
@@ -425,6 +418,7 @@ class DeformConv(nn.Module):
 
 
 class ModulatedDeformConv(nn.Module):
+
     def __init__(
         self,
         in_channels,
@@ -463,8 +457,8 @@ class ModulatedDeformConv(nn.Module):
         self.activation = activation
 
         self.weight = nn.Parameter(
-            torch.Tensor(out_channels, in_channels // groups, *self.kernel_size)
-        )
+            torch.Tensor(out_channels, in_channels // groups,
+                         *self.kernel_size))
         self.bias = nn.Parameter(torch.Tensor(out_channels)) if bias else None
         nn.init.kaiming_uniform_(self.weight, nonlinearity="relu")
         if self.bias is not None:
@@ -472,16 +466,14 @@ class ModulatedDeformConv(nn.Module):
 
     def forward(self, x, offset, mask):
         if x.numel() == 0:
-            output_shape = [
-                (i + 2 * p - (di * (k - 1) + 1)) // s + 1
-                for i, p, di, k, s in zip(
-                    x.shape[-2:],
-                    self.padding,
-                    self.dilation,
-                    self.kernel_size,
-                    self.stride,
-                )
-            ]
+            output_shape = [(i + 2 * p - (di * (k - 1) + 1)) // s + 1
+                            for i, p, di, k, s in zip(
+                                x.shape[-2:],
+                                self.padding,
+                                self.dilation,
+                                self.kernel_size,
+                                self.stride,
+                            )]
             output_shape = [x.shape[0], self.weight.shape[0]] + output_shape
             return _NewEmptyTensorOp.apply(x, output_shape)
 

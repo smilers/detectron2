@@ -37,10 +37,14 @@ class COCOPanopticEvaluator(DatasetEvaluator):
         """
         self._metadata = MetadataCatalog.get(dataset_name)
         self._thing_contiguous_id_to_dataset_id = {
-            v: k for k, v in self._metadata.thing_dataset_id_to_contiguous_id.items()
+            v: k
+            for k, v in
+            self._metadata.thing_dataset_id_to_contiguous_id.items()
         }
         self._stuff_contiguous_id_to_dataset_id = {
-            v: k for k, v in self._metadata.stuff_dataset_id_to_contiguous_id.items()
+            v: k
+            for k, v in
+            self._metadata.stuff_dataset_id_to_contiguous_id.items()
         }
 
         self._output_dir = output_dir
@@ -56,13 +60,13 @@ class COCOPanopticEvaluator(DatasetEvaluator):
             # the model produces panoptic category id directly. No more conversion needed
             return segment_info
         if isthing is True:
-            segment_info["category_id"] = self._thing_contiguous_id_to_dataset_id[
-                segment_info["category_id"]
-            ]
+            segment_info[
+                "category_id"] = self._thing_contiguous_id_to_dataset_id[
+                    segment_info["category_id"]]
         else:
-            segment_info["category_id"] = self._stuff_contiguous_id_to_dataset_id[
-                segment_info["category_id"]
-            ]
+            segment_info[
+                "category_id"] = self._stuff_contiguous_id_to_dataset_id[
+                    segment_info["category_id"]]
         return segment_info
 
     def process(self, inputs, outputs):
@@ -84,17 +88,13 @@ class COCOPanopticEvaluator(DatasetEvaluator):
                         # VOID region.
                         continue
                     pred_class = panoptic_label // label_divisor
-                    isthing = (
-                        pred_class
-                        in self._metadata.thing_dataset_id_to_contiguous_id.values()
-                    )
-                    segments_info.append(
-                        {
-                            "id": int(panoptic_label) + 1,
-                            "category_id": int(pred_class),
-                            "isthing": bool(isthing),
-                        }
-                    )
+                    isthing = (pred_class in self._metadata.
+                               thing_dataset_id_to_contiguous_id.values())
+                    segments_info.append({
+                        "id": int(panoptic_label) + 1,
+                        "category_id": int(pred_class),
+                        "isthing": bool(isthing),
+                    })
                 # Official evaluation script uses 0 for VOID label.
                 panoptic_img += 1
 
@@ -102,15 +102,15 @@ class COCOPanopticEvaluator(DatasetEvaluator):
             file_name_png = os.path.splitext(file_name)[0] + ".png"
             with io.BytesIO() as out:
                 Image.fromarray(id2rgb(panoptic_img)).save(out, format="PNG")
-                segments_info = [self._convert_category_id(x) for x in segments_info]
-                self._predictions.append(
-                    {
-                        "image_id": input["image_id"],
-                        "file_name": file_name_png,
-                        "png_string": out.getvalue(),
-                        "segments_info": segments_info,
-                    }
-                )
+                segments_info = [
+                    self._convert_category_id(x) for x in segments_info
+                ]
+                self._predictions.append({
+                    "image_id": input["image_id"],
+                    "file_name": file_name_png,
+                    "png_string": out.getvalue(),
+                    "segments_info": segments_info,
+                })
 
     def evaluate(self):
         comm.synchronize()
@@ -125,7 +125,8 @@ class COCOPanopticEvaluator(DatasetEvaluator):
         gt_folder = PathManager.get_local_path(self._metadata.panoptic_root)
 
         with tempfile.TemporaryDirectory(prefix="panoptic_eval") as pred_dir:
-            logger.info("Writing all panoptic predictions to {} ...".format(pred_dir))
+            logger.info(
+                "Writing all panoptic predictions to {} ...".format(pred_dir))
             for p in self._predictions:
                 with open(os.path.join(pred_dir, p["file_name"]), "wb") as f:
                     f.write(p.pop("png_string"))
@@ -171,11 +172,8 @@ def _print_panoptic_results(pq_res):
     headers = ["", "PQ", "SQ", "RQ", "#categories"]
     data = []
     for name in ["All", "Things", "Stuff"]:
-        row = (
-            [name]
-            + [pq_res[name][k] * 100 for k in ["pq", "sq", "rq"]]
-            + [pq_res[name]["n"]]
-        )
+        row = ([name] + [pq_res[name][k] * 100
+                         for k in ["pq", "sq", "rq"]] + [pq_res[name]["n"]])
         data.append(row)
     table = tabulate(
         data,

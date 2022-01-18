@@ -29,7 +29,6 @@ __all__ = [
     "build_sem_seg_head",
 ]
 
-
 SEM_SEG_HEADS_REGISTRY = Registry("SEM_SEG_HEADS")
 SEM_SEG_HEADS_REGISTRY.__doc__ = """
 Registry for semantic segmentation heads, which make semantic segmentation predictions
@@ -62,10 +61,10 @@ class SemanticSegmentor(nn.Module):
         super().__init__()
         self.backbone = backbone
         self.sem_seg_head = sem_seg_head
-        self.register_buffer(
-            "pixel_mean", torch.tensor(pixel_mean).view(-1, 1, 1), False
-        )
-        self.register_buffer("pixel_std", torch.tensor(pixel_std).view(-1, 1, 1), False)
+        self.register_buffer("pixel_mean",
+                             torch.tensor(pixel_mean).view(-1, 1, 1), False)
+        self.register_buffer("pixel_std",
+                             torch.tensor(pixel_std).view(-1, 1, 1), False)
 
     @classmethod
     def from_config(cls, cfg):
@@ -108,15 +107,16 @@ class SemanticSegmentor(nn.Module):
         """
         images = [x["image"].to(self.device) for x in batched_inputs]
         images = [(x - self.pixel_mean) / self.pixel_std for x in images]
-        images = ImageList.from_tensors(images, self.backbone.size_divisibility)
+        images = ImageList.from_tensors(images,
+                                        self.backbone.size_divisibility)
 
         features = self.backbone(images.tensor)
 
         if "sem_seg" in batched_inputs[0]:
             targets = [x["sem_seg"].to(self.device) for x in batched_inputs]
             targets = ImageList.from_tensors(
-                targets, self.backbone.size_divisibility, self.sem_seg_head.ignore_value
-            ).tensor
+                targets, self.backbone.size_divisibility,
+                self.sem_seg_head.ignore_value).tensor
         else:
             targets = None
         results, losses = self.sem_seg_head(features, targets)
@@ -125,9 +125,8 @@ class SemanticSegmentor(nn.Module):
             return losses
 
         processed_results = []
-        for result, input_per_image, image_size in zip(
-            results, batched_inputs, images.image_sizes
-        ):
+        for result, input_per_image, image_size in zip(results, batched_inputs,
+                                                       images.image_sizes):
             height = input_per_image.get("height")
             width = input_per_image.get("width")
             r = sem_seg_postprocess(result, image_size, height, width)
@@ -190,11 +189,12 @@ class SemSegFPNHead(nn.Module):
         self.loss_weight = loss_weight
 
         self.scale_heads = []
-        for in_feature, stride, channels in zip(
-            self.in_features, feature_strides, feature_channels
-        ):
+        for in_feature, stride, channels in zip(self.in_features,
+                                                feature_strides,
+                                                feature_channels):
             head_ops = []
-            head_length = max(1, int(np.log2(stride) - np.log2(self.common_stride)))
+            head_length = max(
+                1, int(np.log2(stride) - np.log2(self.common_stride)))
             for k in range(head_length):
                 norm_module = get_norm(norm, conv_dims)
                 conv = Conv2d(
@@ -211,15 +211,16 @@ class SemSegFPNHead(nn.Module):
                 head_ops.append(conv)
                 if stride != self.common_stride:
                     head_ops.append(
-                        nn.Upsample(
-                            scale_factor=2, mode="bilinear", align_corners=False
-                        )
-                    )
+                        nn.Upsample(scale_factor=2,
+                                    mode="bilinear",
+                                    align_corners=False))
             self.scale_heads.append(nn.Sequential(*head_ops))
             self.add_module(in_feature, self.scale_heads[-1])
-        self.predictor = Conv2d(
-            conv_dims, num_classes, kernel_size=1, stride=1, padding=0
-        )
+        self.predictor = Conv2d(conv_dims,
+                                num_classes,
+                                kernel_size=1,
+                                stride=1,
+                                padding=0)
         weight_init.c2_msra_fill(self.predictor)
 
     @classmethod
@@ -247,9 +248,10 @@ class SemSegFPNHead(nn.Module):
         x = self.layers(features)
         if self.training:
             return None, self.losses(x, targets)
-        x = F.interpolate(
-            x, scale_factor=self.common_stride, mode="bilinear", align_corners=False
-        )
+        x = F.interpolate(x,
+                          scale_factor=self.common_stride,
+                          mode="bilinear",
+                          align_corners=False)
         return x, {}
 
     def layers(self, features):
@@ -262,16 +264,16 @@ class SemSegFPNHead(nn.Module):
         return x
 
     def losses(self, predictions, targets):
-        predictions = (
-            predictions.float()
-        )  # https://github.com/pytorch/pytorch/issues/48163
+        predictions = (predictions.float()
+                       )  # https://github.com/pytorch/pytorch/issues/48163
         predictions = F.interpolate(
             predictions,
             scale_factor=self.common_stride,
             mode="bilinear",
             align_corners=False,
         )
-        loss = F.cross_entropy(
-            predictions, targets, reduction="mean", ignore_index=self.ignore_value
-        )
+        loss = F.cross_entropy(predictions,
+                               targets,
+                               reduction="mean",
+                               ignore_index=self.ignore_value)
         return {"loss_sem_seg": loss * self.loss_weight}

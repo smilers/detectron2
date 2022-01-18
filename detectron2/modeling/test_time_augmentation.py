@@ -72,7 +72,8 @@ class DatasetMapperTTA:
         orig_shape = (dataset_dict["height"], dataset_dict["width"])
         if shape[:2] != orig_shape:
             # It transforms the "original" image in the dataset to the input image
-            pre_tfm = ResizeTransform(orig_shape[0], orig_shape[1], shape[0], shape[1])
+            pre_tfm = ResizeTransform(orig_shape[0], orig_shape[1], shape[0],
+                                      shape[1])
         else:
             pre_tfm = NoOpTransform()
 
@@ -90,8 +91,7 @@ class DatasetMapperTTA:
         for aug in aug_candidates:
             new_image, tfms = apply_augmentations(aug, np.copy(numpy_image))
             torch_image = torch.from_numpy(
-                np.ascontiguousarray(new_image.transpose(2, 0, 1))
-            )
+                np.ascontiguousarray(new_image.transpose(2, 0, 1)))
 
             dic = copy.deepcopy(dataset_dict)
             dic["transforms"] = pre_tfm + tfms
@@ -122,13 +122,11 @@ class GeneralizedRCNNWithTTA(nn.Module):
         assert isinstance(
             model, GeneralizedRCNN
         ), "TTA is only supported on GeneralizedRCNN. Got a model of type {}".format(
-            type(model)
-        )
+            type(model))
         self.cfg = cfg.clone()
         assert not self.cfg.MODEL.KEYPOINT_ON, "TTA for keypoint is not supported yet"
-        assert (
-            not self.cfg.MODEL.LOAD_PROPOSALS
-        ), "TTA for pre-computed proposals is not supported yet"
+        assert (not self.cfg.MODEL.LOAD_PROPOSALS
+                ), "TTA for pre-computed proposals is not supported yet"
 
         self.model = model
 
@@ -175,17 +173,18 @@ class GeneralizedRCNNWithTTA(nn.Module):
 
         outputs = []
         inputs, instances = [], []
-        for idx, input, instance in zip(count(), batched_inputs, detected_instances):
+        for idx, input, instance in zip(count(), batched_inputs,
+                                        detected_instances):
             inputs.append(input)
             instances.append(instance)
-            if len(inputs) == self.batch_size or idx == len(batched_inputs) - 1:
+            if len(inputs
+                   ) == self.batch_size or idx == len(batched_inputs) - 1:
                 outputs.extend(
                     self.model.inference(
                         inputs,
                         instances if instances[0] is not None else None,
                         do_postprocess=False,
-                    )
-                )
+                    ))
                 inputs, instances = [], []
         return outputs
 
@@ -197,17 +196,20 @@ class GeneralizedRCNNWithTTA(nn.Module):
         def _maybe_read_image(dataset_dict):
             ret = copy.copy(dataset_dict)
             if "image" not in ret:
-                image = read_image(ret.pop("file_name"), self.model.input_format)
+                image = read_image(ret.pop("file_name"),
+                                   self.model.input_format)
                 image = torch.from_numpy(
-                    np.ascontiguousarray(image.transpose(2, 0, 1))
-                )  # CHW
+                    np.ascontiguousarray(image.transpose(2, 0, 1)))  # CHW
                 ret["image"] = image
             if "height" not in ret and "width" not in ret:
                 ret["height"] = image.shape[1]
                 ret["width"] = image.shape[2]
             return ret
 
-        return [self._inference_one_image(_maybe_read_image(x)) for x in batched_inputs]
+        return [
+            self._inference_one_image(_maybe_read_image(x))
+            for x in batched_inputs
+        ]
 
     def _inference_one_image(self, input):
         """
@@ -223,25 +225,25 @@ class GeneralizedRCNNWithTTA(nn.Module):
         with self._turn_off_roi_heads(["mask_on", "keypoint_on"]):
             # temporarily disable roi heads
             all_boxes, all_scores, all_classes = self._get_augmented_boxes(
-                augmented_inputs, tfms
-            )
+                augmented_inputs, tfms)
         # merge all detected boxes to obtain final predictions for boxes
-        merged_instances = self._merge_detections(
-            all_boxes, all_scores, all_classes, orig_shape
-        )
+        merged_instances = self._merge_detections(all_boxes, all_scores,
+                                                  all_classes, orig_shape)
 
         if self.cfg.MODEL.MASK_ON:
             # Use the detected boxes to obtain masks
             augmented_instances = self._rescale_detected_boxes(
-                augmented_inputs, merged_instances, tfms
-            )
+                augmented_inputs, merged_instances, tfms)
             # run forward on the detected boxes
-            outputs = self._batch_inference(augmented_inputs, augmented_instances)
+            outputs = self._batch_inference(augmented_inputs,
+                                            augmented_instances)
             # Delete now useless variables to avoid being out of memory
             del augmented_inputs, augmented_instances
             # average the predictions
-            merged_instances.pred_masks = self._reduce_pred_masks(outputs, tfms)
-            merged_instances = detector_postprocess(merged_instances, *orig_shape)
+            merged_instances.pred_masks = self._reduce_pred_masks(
+                outputs, tfms)
+            merged_instances = detector_postprocess(merged_instances,
+                                                    *orig_shape)
         return {"instances": merged_instances}
 
     def _get_augmented_inputs(self, input):
@@ -259,10 +261,10 @@ class GeneralizedRCNNWithTTA(nn.Module):
         for output, tfm in zip(outputs, tfms):
             # Need to inverse the transforms on boxes, to obtain results on original image
             pred_boxes = output.pred_boxes.tensor
-            original_pred_boxes = tfm.inverse().apply_box(pred_boxes.cpu().numpy())
+            original_pred_boxes = tfm.inverse().apply_box(
+                pred_boxes.cpu().numpy())
             all_boxes.append(
-                torch.from_numpy(original_pred_boxes).to(pred_boxes.device)
-            )
+                torch.from_numpy(original_pred_boxes).to(pred_boxes.device))
 
             all_scores.extend(output.scores)
             all_classes.extend(output.pred_classes)
@@ -274,7 +276,9 @@ class GeneralizedRCNNWithTTA(nn.Module):
         num_boxes = len(all_boxes)
         num_classes = self.cfg.MODEL.ROI_HEADS.NUM_CLASSES
         # +1 because fast_rcnn_inference expects background scores as well
-        all_scores_2d = torch.zeros(num_boxes, num_classes + 1, device=all_boxes.device)
+        all_scores_2d = torch.zeros(num_boxes,
+                                    num_classes + 1,
+                                    device=all_boxes.device)
         for idx, cls, score in zip(count(), all_classes, all_scores):
             all_scores_2d[idx, cls] = score
 
@@ -289,7 +293,8 @@ class GeneralizedRCNNWithTTA(nn.Module):
 
         return merged_instances
 
-    def _rescale_detected_boxes(self, augmented_inputs, merged_instances, tfms):
+    def _rescale_detected_boxes(self, augmented_inputs, merged_instances,
+                                tfms):
         augmented_instances = []
         for input, tfm in zip(augmented_inputs, tfms):
             # Transform the target box to the augmented image's coordinate space

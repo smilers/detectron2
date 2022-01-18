@@ -13,7 +13,9 @@ from detectron2.layers import Conv2d
 from detectron2.layers import get_norm
 from detectron2.layers import ShapeSpec
 
-__all__ = ["build_resnet_fpn_backbone", "build_retinanet_resnet_fpn_backbone", "FPN"]
+__all__ = [
+    "build_resnet_fpn_backbone", "build_retinanet_resnet_fpn_backbone", "FPN"
+]
 
 
 class FPN(Backbone):
@@ -63,7 +65,9 @@ class FPN(Backbone):
         # Feature map strides and channels from the bottom up network (e.g. ResNet)
         input_shapes = bottom_up.output_shape()
         strides = [input_shapes[f].stride for f in in_features]
-        in_channels_per_feature = [input_shapes[f].channels for f in in_features]
+        in_channels_per_feature = [
+            input_shapes[f].channels for f in in_features
+        ]
 
         _assert_strides_are_log2_contiguous(strides)
         lateral_convs = []
@@ -107,15 +111,19 @@ class FPN(Backbone):
         self.bottom_up = bottom_up
         # Return feature names are "p<stage>", like ["p2", "p3", ..., "p6"]
         self._out_feature_strides = {
-            "p{}".format(int(math.log2(s))): s for s in strides
+            "p{}".format(int(math.log2(s))): s
+            for s in strides
         }
         # top block output feature maps.
         if self.top_block is not None:
             for s in range(stage, stage + self.top_block.num_levels):
-                self._out_feature_strides["p{}".format(s + 1)] = 2 ** (s + 1)
+                self._out_feature_strides["p{}".format(s + 1)] = 2**(s + 1)
 
         self._out_features = list(self._out_feature_strides.keys())
-        self._out_feature_channels = {k: out_channels for k in self._out_features}
+        self._out_feature_channels = {
+            k: out_channels
+            for k in self._out_features
+        }
         self._size_divisibility = strides[-1]
         assert fuse_type in {"avg", "sum"}
         self._fuse_type = fuse_type
@@ -138,20 +146,20 @@ class FPN(Backbone):
                 ["p2", "p3", ..., "p6"].
         """
         bottom_up_features = self.bottom_up(x)
-        prev_features = self.lateral_convs[0](bottom_up_features[self.in_features[-1]])
+        prev_features = self.lateral_convs[0](
+            bottom_up_features[self.in_features[-1]])
         results = [self.output_convs[0](prev_features)]
         # Reverse feature maps into top-down order (from low to high resolution)
         for idx, (lateral_conv, output_conv) in enumerate(
-            zip(self.lateral_convs, self.output_convs)
-        ):
+                zip(self.lateral_convs, self.output_convs)):
             # Slicing of ModuleList is not supported https://github.com/pytorch/pytorch/issues/47336
             # Therefore we loop over all modules but skip the first one
             if idx > 0:
                 features = self.in_features[-idx - 1]
                 features = bottom_up_features[features]
-                top_down_features = F.interpolate(
-                    prev_features, scale_factor=2.0, mode="nearest"
-                )
+                top_down_features = F.interpolate(prev_features,
+                                                  scale_factor=2.0,
+                                                  mode="nearest")
                 lateral_features = lateral_conv(features)
                 prev_features = lateral_features + top_down_features
                 if self._fuse_type == "avg":
@@ -160,11 +168,11 @@ class FPN(Backbone):
 
         if self.top_block is not None:
             if self.top_block.in_feature in bottom_up_features:
-                top_block_in_feature = bottom_up_features[self.top_block.in_feature]
+                top_block_in_feature = bottom_up_features[
+                    self.top_block.in_feature]
             else:
-                top_block_in_feature = results[
-                    self._out_features.index(self.top_block.in_feature)
-                ]
+                top_block_in_feature = results[self._out_features.index(
+                    self.top_block.in_feature)]
             results.extend(self.top_block(top_block_in_feature))
         assert len(self._out_features) == len(results)
         return dict(zip(self._out_features, results))
@@ -185,8 +193,9 @@ def _assert_strides_are_log2_contiguous(strides):
     """
     for i, stride in enumerate(strides[1:], 1):
         assert (
-            stride == 2 * strides[i - 1]
-        ), "Strides {} {} are not log2 contiguous".format(stride, strides[i - 1])
+            stride == 2 *
+            strides[i - 1]), "Strides {} {} are not log2 contiguous".format(
+                stride, strides[i - 1])
 
 
 class LastLevelMaxPool(nn.Module):

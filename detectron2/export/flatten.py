@@ -65,7 +65,7 @@ class Schema:
             ), f"Values has length {len(values)} but expect length {expected_len}."
         ret = []
         for k in range(len(sizes)):
-            begin, end = sum(sizes[:k]), sum(sizes[: k + 1])
+            begin, end = sum(sizes[:k]), sum(sizes[:k + 1])
             ret.append(values[begin:end])
         return ret
 
@@ -73,17 +73,14 @@ class Schema:
 @dataclass
 class ListSchema(Schema):
     schemas: List[
-        Schema
-    ]  # the schemas that define how to flatten each element in the list
+        Schema]  # the schemas that define how to flatten each element in the list
     sizes: List[int]  # the flattened length of each element
 
     def __call__(self, values):
         values = self._split(values, self.sizes)
         if len(values) != len(self.schemas):
-            raise ValueError(
-                f"Values has length {len(values)} but schemas "
-                f"has length {len(self.schemas)}!"
-            )
+            raise ValueError(f"Values has length {len(values)} but schemas "
+                             f"has length {len(self.schemas)}!")
         values = [m(v) for m, v in zip(self.schemas, values)]
         return list(values)
 
@@ -96,18 +93,20 @@ class ListSchema(Schema):
 
 @dataclass
 class TupleSchema(ListSchema):
+
     def __call__(self, values):
         return tuple(super().__call__(values))
 
 
 @dataclass
 class IdentitySchema(Schema):
+
     def __call__(self, values):
         return values[0]
 
     @classmethod
     def flatten(cls, obj):
-        return (obj,), cls()
+        return (obj, ), cls()
 
 
 @dataclass
@@ -122,7 +121,8 @@ class DictSchema(ListSchema):
     def flatten(cls, obj):
         for k in obj.keys():
             if not isinstance(k, str):
-                raise KeyError("Only support flattening dictionaries if keys are str.")
+                raise KeyError(
+                    "Only support flattening dictionaries if keys are str.")
         keys = sorted(obj.keys())
         values = [obj[k] for k in keys]
         ret, schema = ListSchema.flatten(values)
@@ -131,6 +131,7 @@ class DictSchema(ListSchema):
 
 @dataclass
 class InstancesSchema(DictSchema):
+
     def __call__(self, values):
         image_size, fields = values[-1], values[:-1]
         fields = super().__call__(fields)
@@ -142,7 +143,7 @@ class InstancesSchema(DictSchema):
         size = obj.image_size
         if not isinstance(size, torch.Tensor):
             size = torch.tensor(size)
-        return ret + (size,), schema
+        return ret + (size, ), schema
 
 
 @dataclass
@@ -159,7 +160,7 @@ class TensorWrapSchema(Schema):
 
     @classmethod
     def flatten(cls, obj):
-        return (obj.tensor,), cls(_convert_target_to_string(type(obj)))
+        return (obj.tensor, ), cls(_convert_target_to_string(type(obj)))
 
 
 # if more custom structures needed in the future, can allow
@@ -256,13 +257,12 @@ class TracingAdapter(nn.Module):
                 generalizing the traced graph to new inputs.
         """
         super().__init__()
-        if isinstance(
-            model, (nn.parallel.distributed.DistributedDataParallel, nn.DataParallel)
-        ):
+        if isinstance(model, (nn.parallel.distributed.DistributedDataParallel,
+                              nn.DataParallel)):
             model = model.module
         self.model = model
         if not isinstance(inputs, tuple):
-            inputs = (inputs,)
+            inputs = (inputs, )
         self.inputs = inputs
         self.allow_non_tensor = allow_non_tensor
 
@@ -275,9 +275,8 @@ class TracingAdapter(nn.Module):
         if all(isinstance(x, torch.Tensor) for x in self.flattened_inputs):
             return
         if self.allow_non_tensor:
-            self.flattened_inputs = tuple(
-                x for x in self.flattened_inputs if isinstance(x, torch.Tensor)
-            )
+            self.flattened_inputs = tuple(x for x in self.flattened_inputs
+                                          if isinstance(x, torch.Tensor))
 
             self.inputs_schema = None
         else:
@@ -285,37 +284,32 @@ class TracingAdapter(nn.Module):
                 if not isinstance(input, torch.Tensor):
                     raise ValueError(
                         "Inputs for tracing must only contain tensors. "
-                        f"Got a {type(input)} instead."
-                    )
+                        f"Got a {type(input)} instead.")
 
     def forward(self, *args: torch.Tensor):
         with torch.no_grad(), patch_builtin_len():
             if self.inputs_schema is not None:
                 inputs_orig_format = self.inputs_schema(args)
             elif len(args) != len(self.flattened_inputs) or any(
-                x is not y for x, y in zip(args, self.flattened_inputs)
-            ):
+                    x is not y for x, y in zip(args, self.flattened_inputs)):
                 raise ValueError(
                     "TracingAdapter does not contain valid inputs_schema."
                     " So it cannot generalize to other inputs and must be"
-                    " traced with `.flattened_inputs`."
-                )
+                    " traced with `.flattened_inputs`.")
             else:
                 inputs_orig_format = self.inputs
 
             outputs = self.inference_func(self.model, *inputs_orig_format)
             flattened_outputs, schema = flatten_to_tuple(outputs)
 
-            flattened_output_tensors = tuple(
-                x for x in flattened_outputs if isinstance(x, torch.Tensor)
-            )
+            flattened_output_tensors = tuple(x for x in flattened_outputs
+                                             if isinstance(x, torch.Tensor))
 
             if len(flattened_output_tensors) < len(flattened_outputs):
                 if not self.allow_non_tensor:
                     raise ValueError(
                         "Model cannot be traced because some model outputs "
-                        "cannot flatten to tensors."
-                    )
+                        "cannot flatten to tensors.")
                 flattened_outputs = flattened_output_tensors
                 self.outputs_schema = None
             elif self.outputs_schema is None:
@@ -323,8 +317,7 @@ class TracingAdapter(nn.Module):
             else:
                 assert self.outputs_schema == schema, (
                     "Model should always return outputs with the same "
-                    "structure so it can be traced!"
-                )
+                    "structure so it can be traced!")
             return flattened_outputs
 
     def _create_wrapper(self, traced_model):

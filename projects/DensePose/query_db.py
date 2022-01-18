@@ -37,6 +37,7 @@ _ACTION_REGISTRY: Dict[str, "Action"] = {}
 
 
 class Action(object):
+
     @classmethod
     def add_arguments(cls: type, parser: argparse.ArgumentParser):
         parser.add_argument(
@@ -57,6 +58,7 @@ def register_action(cls: type):
 
 
 class EntrywiseAction(Action):
+
     @classmethod
     def add_arguments(cls: type, parser: argparse.ArgumentParser):
         super(EntrywiseAction, cls).add_arguments(parser)
@@ -109,8 +111,7 @@ class PrintAction(EntrywiseAction):
     @classmethod
     def add_parser(cls: type, subparsers: argparse._SubParsersAction):
         parser = subparsers.add_parser(
-            cls.COMMAND, help="Output selected entries to stdout. "
-        )
+            cls.COMMAND, help="Output selected entries to stdout. ")
         cls.add_arguments(parser)
         parser.set_defaults(func=cls.execute)
 
@@ -119,7 +120,8 @@ class PrintAction(EntrywiseAction):
         super(PrintAction, cls).add_arguments(parser)
 
     @classmethod
-    def execute_on_entry(cls: type, entry: Dict[str, Any], context: Dict[str, Any]):
+    def execute_on_entry(cls: type, entry: Dict[str, Any], context: Dict[str,
+                                                                         Any]):
         import pprint
 
         printer = pprint.PrettyPrinter(indent=2, width=200, compact=True)
@@ -144,7 +146,8 @@ class ShowAction(EntrywiseAction):
 
     @classmethod
     def add_parser(cls: type, subparsers: argparse._SubParsersAction):
-        parser = subparsers.add_parser(cls.COMMAND, help="Visualize selected entries")
+        parser = subparsers.add_parser(cls.COMMAND,
+                                       help="Visualize selected entries")
         cls.add_arguments(parser)
         parser.set_defaults(func=cls.execute)
 
@@ -165,7 +168,8 @@ class ShowAction(EntrywiseAction):
         )
 
     @classmethod
-    def execute_on_entry(cls: type, entry: Dict[str, Any], context: Dict[str, Any]):
+    def execute_on_entry(cls: type, entry: Dict[str, Any], context: Dict[str,
+                                                                         Any]):
         import numpy as np
         import cv2
 
@@ -173,8 +177,7 @@ class ShowAction(EntrywiseAction):
         image = cv2.imread(image_fpath, cv2.IMREAD_GRAYSCALE)
         image = np.tile(image[:, :, np.newaxis], [1, 1, 3])
         datas = cls._extract_data_for_visualizers_from_entry(
-            context["vis_specs"], entry
-        )
+            context["vis_specs"], entry)
         visualizer = context["visualizer"]
         image_vis = visualizer.visualize(image, datas)
         entry_idx = context["entry_idx"] + 1
@@ -203,9 +206,9 @@ class ShowAction(EntrywiseAction):
         }
 
     @classmethod
-    def _extract_data_for_visualizers_from_entry(
-        cls: type, vis_specs: List[str], entry: Dict[str, Any]
-    ):
+    def _extract_data_for_visualizers_from_entry(cls: type,
+                                                 vis_specs: List[str],
+                                                 entry: Dict[str, Any]):
         dp_list = []
         bbox_list = []
         for annotation in entry["annotations"]:
@@ -227,7 +230,8 @@ def setup_dataset(dataset_name):
     start = timer()
     dataset = DatasetCatalog.get(dataset_name)
     stop = timer()
-    logger.info("Loaded dataset {} in {:.3f}s".format(dataset_name, stop - start))
+    logger.info("Loaded dataset {} in {:.3f}s".format(dataset_name,
+                                                      stop - start))
     return dataset
 
 
@@ -235,8 +239,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=DOC,
         formatter_class=lambda prog: argparse.HelpFormatter(
-            prog, max_help_position=120
-        ),
+            prog, max_help_position=120),
     )
     parser.set_defaults(func=lambda _: parser.print_help(sys.stdout))
     subparsers = parser.add_subparsers(title="Actions")

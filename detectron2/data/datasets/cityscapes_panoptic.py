@@ -7,11 +7,9 @@ from detectron2.data import DatasetCatalog
 from detectron2.data import MetadataCatalog
 from detectron2.data.datasets.builtin_meta import CITYSCAPES_CATEGORIES
 from detectron2.utils.file_io import PathManager
-
 """
 This file contains functions to register the Cityscapes panoptic dataset to the DatasetCatalog.
 """
-
 
 logger = logging.getLogger(__name__)
 
@@ -29,15 +27,14 @@ def get_cityscapes_panoptic_files(image_dir, gt_dir, json_info):
             image_file = os.path.join(city_img_dir, basename)
 
             assert basename.endswith(suffix), basename
-            basename = os.path.basename(basename)[: -len(suffix)]
+            basename = os.path.basename(basename)[:-len(suffix)]
 
             image_dict[basename] = image_file
 
     for ann in json_info["annotations"]:
         image_file = image_dict.get(ann["image_id"])
         assert image_file is not None, "No image {} found for annotation {}".format(
-            ann["image_id"], ann["file_name"]
-        )
+            ann["image_id"], ann["file_name"])
         label_file = os.path.join(gt_dir, ann["file_name"])
         segments_info = ann["segments_info"]
 
@@ -67,14 +64,15 @@ def load_cityscapes_panoptic(image_dir, gt_dir, gt_json, meta):
     """
 
     def _convert_category_id(segment_info, meta):
-        if segment_info["category_id"] in meta["thing_dataset_id_to_contiguous_id"]:
-            segment_info["category_id"] = meta["thing_dataset_id_to_contiguous_id"][
-                segment_info["category_id"]
-            ]
+        if segment_info["category_id"] in meta[
+                "thing_dataset_id_to_contiguous_id"]:
+            segment_info["category_id"] = meta[
+                "thing_dataset_id_to_contiguous_id"][
+                    segment_info["category_id"]]
         else:
-            segment_info["category_id"] = meta["stuff_dataset_id_to_contiguous_id"][
-                segment_info["category_id"]
-            ]
+            segment_info["category_id"] = meta[
+                "stuff_dataset_id_to_contiguous_id"][
+                    segment_info["category_id"]]
         return segment_info
 
     assert os.path.exists(
@@ -86,21 +84,23 @@ def load_cityscapes_panoptic(image_dir, gt_dir, gt_json, meta):
     ret = []
     for image_file, label_file, segments_info in files:
         sem_label_file = (
-            image_file.replace("leftImg8bit", "gtFine").split(".")[0]
-            + "_labelTrainIds.png"
-        )
+            image_file.replace("leftImg8bit", "gtFine").split(".")[0] +
+            "_labelTrainIds.png")
         segments_info = [_convert_category_id(x, meta) for x in segments_info]
-        ret.append(
-            {
-                "file_name": image_file,
-                "image_id": "_".join(
-                    os.path.splitext(os.path.basename(image_file))[0].split("_")[:3]
-                ),
-                "sem_seg_file_name": sem_label_file,
-                "pan_seg_file_name": label_file,
-                "segments_info": segments_info,
-            }
-        )
+        ret.append({
+            "file_name":
+            image_file,
+            "image_id":
+            "_".join(
+                os.path.splitext(
+                    os.path.basename(image_file))[0].split("_")[:3]),
+            "sem_seg_file_name":
+            sem_label_file,
+            "pan_seg_file_name":
+            label_file,
+            "segments_info":
+            segments_info,
+        })
     assert len(ret), f"No images found in {image_dir}!"
     assert PathManager.isfile(
         ret[0]["sem_seg_file_name"]
@@ -167,10 +167,13 @@ def register_all_cityscapes_panoptic(root):
         else:
             stuff_dataset_id_to_contiguous_id[k["id"]] = k["trainId"]
 
-    meta["thing_dataset_id_to_contiguous_id"] = thing_dataset_id_to_contiguous_id
-    meta["stuff_dataset_id_to_contiguous_id"] = stuff_dataset_id_to_contiguous_id
+    meta[
+        "thing_dataset_id_to_contiguous_id"] = thing_dataset_id_to_contiguous_id
+    meta[
+        "stuff_dataset_id_to_contiguous_id"] = stuff_dataset_id_to_contiguous_id
 
-    for key, (image_dir, gt_dir, gt_json) in _RAW_CITYSCAPES_PANOPTIC_SPLITS.items():
+    for key, (image_dir, gt_dir,
+              gt_json) in _RAW_CITYSCAPES_PANOPTIC_SPLITS.items():
         image_dir = os.path.join(root, image_dir)
         gt_dir = os.path.join(root, gt_dir)
         gt_json = os.path.join(root, gt_json)
@@ -178,8 +181,7 @@ def register_all_cityscapes_panoptic(root):
         DatasetCatalog.register(
             key,
             lambda x=image_dir, y=gt_dir, z=gt_json: load_cityscapes_panoptic(
-                x, y, z, meta
-            ),
+                x, y, z, meta),
         )
         MetadataCatalog.get(key).set(
             panoptic_root=gt_dir,

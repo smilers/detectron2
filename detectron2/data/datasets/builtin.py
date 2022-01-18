@@ -144,15 +144,16 @@ def register_all_coco(root):
             register_coco_instances(
                 key,
                 _get_builtin_metadata(dataset_name),
-                os.path.join(root, json_file) if "://" not in json_file else json_file,
+                os.path.join(root, json_file)
+                if "://" not in json_file else json_file,
                 os.path.join(root, image_root),
             )
 
     for (
-        prefix,
+            prefix,
         (panoptic_root, panoptic_json, semantic_root),
     ) in _PREDEFINED_SPLITS_COCO_PANOPTIC.items():
-        prefix_instances = prefix[: -len("_panoptic")]
+        prefix_instances = prefix[:-len("_panoptic")]
         instances_meta = MetadataCatalog.get(prefix_instances)
         image_root, instances_json = instances_meta.image_root, instances_meta.json_file
         # The "separated" version of COCO panoptic segmentation dataset,
@@ -180,7 +181,6 @@ def register_all_coco(root):
 
 # ==== Predefined datasets and splits for LVIS ==========
 
-
 _PREDEFINED_SPLITS_LVIS = {
     "lvis_v1": {
         "lvis_v1_train": ("coco/", "lvis/lvis_v1_train.json"),
@@ -194,12 +194,15 @@ _PREDEFINED_SPLITS_LVIS = {
     "lvis_v0.5": {
         "lvis_v0.5_train": ("coco/", "lvis/lvis_v0.5_train.json"),
         "lvis_v0.5_val": ("coco/", "lvis/lvis_v0.5_val.json"),
-        "lvis_v0.5_val_rand_100": ("coco/", "lvis/lvis_v0.5_val_rand_100.json"),
+        "lvis_v0.5_val_rand_100":
+        ("coco/", "lvis/lvis_v0.5_val_rand_100.json"),
         "lvis_v0.5_test": ("coco/", "lvis/lvis_v0.5_image_info_test.json"),
     },
     "lvis_v0.5_cocofied": {
-        "lvis_v0.5_train_cocofied": ("coco/", "lvis/lvis_v0.5_train_cocofied.json"),
-        "lvis_v0.5_val_cocofied": ("coco/", "lvis/lvis_v0.5_val_cocofied.json"),
+        "lvis_v0.5_train_cocofied":
+        ("coco/", "lvis/lvis_v0.5_train_cocofied.json"),
+        "lvis_v0.5_val_cocofied":
+        ("coco/", "lvis/lvis_v0.5_val_cocofied.json"),
     },
 }
 
@@ -210,7 +213,8 @@ def register_all_lvis(root):
             register_lvis_instances(
                 key,
                 get_lvis_instances_meta(dataset_name),
-                os.path.join(root, json_file) if "://" not in json_file else json_file,
+                os.path.join(root, json_file)
+                if "://" not in json_file else json_file,
                 os.path.join(root, image_root),
             )
 
@@ -242,8 +246,7 @@ def register_all_cityscapes(root):
         DatasetCatalog.register(
             inst_key,
             lambda x=image_dir, y=gt_dir: load_cityscapes_instances(
-                x, y, from_json=True, to_polygons=True
-            ),
+                x, y, from_json=True, to_polygons=True),
         )
         MetadataCatalog.get(inst_key).set(
             image_dir=image_dir,
@@ -254,8 +257,8 @@ def register_all_cityscapes(root):
 
         sem_key = key.format(task="sem_seg")
         DatasetCatalog.register(
-            sem_key, lambda x=image_dir, y=gt_dir: load_cityscapes_semantic(x, y)
-        )
+            sem_key,
+            lambda x=image_dir, y=gt_dir: load_cityscapes_semantic(x, y))
         MetadataCatalog.get(sem_key).set(
             image_dir=image_dir,
             gt_dir=gt_dir,
@@ -291,8 +294,7 @@ def register_all_ade20k(root):
         DatasetCatalog.register(
             name,
             lambda x=image_dir, y=gt_dir: load_sem_seg(
-                y, x, gt_ext="png", image_ext="jpg"
-            ),
+                y, x, gt_ext="png", image_ext="jpg"),
         )
         MetadataCatalog.get(name).set(
             stuff_classes=ADE20K_SEM_SEG_CATEGORIES[:],

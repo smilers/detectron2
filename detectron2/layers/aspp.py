@@ -54,8 +54,7 @@ class ASPP(nn.Module):
         """
         super(ASPP, self).__init__()
         assert len(dilations) == 3, "ASPP expects 3 dilations, got {}".format(
-            len(dilations)
-        )
+            len(dilations))
         self.pool_kernel_size = pool_kernel_size
         self.dropout = dropout
         use_bias = norm == ""
@@ -69,8 +68,7 @@ class ASPP(nn.Module):
                 bias=use_bias,
                 norm=get_norm(norm, out_channels),
                 activation=deepcopy(activation),
-            )
-        )
+            ))
         weight_init.c2_xavier_fill(self.convs[-1])
         # atrous convs
         for dilation in dilations:
@@ -86,8 +84,7 @@ class ASPP(nn.Module):
                         activation1=deepcopy(activation),
                         norm2=norm,
                         activation2=deepcopy(activation),
-                    )
-                )
+                    ))
             else:
                 self.convs.append(
                     Conv2d(
@@ -99,8 +96,7 @@ class ASPP(nn.Module):
                         bias=use_bias,
                         norm=get_norm(norm, out_channels),
                         activation=deepcopy(activation),
-                    )
-                )
+                    ))
                 weight_init.c2_xavier_fill(self.convs[-1])
         # image pooling
         # We do not add BatchNorm because the spatial resolution is 1x1,
@@ -143,23 +139,19 @@ class ASPP(nn.Module):
     def forward(self, x):
         size = x.shape[-2:]
         if self.pool_kernel_size is not None and (
-            size[0] % self.pool_kernel_size[0] or size[1] % self.pool_kernel_size[1]
-        ):
+                size[0] % self.pool_kernel_size[0]
+                or size[1] % self.pool_kernel_size[1]):
             raise ValueError(
                 "`pool_kernel_size` must be divisible by the shape of inputs. "
                 "Input size: {} `pool_kernel_size`: {}".format(
-                    size, self.pool_kernel_size
-                )
-            )
+                    size, self.pool_kernel_size))
         res = [conv(x) for conv in self.convs]
-        res[-1] = F.interpolate(
-            res[-1], size=size, mode="bilinear", align_corners=False
-        )
+        res[-1] = F.interpolate(res[-1],
+                                size=size,
+                                mode="bilinear",
+                                align_corners=False)
         res = torch.cat(res, dim=1)
         res = self.project(res)
-        res = (
-            F.dropout(res, self.dropout, training=self.training)
-            if self.dropout > 0
-            else res
-        )
+        res = (F.dropout(res, self.dropout, training=self.training)
+               if self.dropout > 0 else res)
         return res

@@ -12,7 +12,6 @@ from detectron2.structures import Boxes
 from detectron2.structures import Instances
 from detectron2.structures import ROIMasks
 from detectron2.utils.file_io import PathManager
-
 """
 Internal utilities for tests. Don't use except for writing tests.
 """
@@ -33,7 +32,8 @@ def random_boxes(num_boxes, max_coord=100, device="cpu"):
     Create a random Nx4 boxes tensor, with coordinates < max_coord.
     """
     boxes = torch.rand(num_boxes, 4, device=device) * (max_coord * 0.5)
-    boxes.clamp_(min=1.0)  # tiny boxes cause numerical instability in box regression
+    boxes.clamp_(
+        min=1.0)  # tiny boxes cause numerical instability in box regression
     # Note: the implementation of this function in torchvision is:
     # boxes[:, 2:] += torch.rand(N, 2) * 100
     # but it does not guarantee non-negative widths/heights constraints:
@@ -76,7 +76,12 @@ def convert_scripted_instances(instances):
     return ret
 
 
-def assert_instances_allclose(input, other, *, rtol=1e-5, msg="", size_as_tensor=False):
+def assert_instances_allclose(input,
+                              other,
+                              *,
+                              rtol=1e-5,
+                              msg="",
+                              size_as_tensor=False):
     """
     Args:
         input, other (Instances):
@@ -91,9 +96,8 @@ def assert_instances_allclose(input, other, *, rtol=1e-5, msg="", size_as_tensor
     msg = "Two Instances are different! " if not msg else msg.rstrip() + " "
     size_error_msg = msg + f"image_size is {input.image_size} vs. {other.image_size}!"
     if size_as_tensor:
-        assert torch.equal(
-            torch.tensor(input.image_size), torch.tensor(other.image_size)
-        ), size_error_msg
+        assert torch.equal(torch.tensor(input.image_size),
+                           torch.tensor(other.image_size)), size_error_msg
     else:
         assert input.image_size == other.image_size, size_error_msg
     fields = sorted(input.get_fields().keys())
@@ -104,17 +108,17 @@ def assert_instances_allclose(input, other, *, rtol=1e-5, msg="", size_as_tensor
         val1, val2 = input.get(f), other.get(f)
         if isinstance(val1, (Boxes, ROIMasks)):
             # boxes in the range of O(100) and can have a larger tolerance
-            assert torch.allclose(val1.tensor, val2.tensor, atol=100 * rtol), (
-                msg + f"Field {f} differs too much!"
-            )
+            assert torch.allclose(val1.tensor, val2.tensor, atol=100 *
+                                  rtol), (msg + f"Field {f} differs too much!")
         elif isinstance(val1, torch.Tensor):
             if val1.dtype.is_floating_point:
                 mag = torch.abs(val1).max().cpu().item()
-                assert torch.allclose(val1, val2, atol=mag * rtol), (
-                    msg + f"Field {f} differs too much!"
-                )
+                assert torch.allclose(
+                    val1, val2,
+                    atol=mag * rtol), (msg + f"Field {f} differs too much!")
             else:
-                assert torch.equal(val1, val2), msg + f"Field {f} is different!"
+                assert torch.equal(val1,
+                                   val2), msg + f"Field {f} is different!"
         else:
             raise ValueError(f"Don't know how to compare type {type(val1)}")
 

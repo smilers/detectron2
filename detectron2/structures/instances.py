@@ -68,8 +68,7 @@ class Instances:
     def __getattr__(self, name: str) -> Any:
         if name == "_fields" or name not in self._fields:
             raise AttributeError(
-                "Cannot find field '{}' in the given Instances!".format(name)
-            )
+                "Cannot find field '{}' in the given Instances!".format(name))
         return self._fields[name]
 
     def set(self, name: str, value: Any) -> None:
@@ -83,8 +82,7 @@ class Instances:
             assert (
                 len(self) == data_len
             ), "Adding a field of length {} to a Instances of length {}".format(
-                data_len, len(self)
-            )
+                data_len, len(self))
         self._fields[name] = value
 
     def has(self, name: str) -> bool:
@@ -128,7 +126,8 @@ class Instances:
             ret.set(k, v)
         return ret
 
-    def __getitem__(self, item: Union[int, slice, torch.BoolTensor]) -> "Instances":
+    def __getitem__(self, item: Union[int, slice,
+                                      torch.BoolTensor]) -> "Instances":
         """
         Args:
             item: an index-like object and will be used to index all the fields.
@@ -172,7 +171,8 @@ class Instances:
             return instance_lists[0]
 
         image_size = instance_lists[0].image_size
-        if not isinstance(image_size, torch.Tensor):  # could be a tensor in tracing
+        if not isinstance(image_size,
+                          torch.Tensor):  # could be a tensor in tracing
             for i in instance_lists[1:]:
                 assert i.image_size == image_size
         ret = Instances(image_size)
@@ -187,8 +187,7 @@ class Instances:
                 values = type(v0).cat(values)
             else:
                 raise ValueError(
-                    "Unsupported type {} for concatenation".format(type(v0))
-                )
+                    "Unsupported type {} for concatenation".format(type(v0)))
             ret.set(k, values)
         return ret
 
@@ -197,9 +196,8 @@ class Instances:
         s += "num_instances={}, ".format(len(self))
         s += "image_height={}, ".format(self._image_size[0])
         s += "image_width={}, ".format(self._image_size[1])
-        s += "fields=[{}])".format(
-            ", ".join((f"{k}: {v}" for k, v in self._fields.items()))
-        )
+        s += "fields=[{}])".format(", ".join(
+            (f"{k}: {v}" for k, v in self._fields.items())))
         return s
 
     __repr__ = __str__

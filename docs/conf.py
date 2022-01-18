@@ -37,7 +37,8 @@ class GithubURLDomain(Domain):
     ROOT = "https://github.com/facebookresearch/detectron2/blob/master/"
     LINKED_DOC = ["tutorials/install", "tutorials/getting_started"]
 
-    def resolve_any_xref(self, env, fromdocname, builder, target, node, contnode):
+    def resolve_any_xref(self, env, fromdocname, builder, target, node,
+                         contnode):
         github_url = None
         if not target.endswith("html") and target.startswith("../../"):
             url = target.replace("../", "")
@@ -47,7 +48,8 @@ class GithubURLDomain(Domain):
             github_url = target
 
         if github_url is not None:
-            if github_url.endswith("MODEL_ZOO") or github_url.endswith("README"):
+            if github_url.endswith("MODEL_ZOO") or github_url.endswith(
+                    "README"):
                 # bug of recommonmark.
                 # https://github.com/readthedocs/recommonmark/blob/ddd56e7717e9745f11300059e4268e204138a6b1/recommonmark/parser.py#L152-L155
                 github_url += ".md"
@@ -64,7 +66,6 @@ sys.path.insert(0, os.path.abspath("../"))
 os.environ["_DOC_BUILDING"] = "True"
 DEPLOY = os.environ.get("READTHEDOCS") == "True"
 
-
 # -- Project information -----------------------------------------------------
 
 # fmt: off
@@ -72,9 +73,21 @@ try:
     import torch  # noqa
 except ImportError:
     for m in [
-        "torch", "torchvision", "torch.nn", "torch.nn.parallel", "torch.distributed", "torch.multiprocessing", "torch.autograd",
-        "torch.autograd.function", "torch.nn.modules", "torch.nn.modules.utils", "torch.utils", "torch.utils.data", "torch.onnx",
-        "torchvision", "torchvision.ops",
+            "torch",
+            "torchvision",
+            "torch.nn",
+            "torch.nn.parallel",
+            "torch.distributed",
+            "torch.multiprocessing",
+            "torch.autograd",
+            "torch.autograd.function",
+            "torch.nn.modules",
+            "torch.nn.modules.utils",
+            "torch.utils",
+            "torch.utils.data",
+            "torch.onnx",
+            "torchvision",
+            "torchvision.ops",
     ]:
         sys.modules[m] = mock.Mock(name=m)
     sys.modules['torch'].__version__ = "1.7"  # fake version
@@ -87,22 +100,34 @@ else:
     HAS_TORCH = True
 
 for m in [
-    "cv2", "scipy", "portalocker", "detectron2._C",
-    "pycocotools", "pycocotools.mask", "pycocotools.coco", "pycocotools.cocoeval",
-    "google", "google.protobuf", "google.protobuf.internal", "onnx",
-    "caffe2", "caffe2.proto", "caffe2.python", "caffe2.python.utils", "caffe2.python.onnx", "caffe2.python.onnx.backend",
+        "cv2",
+        "scipy",
+        "portalocker",
+        "detectron2._C",
+        "pycocotools",
+        "pycocotools.mask",
+        "pycocotools.coco",
+        "pycocotools.cocoeval",
+        "google",
+        "google.protobuf",
+        "google.protobuf.internal",
+        "onnx",
+        "caffe2",
+        "caffe2.proto",
+        "caffe2.python",
+        "caffe2.python.utils",
+        "caffe2.python.onnx",
+        "caffe2.python.onnx.backend",
 ]:
     sys.modules[m] = mock.Mock(name=m)
 # fmt: on
 sys.modules["cv2"].__version__ = "3.4"
-
 
 if HAS_TORCH:
     from detectron2.utils.env import fixup_module_metadata
 
     fixup_module_metadata("torch.nn", torch.nn.__dict__)
     fixup_module_metadata("torch.utils.data", torch.utils.data.__dict__)
-
 
 project = "detectron2"
 copyright = "2019-2020, detectron2 contributors"
@@ -112,7 +137,6 @@ author = "detectron2 contributors"
 version = detectron2.__version__
 # The full version, including alpha/beta/rc tags
 release = version
-
 
 # -- General configuration ---------------------------------------------------
 
@@ -152,7 +176,6 @@ intersphinx_mapping = {
 }
 # -------------------------
 
-
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 
@@ -183,7 +206,6 @@ exclude_patterns = [
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = "sphinx"
 
-
 # -- Options for HTML output -------------------------------------------------
 
 html_theme = "sphinx_rtd_theme"
@@ -211,12 +233,10 @@ html_css_files = ["css/custom.css"]
 #
 # html_sidebars = {}
 
-
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = "detectron2doc"
-
 
 # -- Options for LaTeX output ------------------------------------------------
 
@@ -238,41 +258,35 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
-latex_documents = [
-    (
-        master_doc,
-        "detectron2.tex",
-        "detectron2 Documentation",
-        "detectron2 contributors",
-        "manual",
-    )
-]
-
+latex_documents = [(
+    master_doc,
+    "detectron2.tex",
+    "detectron2 Documentation",
+    "detectron2 contributors",
+    "manual",
+)]
 
 # -- Options for manual page output ------------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, "detectron2", "detectron2 Documentation", [author], 1)]
-
+man_pages = [(master_doc, "detectron2", "detectron2 Documentation", [author],
+              1)]
 
 # -- Options for Texinfo output ----------------------------------------------
 
 # Grouping the document tree into Texinfo files. List of tuples
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
-texinfo_documents = [
-    (
-        master_doc,
-        "detectron2",
-        "detectron2 Documentation",
-        author,
-        "detectron2",
-        "One line description of project.",
-        "Miscellaneous",
-    )
-]
-
+texinfo_documents = [(
+    master_doc,
+    "detectron2",
+    "detectron2 Documentation",
+    author,
+    "detectron2",
+    "One line description of project.",
+    "Miscellaneous",
+)]
 
 # -- Options for todo extension ----------------------------------------------
 
@@ -305,9 +319,8 @@ def autodoc_skip_member(app, what, name, obj, skip, options):
     }
     try:
         if name in HIDDEN or (
-            hasattr(obj, "__doc__")
-            and obj.__doc__.lower().strip().startswith("deprecated")
-        ):
+                hasattr(obj, "__doc__")
+                and obj.__doc__.lower().strip().startswith("deprecated")):
             print("Skipping deprecated object: {}".format(name))
             return True
     except:
@@ -402,7 +415,11 @@ def setup(app):
     app.add_role("paper", paper_ref_role)
     app.add_config_value(
         "recommonmark_config",
-        {"enable_math": True, "enable_inline_math": True, "enable_eval_rst": True},
+        {
+            "enable_math": True,
+            "enable_inline_math": True,
+            "enable_eval_rst": True
+        },
         True,
     )
     app.add_transform(AutoStructify)

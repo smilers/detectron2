@@ -17,6 +17,7 @@ __all__ = ["setup_logger", "log_first_n", "log_every_n", "log_every_n_seconds"]
 
 
 class _ColorfulFormatter(logging.Formatter):
+
     def __init__(self, *args, **kwargs):
         self._root_name = kwargs.pop("root_name") + "."
         self._abbrev_name = kwargs.pop("abbrev_name", "")
@@ -36,10 +37,14 @@ class _ColorfulFormatter(logging.Formatter):
         return prefix + " " + log
 
 
-@functools.lru_cache()  # so that calling setup_logger multiple times won't add many handlers
-def setup_logger(
-    output=None, distributed_rank=0, *, color=True, name="detectron2", abbrev_name=None
-):
+@functools.lru_cache(
+)  # so that calling setup_logger multiple times won't add many handlers
+def setup_logger(output=None,
+                 distributed_rank=0,
+                 *,
+                 color=True,
+                 name="detectron2",
+                 abbrev_name=None):
     """
     Initialize the detectron2 logger and set its verbosity level to "DEBUG".
 
@@ -64,8 +69,8 @@ def setup_logger(
         abbrev_name = "d2" if name == "detectron2" else name
 
     plain_formatter = logging.Formatter(
-        "[%(asctime)s] %(name)s %(levelname)s: %(message)s", datefmt="%m/%d %H:%M:%S"
-    )
+        "[%(asctime)s] %(name)s %(levelname)s: %(message)s",
+        datefmt="%m/%d %H:%M:%S")
     # stdout logging: master only
     if distributed_rank == 0:
         ch = logging.StreamHandler(stream=sys.stdout)
@@ -105,7 +110,9 @@ def setup_logger(
 @functools.lru_cache(maxsize=None)
 def _cached_log_stream(filename):
     # use 1K buffer if writing to cloud storage
-    io = PathManager.open(filename, "a", buffering=1024 if "://" in filename else -1)
+    io = PathManager.open(filename,
+                          "a",
+                          buffering=1024 if "://" in filename else -1)
     atexit.register(io.close)
     return io
 
@@ -158,7 +165,7 @@ def log_first_n(lvl, msg, n=1, *, name=None, key="caller"):
             will not log only if the same caller has logged the same message before.
     """
     if isinstance(key, str):
-        key = (key,)
+        key = (key, )
     assert len(key) > 0
 
     caller_module, caller_key = _find_caller()
@@ -166,7 +173,7 @@ def log_first_n(lvl, msg, n=1, *, name=None, key="caller"):
     if "caller" in key:
         hash_key = hash_key + caller_key
     if "message" in key:
-        hash_key = hash_key + (msg,)
+        hash_key = hash_key + (msg, )
 
     _LOG_COUNTER[hash_key] += 1
     if _LOG_COUNTER[hash_key] <= n:

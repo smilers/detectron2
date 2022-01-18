@@ -92,7 +92,8 @@ A namespace to put all imported config into.
 
 def _random_package_name(filename):
     # generate a random package name when loading config files
-    return _CFG_PACKAGE_NAME + str(uuid.uuid4())[:4] + "." + os.path.basename(filename)
+    return _CFG_PACKAGE_NAME + str(
+        uuid.uuid4())[:4] + "." + os.path.basename(filename)
 
 
 @contextmanager
@@ -122,22 +123,23 @@ def _patch_import():
         if not PathManager.isfile(cur_file):
             raise ImportError(
                 f"Cannot import name {relative_import_path} from "
-                f"{original_file}: {cur_file} has to exist."
-            )
+                f"{original_file}: {cur_file} has to exist.")
         return cur_file
 
     def new_import(name, globals=None, locals=None, fromlist=(), level=0):
-        if (
-            level == 0
-            or globals is None
-            or not (globals.get("__package__", "") or "").startswith(_CFG_PACKAGE_NAME)
-        ):
-            return old_import(name, globals, locals, fromlist=fromlist, level=level)
+        if (level == 0 or globals is None
+                or not (globals.get("__package__", "")
+                        or "").startswith(_CFG_PACKAGE_NAME)):
+            return old_import(name,
+                              globals,
+                              locals,
+                              fromlist=fromlist,
+                              level=level)
         cur_file = find_relative_file(globals["__file__"], name, level)
         _validate_py_syntax(cur_file)
-        spec = importlib.machinery.ModuleSpec(
-            _random_package_name(cur_file), None, origin=cur_file
-        )
+        spec = importlib.machinery.ModuleSpec(_random_package_name(cur_file),
+                                              None,
+                                              origin=cur_file)
         module = importlib.util.module_from_spec(spec)
         module.__file__ = cur_file
         with PathManager.open(cur_file) as f:
@@ -160,7 +162,8 @@ class LazyConfig:
     """
 
     @staticmethod
-    def load_rel(filename: str, keys: Union[None, str, Tuple[str, ...]] = None):
+    def load_rel(filename: str,
+                 keys: Union[None, str, Tuple[str, ...]] = None):
         """
         Similar to :meth:`load()`, but load path relative to the caller's
         source file.
@@ -188,7 +191,8 @@ class LazyConfig:
         has_keys = keys is not None
         filename = filename.replace("/./", "/")  # redundant
         if os.path.splitext(filename)[1] not in [".py", ".yaml", ".yml"]:
-            raise ValueError(f"Config file {filename} has to be a python or yaml file.")
+            raise ValueError(
+                f"Config file {filename} has to be a python or yaml file.")
         if filename.endswith(".py"):
             _validate_py_syntax(filename)
 
@@ -212,11 +216,8 @@ class LazyConfig:
             ret = OmegaConf.create(obj, flags={"allow_objects": True})
 
         if has_keys:
-            return (
-                _cast_to_config(ret[keys])
-                if isinstance(keys, str)
-                else tuple(_cast_to_config(ret[a]) for a in keys)
-            )
+            return (_cast_to_config(ret[keys]) if isinstance(keys, str) else
+                    tuple(_cast_to_config(ret[a]) for a in keys))
 
         if filename.endswith(".py"):
             # when not specified, only load those that are config objects
@@ -224,8 +225,8 @@ class LazyConfig:
                 {
                     name: _cast_to_config(value)
                     for name, value in ret.items()
-                    if isinstance(value, (DictConfig, ListConfig, dict))
-                    and not name.startswith("_")
+                    if isinstance(value, (DictConfig, ListConfig,
+                                          dict)) and not name.startswith("_")
                 },
                 flags={"allow_objects": True},
             )
@@ -263,9 +264,10 @@ class LazyConfig:
         try:
             with PathManager.open(filename, "w") as f:
                 dict = OmegaConf.to_container(cfg, resolve=False)
-                dumped = yaml.dump(
-                    dict, default_flow_style=None, allow_unicode=True, width=9999
-                )
+                dumped = yaml.dump(dict,
+                                   default_flow_style=None,
+                                   allow_unicode=True,
+                                   width=9999)
                 f.write(dumped)
         except Exception:
             logger.exception("Unable to serialize the config to yaml. Error:")
@@ -274,7 +276,8 @@ class LazyConfig:
                 # retry by pickle
                 with PathManager.open(new_filename, "wb") as f:
                     cloudpickle.dump(cfg, f)
-                logger.warning(f"Config saved using cloudpickle at {new_filename} ...")
+                logger.warning(
+                    f"Config saved using cloudpickle at {new_filename} ...")
             except Exception:
                 pass
 
@@ -301,10 +304,8 @@ class LazyConfig:
                 if v is None:
                     break
                 if not OmegaConf.is_config(v):
-                    raise KeyError(
-                        f"Trying to update key {key}, but {prefix} "
-                        f"is not a config, but has type {type(v)}."
-                    )
+                    raise KeyError(f"Trying to update key {key}, but {prefix} "
+                                   f"is not a config, but has type {type(v)}.")
             OmegaConf.update(cfg, key, value, merge=True)
 
         from hydra.core.override_parser.overrides_parser import OverridesParser
@@ -316,7 +317,8 @@ class LazyConfig:
             value = o.value()
             if o.is_delete():
                 # TODO support this
-                raise NotImplementedError("deletion is not yet a supported override")
+                raise NotImplementedError(
+                    "deletion is not yet a supported override")
             safe_update(cfg, key, value)
         return cfg
 
@@ -366,20 +368,14 @@ class LazyConfig:
                 return "\n".join(key_list)
             elif isinstance(obj, abc.Mapping):
                 # Dict that is inside a call is rendered as a regular dict
-                return (
-                    "{"
-                    + ",".join(
-                        f"{repr(k)}: {_to_str(v, inside_call=inside_call)}"
-                        for k, v in sorted(obj.items())
-                    )
-                    + "}"
-                )
+                return ("{" + ",".join(
+                    f"{repr(k)}: {_to_str(v, inside_call=inside_call)}"
+                    for k, v in sorted(obj.items())) + "}")
             elif isinstance(obj, list):
                 return (
-                    "["
-                    + ",".join(_to_str(x, inside_call=inside_call) for x in obj)
-                    + "]"
-                )
+                    "[" +
+                    ",".join(_to_str(x, inside_call=inside_call)
+                             for x in obj) + "]")
             else:
                 return repr(obj)
 

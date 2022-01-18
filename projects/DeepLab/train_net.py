@@ -42,8 +42,7 @@ def build_sem_seg_train_aug(cfg):
                 cfg.INPUT.CROP.SIZE,
                 cfg.INPUT.CROP.SINGLE_CATEGORY_MAX_AREA,
                 cfg.MODEL.SEM_SEG_HEAD.IGNORE_VALUE,
-            )
-        )
+            ))
     augs.append(T.RandomFlip())
     return augs
 
@@ -82,9 +81,7 @@ class Trainer(DefaultTrainer):
         if not evaluator_list:
             raise NotImplementedError(
                 "no Evaluator for the dataset {} with the type {}".format(
-                    dataset_name, evaluator_type
-                )
-            )
+                    dataset_name, evaluator_type))
         if len(evaluator_list) == 1:
             return evaluator_list[0]
         return DatasetEvaluators(evaluator_list)
@@ -92,9 +89,9 @@ class Trainer(DefaultTrainer):
     @classmethod
     def build_train_loader(cls, cfg):
         if "SemanticSegmentor" in cfg.MODEL.META_ARCHITECTURE:
-            mapper = DatasetMapper(
-                cfg, is_train=True, augmentations=build_sem_seg_train_aug(cfg)
-            )
+            mapper = DatasetMapper(cfg,
+                                   is_train=True,
+                                   augmentations=build_sem_seg_train_aug(cfg))
         else:
             mapper = None
         return build_detection_train_loader(cfg, mapper=mapper)
@@ -127,8 +124,7 @@ def main(args):
     if args.eval_only:
         model = Trainer.build_model(cfg)
         DetectionCheckpointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
-            cfg.MODEL.WEIGHTS, resume=args.resume
-        )
+            cfg.MODEL.WEIGHTS, resume=args.resume)
         return Trainer.test(cfg, model)
 
     trainer = Trainer(cfg)
@@ -145,5 +141,5 @@ if __name__ == "__main__":
         num_machines=args.num_machines,
         machine_rank=args.machine_rank,
         dist_url=args.dist_url,
-        args=(args,),
+        args=(args, ),
     )

@@ -48,7 +48,8 @@ def scripting_with_instances(model, fields):
     Returns:
         torch.jit.ScriptModule: the model in torchscript format
     """
-    assert TORCH_VERSION >= (1, 8), "This feature is not available in PyTorch < 1.8"
+    assert TORCH_VERSION >= (
+        1, 8), "This feature is not available in PyTorch < 1.8"
     assert (
         not model.training
     ), "Currently we only support exporting models in evaluation mode to torchscript"
@@ -96,7 +97,9 @@ def dump_torchscript_IR(model, dir):
             code = get_code(mod)
             name = prefix or "root model"
             if code is None:
-                f.write(f"Could not found code for {name} (type={mod.original_name})\n")
+                f.write(
+                    f"Could not found code for {name} (type={mod.original_name})\n"
+                )
                 f.write("\n")
             else:
                 f.write(f"\nCode for {name}, type={mod.original_name}:\n")
@@ -123,7 +126,8 @@ def dump_torchscript_IR(model, dir):
         f.write(_get_graph(model))
 
     # Dump IR of the entire graph (all submodules inlined)
-    with PathManager.open(os.path.join(dir, "model_ts_IR_inlined.txt"), "w") as f:
+    with PathManager.open(os.path.join(dir, "model_ts_IR_inlined.txt"),
+                          "w") as f:
         f.write(str(model.inlined_graph))
 
     if not isinstance(model, torch.jit.ScriptFunction):

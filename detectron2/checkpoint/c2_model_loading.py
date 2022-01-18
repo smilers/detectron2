@@ -20,9 +20,10 @@ def convert_basic_c2_names(original_keys):
         list[str]: The same number of strings matching those in original_keys.
     """
     layer_keys = copy.deepcopy(original_keys)
-    layer_keys = [
-        {"pred_b": "linear_b", "pred_w": "linear_w"}.get(k, k) for k in layer_keys
-    ]  # some hard-coded mappings
+    layer_keys = [{
+        "pred_b": "linear_b",
+        "pred_w": "linear_w"
+    }.get(k, k) for k in layer_keys]  # some hard-coded mappings
 
     layer_keys = [k.replace("_", ".") for k in layer_keys]
     layer_keys = [re.sub("\\.b$", ".bias", k) for k in layer_keys]
@@ -30,11 +31,16 @@ def convert_basic_c2_names(original_keys):
     # Uniform both bn and gn names to "norm"
     layer_keys = [re.sub("bn\\.s$", "norm.weight", k) for k in layer_keys]
     layer_keys = [re.sub("bn\\.bias$", "norm.bias", k) for k in layer_keys]
-    layer_keys = [re.sub("bn\\.rm", "norm.running_mean", k) for k in layer_keys]
     layer_keys = [
-        re.sub("bn\\.running.mean$", "norm.running_mean", k) for k in layer_keys
+        re.sub("bn\\.rm", "norm.running_mean", k) for k in layer_keys
     ]
-    layer_keys = [re.sub("bn\\.riv$", "norm.running_var", k) for k in layer_keys]
+    layer_keys = [
+        re.sub("bn\\.running.mean$", "norm.running_mean", k)
+        for k in layer_keys
+    ]
+    layer_keys = [
+        re.sub("bn\\.riv$", "norm.running_var", k) for k in layer_keys
+    ]
     layer_keys = [
         re.sub("bn\\.running.var$", "norm.running_var", k) for k in layer_keys
     ]
@@ -63,9 +69,15 @@ def convert_basic_c2_names(original_keys):
     layer_keys = [k.replace(".branch2c.", ".conv3.") for k in layer_keys]
 
     # DensePose substitutions
-    layer_keys = [re.sub("^body.conv.fcn", "body_conv_fcn", k) for k in layer_keys]
-    layer_keys = [k.replace("AnnIndex.lowres", "ann_index_lowres") for k in layer_keys]
-    layer_keys = [k.replace("Index.UV.lowres", "index_uv_lowres") for k in layer_keys]
+    layer_keys = [
+        re.sub("^body.conv.fcn", "body_conv_fcn", k) for k in layer_keys
+    ]
+    layer_keys = [
+        k.replace("AnnIndex.lowres", "ann_index_lowres") for k in layer_keys
+    ]
+    layer_keys = [
+        k.replace("Index.UV.lowres", "index_uv_lowres") for k in layer_keys
+    ]
     layer_keys = [k.replace("U.lowres", "u_lowres") for k in layer_keys]
     layer_keys = [k.replace("V.lowres", "v_lowres") for k in layer_keys]
     return layer_keys
@@ -101,7 +113,8 @@ def convert_c2_detectron_names(weights):
     ]
     # Non-FPN case
     layer_keys = [
-        k.replace("conv.rpn", "proposal_generator.rpn_head.conv") for k in layer_keys
+        k.replace("conv.rpn", "proposal_generator.rpn_head.conv")
+        for k in layer_keys
     ]
 
     # --------------------------------------------------------------------------
@@ -109,13 +122,13 @@ def convert_c2_detectron_names(weights):
     # --------------------------------------------------------------------------
     # FPN case (see note above about "fpn2")
     layer_keys = [
-        k.replace("rpn.bbox.pred.fpn2", "proposal_generator.rpn_head.anchor_deltas")
+        k.replace("rpn.bbox.pred.fpn2",
+                  "proposal_generator.rpn_head.anchor_deltas")
         for k in layer_keys
     ]
     layer_keys = [
-        k.replace(
-            "rpn.cls.logits.fpn2", "proposal_generator.rpn_head.objectness_logits"
-        )
+        k.replace("rpn.cls.logits.fpn2",
+                  "proposal_generator.rpn_head.objectness_logits")
         for k in layer_keys
     ]
     # Non-FPN case
@@ -124,7 +137,8 @@ def convert_c2_detectron_names(weights):
         for k in layer_keys
     ]
     layer_keys = [
-        k.replace("rpn.cls.logits", "proposal_generator.rpn_head.objectness_logits")
+        k.replace("rpn.cls.logits",
+                  "proposal_generator.rpn_head.objectness_logits")
         for k in layer_keys
     ]
 
@@ -136,7 +150,9 @@ def convert_c2_detectron_names(weights):
     layer_keys = [re.sub("^fc6\\.", "box_head.fc1.", k) for k in layer_keys]
     layer_keys = [re.sub("^fc7\\.", "box_head.fc2.", k) for k in layer_keys]
     # 4conv1fc head tensor names: head_conv1_w, head_conv1_gn_s
-    layer_keys = [re.sub("^head\\.conv", "box_head.conv", k) for k in layer_keys]
+    layer_keys = [
+        re.sub("^head\\.conv", "box_head.conv", k) for k in layer_keys
+    ]
 
     # --------------------------------------------------------------------------
     # FPN lateral and output convolutions
@@ -155,11 +171,11 @@ def convert_c2_detectron_names(weights):
         norm = ".norm" if "norm" in splits else ""
         if name.startswith("fpn.inner."):
             # splits example: ['fpn', 'inner', 'res2', '2', 'sum', 'lateral', 'weight']
-            stage = int(splits[2][len("res") :])
+            stage = int(splits[2][len("res"):])
             return "fpn_lateral{}{}.{}".format(stage, norm, splits[-1])
         elif name.startswith("fpn.res"):
             # splits example: ['fpn', 'res2', '2', 'sum', 'weight']
-            stage = int(splits[1][len("res") :])
+            stage = int(splits[1][len("res"):])
             return "fpn_output{}{}.{}".format(stage, norm, splits[-1])
         return name
 
@@ -169,27 +185,35 @@ def convert_c2_detectron_names(weights):
     # Mask R-CNN mask head
     # --------------------------------------------------------------------------
     # roi_heads.StandardROIHeads case
-    layer_keys = [k.replace(".[mask].fcn", "mask_head.mask_fcn") for k in layer_keys]
-    layer_keys = [re.sub("^\\.mask\\.fcn", "mask_head.mask_fcn", k) for k in layer_keys]
+    layer_keys = [
+        k.replace(".[mask].fcn", "mask_head.mask_fcn") for k in layer_keys
+    ]
+    layer_keys = [
+        re.sub("^\\.mask\\.fcn", "mask_head.mask_fcn", k) for k in layer_keys
+    ]
     layer_keys = [
         k.replace("mask.fcn.logits", "mask_head.predictor") for k in layer_keys
     ]
     # roi_heads.Res5ROIHeads case
-    layer_keys = [k.replace("conv5.mask", "mask_head.deconv") for k in layer_keys]
+    layer_keys = [
+        k.replace("conv5.mask", "mask_head.deconv") for k in layer_keys
+    ]
 
     # --------------------------------------------------------------------------
     # Keypoint R-CNN head
     # --------------------------------------------------------------------------
     # interestingly, the keypoint head convs have blob names that are simply "conv_fcnX"
     layer_keys = [
-        k.replace("conv.fcn", "roi_heads.keypoint_head.conv_fcn") for k in layer_keys
+        k.replace("conv.fcn", "roi_heads.keypoint_head.conv_fcn")
+        for k in layer_keys
     ]
     layer_keys = [
         k.replace("kps.score.lowres", "roi_heads.keypoint_head.score_lowres")
         for k in layer_keys
     ]
     layer_keys = [
-        k.replace("kps.score.", "roi_heads.keypoint_head.score.") for k in layer_keys
+        k.replace("kps.score.", "roi_heads.keypoint_head.score.")
+        for k in layer_keys
     ]
 
     # --------------------------------------------------------------------------
@@ -203,8 +227,7 @@ def convert_c2_detectron_names(weights):
     for orig, renamed in zip(original_keys, layer_keys):
         new_keys_to_original_keys[renamed] = orig
         if renamed.startswith("bbox_pred.") or renamed.startswith(
-            "mask_head.predictor."
-        ):
+                "mask_head.predictor."):
             # remove the meaningless prediction weight for background class
             new_start_idx = 4 if renamed.startswith("bbox_pred.") else 1
             new_weights[renamed] = weights[orig][new_start_idx:]
@@ -214,15 +237,14 @@ def convert_c2_detectron_names(weights):
                     renamed,
                     tuple(weights[orig].shape),
                     tuple(new_weights[renamed].shape),
-                )
-            )
+                ))
         elif renamed.startswith("cls_score."):
             # move weights of bg class from original index 0 to last index
             logger.info(
                 "Move classification weights for background class in {} from index 0 to "
-                "index {}.".format(renamed, weights[orig].shape[0] - 1)
-            )
-            new_weights[renamed] = torch.cat([weights[orig][1:], weights[orig][:1]])
+                "index {}.".format(renamed, weights[orig].shape[0] - 1))
+            new_weights[renamed] = torch.cat(
+                [weights[orig][1:], weights[orig][:1]])
         else:
             new_weights[renamed] = weights[orig]
 
@@ -231,7 +253,9 @@ def convert_c2_detectron_names(weights):
 
 # Note the current matching is not symmetric.
 # it assumes model_state_dict will have longer names.
-def align_and_update_state_dicts(model_state_dict, ckpt_state_dict, c2_conversion=True):
+def align_and_update_state_dicts(model_state_dict,
+                                 ckpt_state_dict,
+                                 c2_conversion=True):
     """
     Match names between the two state-dict, and returns a new chkpt_state_dict with names
     converted to match model_state_dict with heuristics. The returned dict can be later
@@ -254,7 +278,8 @@ def align_and_update_state_dicts(model_state_dict, ckpt_state_dict, c2_conversio
     """
     model_keys = sorted(model_state_dict.keys())
     if c2_conversion:
-        ckpt_state_dict, original_keys = convert_c2_detectron_names(ckpt_state_dict)
+        ckpt_state_dict, original_keys = convert_c2_detectron_names(
+            ckpt_state_dict)
         # original_keys: the name in the original dict (before renaming)
     else:
         original_keys = {x: x for x in ckpt_state_dict.keys()}
@@ -268,8 +293,11 @@ def align_and_update_state_dicts(model_state_dict, ckpt_state_dict, c2_conversio
 
     # get a matrix of string matches, where each (i, j) entry correspond to the size of the
     # ckpt_key string, if it matches
-    match_matrix = [len(j) if match(i, j) else 0 for i in model_keys for j in ckpt_keys]
-    match_matrix = torch.as_tensor(match_matrix).view(len(model_keys), len(ckpt_keys))
+    match_matrix = [
+        len(j) if match(i, j) else 0 for i in model_keys for j in ckpt_keys
+    ]
+    match_matrix = torch.as_tensor(match_matrix).view(len(model_keys),
+                                                      len(ckpt_keys))
     # use the matched one with longest size in case of multiple matches
     max_match_size, idxs = match_matrix.max(1)
     # remove indices that correspond to no-match
@@ -289,15 +317,11 @@ def align_and_update_state_dicts(model_state_dict, ckpt_state_dict, c2_conversio
 
         if shape_in_model != value_ckpt.shape:
             logger.warning(
-                "Shape of {} in checkpoint is {}, while shape of {} in model is {}.".format(
-                    key_ckpt, value_ckpt.shape, key_model, shape_in_model
-                )
-            )
+                "Shape of {} in checkpoint is {}, while shape of {} in model is {}."
+                .format(key_ckpt, value_ckpt.shape, key_model, shape_in_model))
             logger.warning(
-                "{} will not be loaded. Please double check and see if this is desired.".format(
-                    key_ckpt
-                )
-            )
+                "{} will not be loaded. Please double check and see if this is desired."
+                .format(key_ckpt))
             continue
 
         assert key_model not in result_state_dict
@@ -305,10 +329,8 @@ def align_and_update_state_dicts(model_state_dict, ckpt_state_dict, c2_conversio
         if key_ckpt in matched_keys:  # already added to matched_keys
             logger.error(
                 "Ambiguity found for {} in checkpoint!"
-                "It matches at least two keys in the model ({} and {}).".format(
-                    key_ckpt, key_model, matched_keys[key_ckpt]
-                )
-            )
+                "It matches at least two keys in the model ({} and {}).".
+                format(key_ckpt, key_model, matched_keys[key_ckpt]))
             raise ValueError(
                 "Cannot match one checkpoint key to multiple keys in the model."
             )
@@ -322,7 +344,10 @@ def align_and_update_state_dicts(model_state_dict, ckpt_state_dict, c2_conversio
         return ckpt_state_dict
     common_prefix = _longest_common_prefix(matched_model_keys)
     rev_matched_keys = {v: k for k, v in matched_keys.items()}
-    original_keys = {k: original_keys[rev_matched_keys[k]] for k in matched_model_keys}
+    original_keys = {
+        k: original_keys[rev_matched_keys[k]]
+        for k in matched_model_keys
+    }
 
     model_key_groups = _group_keys_by_module(matched_model_keys, original_keys)
     table = []
@@ -334,31 +359,29 @@ def align_and_update_state_dicts(model_state_dict, ckpt_state_dict, c2_conversio
             group = model_key_groups[key_model]
             memo |= set(group)
             shapes = [tuple(model_state_dict[k].shape) for k in group]
-            table.append(
-                (
-                    _longest_common_prefix([k[len(common_prefix) :] for k in group])
-                    + "*",
-                    _group_str([original_keys[k] for k in group]),
-                    " ".join([str(x).replace(" ", "") for x in shapes]),
-                )
-            )
+            table.append((
+                _longest_common_prefix([k[len(common_prefix):]
+                                        for k in group]) + "*",
+                _group_str([original_keys[k] for k in group]),
+                " ".join([str(x).replace(" ", "") for x in shapes]),
+            ))
         else:
             key_checkpoint = original_keys[key_model]
             shape = str(tuple(model_state_dict[key_model].shape))
-            table.append((key_model[len(common_prefix) :], key_checkpoint, shape))
+            table.append(
+                (key_model[len(common_prefix):], key_checkpoint, shape))
     table_str = tabulate(
         table,
         tablefmt="pipe",
         headers=["Names in Model", "Names in Checkpoint", "Shapes"],
     )
-    logger.info(
-        "Following weights matched with "
-        + (f"submodule {common_prefix[:-1]}" if common_prefix else "model")
-        + ":\n"
-        + table_str
-    )
+    logger.info("Following weights matched with " + (
+        f"submodule {common_prefix[:-1]}" if common_prefix else "model") +
+                ":\n" + table_str)
 
-    unmatched_ckpt_keys = [k for k in ckpt_keys if k not in set(matched_keys.keys())]
+    unmatched_ckpt_keys = [
+        k for k in ckpt_keys if k not in set(matched_keys.keys())
+    ]
     for k in unmatched_ckpt_keys:
         result_state_dict[k] = ckpt_state_dict[k]
     return result_state_dict
@@ -380,7 +403,7 @@ def _group_keys_by_module(keys: List[str], original_names: Dict[str, str]):
         pos = key.rfind(".")
         if pos < 0:
             return None
-        return key[: pos + 1]
+        return key[:pos + 1]
 
     all_submodules = [_submodule_name(k) for k in keys]
     all_submodules = [x for x in all_submodules if x]
@@ -392,8 +415,7 @@ def _group_keys_by_module(keys: List[str], original_names: Dict[str, str]):
         if len(group) <= 1:
             continue
         original_name_lcp = _longest_common_prefix_str(
-            [original_names[k] for k in group]
-        )
+            [original_names[k] for k in group])
         if len(original_name_lcp) == 0:
             # don't group weights if original names don't share prefix
             continue
@@ -428,11 +450,12 @@ def _group_str(names: List[str]) -> str:
     Turn "common1", "common2", "common3" into "common{1,2,3}"
     """
     lcp = _longest_common_prefix_str(names)
-    rest = [x[len(lcp) :] for x in names]
+    rest = [x[len(lcp):] for x in names]
     rest = "{" + ",".join(rest) + "}"
     ret = lcp + rest
 
     # add some simplification for BN specifically
     ret = ret.replace("bn_{beta,running_mean,running_var,gamma}", "bn_*")
-    ret = ret.replace("bn_beta,bn_running_mean,bn_running_var,bn_gamma", "bn_*")
+    ret = ret.replace("bn_beta,bn_running_mean,bn_running_var,bn_gamma",
+                      "bn_*")
     return ret

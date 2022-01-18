@@ -7,15 +7,13 @@ from setuptools import setup
 try:
     import torch  # noqa: F401
 except ImportError:
-    raise Exception(
-        """
+    raise Exception("""
 You must install PyTorch prior to installing DensePose:
 pip install torch
 
 For more information:
     https://pytorch.org/get-started/locally/
-    """
-    )
+    """)
 
 
 def get_detectron2_current_version():
@@ -23,9 +21,8 @@ def get_detectron2_current_version():
     above the top level of the package. Instead, we parse it from the
     file with a regex."""
     # Get version info from detectron2 __init__.py
-    version_source = (
-        Path(__file__).parents[2] / "detectron2" / "__init__.py"
-    ).read_text()
+    version_source = (Path(__file__).parents[2] / "detectron2" /
+                      "__init__.py").read_text()
     return re.findall(r'__version__ = "([0-9\.]+)"', version_source)[0]
 
 
@@ -33,7 +30,8 @@ setup(
     name="detectron2-densepose",
     author="FAIR",
     version=get_detectron2_current_version(),
-    url="https://github.com/facebookresearch/detectron2/tree/master/projects/DensePose",
+    url=
+    "https://github.com/facebookresearch/detectron2/tree/master/projects/DensePose",
     packages=find_packages(),
     python_requires=">=3.6",
     install_requires=[

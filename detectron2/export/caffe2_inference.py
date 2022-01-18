@@ -65,13 +65,12 @@ class ProtobufModel(torch.nn.Module):
             (name, 0): _get_device_type(tensor)
             for name, tensor in zip(self._input_blobs, inputs)
         }
-        device_type_map = infer_device_type(
-            predict_net, known_status=input_device_types, device_name_style="pytorch"
-        )
+        device_type_map = infer_device_type(predict_net,
+                                            known_status=input_device_types,
+                                            device_name_style="pytorch")
         ssa, versions = core.get_ssa(predict_net)
-        versioned_outputs = [
-            (name, versions[name]) for name in predict_net.external_output
-        ]
+        versioned_outputs = [(name, versions[name])
+                             for name in predict_net.external_output]
         output_devices = [device_type_map[outp] for outp in versioned_outputs]
         return output_devices
 
@@ -85,8 +84,7 @@ class ProtobufModel(torch.nn.Module):
         """
         assert len(inputs) == len(self._input_blobs), (
             f"Length of inputs ({len(inputs)}) "
-            f"doesn't match the required input blobs: {self._input_blobs}"
-        )
+            f"doesn't match the required input blobs: {self._input_blobs}")
 
         with ScopedWS(self.ws_name, is_reset=False, is_cleanup=False) as ws:
             for b, tensor in zip(self._input_blobs, inputs):
@@ -97,10 +95,13 @@ class ProtobufModel(torch.nn.Module):
             except RuntimeError as e:
                 if str(e) not in self._error_msgs:
                     self._error_msgs.add(str(e))
-                    logger.warning("Encountered new RuntimeError: \n{}".format(str(e)))
+                    logger.warning("Encountered new RuntimeError: \n{}".format(
+                        str(e)))
                 logger.warning("Catch the error and use partial results.")
 
-            c2_outputs = [ws.FetchBlob(b) for b in self.net.Proto().external_output]
+            c2_outputs = [
+                ws.FetchBlob(b) for b in self.net.Proto().external_output
+            ]
             # Remove outputs of current run, this is necessary in order to
             # prevent fetching the result from previous run if the model fails
             # in the middle.
@@ -109,24 +110,22 @@ class ProtobufModel(torch.nn.Module):
                 # This is "equivalent" to: ws.RemoveBlob(b) then ws.CreateBlob(b),
                 # but there'no such API.
                 ws.FeedBlob(
-                    b, f"{b}, a C++ native class of type nullptr (uninitialized)."
+                    b,
+                    f"{b}, a C++ native class of type nullptr (uninitialized)."
                 )
 
         # Cast output to torch.Tensor on the desired device
-        output_devices = (
-            self._infer_output_devices(inputs)
-            if any(t.device.type != "cpu" for t in inputs)
-            else ["cpu" for _ in self.net.Proto().external_output]
-        )
+        output_devices = (self._infer_output_devices(inputs) if any(
+            t.device.type != "cpu" for t in inputs) else
+                          ["cpu" for _ in self.net.Proto().external_output])
 
         outputs = []
-        for name, c2_output, device in zip(
-            self.net.Proto().external_output, c2_outputs, output_devices
-        ):
+        for name, c2_output, device in zip(self.net.Proto().external_output,
+                                           c2_outputs, output_devices):
             if not isinstance(c2_output, np.ndarray):
                 raise RuntimeError(
-                    "Invalid output for blob {}, received: {}".format(name, c2_output)
-                )
+                    "Invalid output for blob {}, received: {}".format(
+                        name, c2_output))
             outputs.append(torch.tensor(c2_output).to(device=device))
         return tuple(outputs)
 
@@ -147,30 +146,30 @@ class ProtobufDetectionModel(torch.nn.Module):
         """
         super().__init__()
         self.protobuf_model = ProtobufModel(predict_net, init_net)
-        self.size_divisibility = get_pb_arg_vali(predict_net, "size_divisibility", 0)
-        self.device = get_pb_arg_vals(predict_net, "device", b"cpu").decode("ascii")
+        self.size_divisibility = get_pb_arg_vali(predict_net,
+                                                 "size_divisibility", 0)
+        self.device = get_pb_arg_vals(predict_net, "device",
+                                      b"cpu").decode("ascii")
 
         if convert_outputs is None:
-            meta_arch = get_pb_arg_vals(
-                predict_net, "meta_architecture", b"GeneralizedRCNN"
-            )
-            meta_arch = META_ARCH_CAFFE2_EXPORT_TYPE_MAP[meta_arch.decode("ascii")]
+            meta_arch = get_pb_arg_vals(predict_net, "meta_architecture",
+                                        b"GeneralizedRCNN")
+            meta_arch = META_ARCH_CAFFE2_EXPORT_TYPE_MAP[meta_arch.decode(
+                "ascii")]
             self._convert_outputs = meta_arch.get_outputs_converter(
-                predict_net, init_net
-            )
+                predict_net, init_net)
         else:
             self._convert_outputs = convert_outputs
 
     def _convert_inputs(self, batched_inputs):
         # currently all models convert inputs in the same way
-        return convert_batched_inputs_to_c2_format(
-            batched_inputs, self.size_divisibility, self.device
-        )
+        return convert_batched_inputs_to_c2_format(batched_inputs,
+                                                   self.size_divisibility,
+                                                   self.device)
 
     def forward(self, batched_inputs):
         c2_inputs = self._convert_inputs(batched_inputs)
         c2_results = self.protobuf_model(c2_inputs)
         c2_results = dict(
-            zip(self.protobuf_model.net.Proto().external_output, c2_results)
-        )
+            zip(self.protobuf_model.net.Proto().external_output, c2_results))
         return self._convert_outputs(batched_inputs, c2_inputs, c2_results)

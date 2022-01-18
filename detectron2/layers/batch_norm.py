@@ -80,10 +80,10 @@ class FrozenBatchNorm2d(nn.Module):
             # This will silent the warnings
             if prefix + "running_mean" not in state_dict:
                 state_dict[prefix + "running_mean"] = torch.zeros_like(
-                    self.running_mean
-                )
+                    self.running_mean)
             if prefix + "running_var" not in state_dict:
-                state_dict[prefix + "running_var"] = torch.ones_like(self.running_var)
+                state_dict[prefix + "running_var"] = torch.ones_like(
+                    self.running_var)
 
         super()._load_from_state_dict(
             state_dict,
@@ -97,8 +97,7 @@ class FrozenBatchNorm2d(nn.Module):
 
     def __repr__(self):
         return "FrozenBatchNorm2d(num_features={}, eps={})".format(
-            self.num_features, self.eps
-        )
+            self.num_features, self.eps)
 
     @classmethod
     def convert_frozen_batchnorm(cls, module):
@@ -150,20 +149,24 @@ def get_norm(norm, out_channels):
         if len(norm) == 0:
             return None
         norm = {
-            "BN": BatchNorm2d,
+            "BN":
+            BatchNorm2d,
             # Fixed in https://github.com/pytorch/pytorch/pull/36382
-            "SyncBN": NaiveSyncBatchNorm
-            if env.TORCH_VERSION <= (1, 5)
-            else nn.SyncBatchNorm,
-            "FrozenBN": FrozenBatchNorm2d,
-            "GN": lambda channels: nn.GroupNorm(32, channels),
+            "SyncBN":
+            NaiveSyncBatchNorm if env.TORCH_VERSION <=
+            (1, 5) else nn.SyncBatchNorm,
+            "FrozenBN":
+            FrozenBatchNorm2d,
+            "GN":
+            lambda channels: nn.GroupNorm(32, channels),
             # for debugging:
-            "nnSyncBN": nn.SyncBatchNorm,
-            "naiveSyncBN": NaiveSyncBatchNorm,
+            "nnSyncBN":
+            nn.SyncBatchNorm,
+            "naiveSyncBN":
+            NaiveSyncBatchNorm,
             # expose stats_mode N as an option to caller, required for zero-len inputs
-            "naiveSyncBN_N": lambda channels: NaiveSyncBatchNorm(
-                channels, stats_mode="N"
-            ),
+            "naiveSyncBN_N":
+            lambda channels: NaiveSyncBatchNorm(channels, stats_mode="N"),
         }[norm]
     return norm(out_channels)
 
@@ -219,13 +222,17 @@ class NaiveSyncBatchNorm(BatchNorm2d):
                 B > 0
             ), 'SyncBatchNorm(stats_mode="") does not support zero batch size.'
             vec = torch.cat([mean, meansqr], dim=0)
-            vec = differentiable_all_reduce(vec) * (1.0 / dist.get_world_size())
+            vec = differentiable_all_reduce(vec) * (1.0 /
+                                                    dist.get_world_size())
             mean, meansqr = torch.split(vec, C)
             momentum = self.momentum
         else:
             if B == 0:
-                vec = torch.zeros([2 * C + 1], device=mean.device, dtype=mean.dtype)
-                vec = vec + input.sum()  # make sure there is gradient w.r.t input
+                vec = torch.zeros([2 * C + 1],
+                                  device=mean.device,
+                                  dtype=mean.dtype)
+                vec = vec + input.sum(
+                )  # make sure there is gradient w.r.t input
             else:
                 vec = torch.cat(
                     [
@@ -238,12 +245,10 @@ class NaiveSyncBatchNorm(BatchNorm2d):
             vec = differentiable_all_reduce(vec * B)
 
             total_batch = vec[-1].detach()
-            momentum = (
-                total_batch.clamp(max=1) * self.momentum
-            )  # no update if total_batch is 0
-            mean, meansqr, _ = torch.split(
-                vec / total_batch.clamp(min=1), C
-            )  # avoid div-by-zero
+            momentum = (total_batch.clamp(max=1) * self.momentum
+                        )  # no update if total_batch is 0
+            mean, meansqr, _ = torch.split(vec / total_batch.clamp(min=1),
+                                           C)  # avoid div-by-zero
 
         var = meansqr - mean * mean
         invstd = torch.rsqrt(var + self.eps)

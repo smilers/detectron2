@@ -71,17 +71,14 @@ class SemSegEvaluator(DatasetEvaluator):
         self._class_names = meta.stuff_classes
         self._num_classes = len(meta.stuff_classes)
         if num_classes is not None:
-            assert (
-                self._num_classes == num_classes
-            ), f"{self._num_classes} != {num_classes}"
-        self._ignore_label = (
-            ignore_label if ignore_label is not None else meta.ignore_label
-        )
+            assert (self._num_classes == num_classes
+                    ), f"{self._num_classes} != {num_classes}"
+        self._ignore_label = (ignore_label if ignore_label is not None else
+                              meta.ignore_label)
 
     def reset(self):
         self._conf_matrix = np.zeros(
-            (self._num_classes + 1, self._num_classes + 1), dtype=np.int64
-        )
+            (self._num_classes + 1, self._num_classes + 1), dtype=np.int64)
         self._predictions = []
 
     def process(self, inputs, outputs):
@@ -98,8 +95,7 @@ class SemSegEvaluator(DatasetEvaluator):
             output = output["sem_seg"].argmax(dim=0).to(self._cpu_device)
             pred = np.array(output, dtype=np.int)
             with PathManager.open(
-                self.input_file_to_gt_file[input["file_name"]], "rb"
-            ) as f:
+                    self.input_file_to_gt_file[input["file_name"]], "rb") as f:
                 gt = np.array(Image.open(f), dtype=np.int)
 
             gt[gt == self._ignore_label] = self._num_classes
@@ -109,7 +105,8 @@ class SemSegEvaluator(DatasetEvaluator):
                 minlength=self._conf_matrix.size,
             ).reshape(self._conf_matrix.shape)
 
-            self._predictions.extend(self.encode_json_sem_seg(pred, input["file_name"]))
+            self._predictions.extend(
+                self.encode_json_sem_seg(pred, input["file_name"]))
 
     def evaluate(self):
         """
@@ -134,7 +131,8 @@ class SemSegEvaluator(DatasetEvaluator):
 
         if self._output_dir:
             PathManager.mkdirs(self._output_dir)
-            file_path = os.path.join(self._output_dir, "sem_seg_predictions.json")
+            file_path = os.path.join(self._output_dir,
+                                     "sem_seg_predictions.json")
             with PathManager.open(file_path, "w") as f:
                 f.write(json.dumps(self._predictions))
 
@@ -163,7 +161,8 @@ class SemSegEvaluator(DatasetEvaluator):
             res["ACC-{}".format(name)] = 100 * acc[i]
 
         if self._output_dir:
-            file_path = os.path.join(self._output_dir, "sem_seg_evaluation.pth")
+            file_path = os.path.join(self._output_dir,
+                                     "sem_seg_evaluation.pth")
             with PathManager.open(file_path, "wb") as f:
                 torch.save(res, f)
         results = OrderedDict({"sem_seg": res})
@@ -181,19 +180,17 @@ class SemSegEvaluator(DatasetEvaluator):
                 assert (
                     label in self._contiguous_id_to_dataset_id
                 ), "Label {} is not in the metadata info for {}".format(
-                    label, self._dataset_name
-                )
+                    label, self._dataset_name)
                 dataset_id = self._contiguous_id_to_dataset_id[label]
             else:
                 dataset_id = int(label)
             mask = (sem_seg == label).astype(np.uint8)
-            mask_rle = mask_util.encode(np.array(mask[:, :, None], order="F"))[0]
+            mask_rle = mask_util.encode(np.array(mask[:, :, None],
+                                                 order="F"))[0]
             mask_rle["counts"] = mask_rle["counts"].decode("utf-8")
-            json_list.append(
-                {
-                    "file_name": input_file_name,
-                    "category_id": dataset_id,
-                    "segmentation": mask_rle,
-                }
-            )
+            json_list.append({
+                "file_name": input_file_name,
+                "category_id": dataset_id,
+                "segmentation": mask_rle,
+            })
         return json_list

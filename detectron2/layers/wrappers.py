@@ -34,6 +34,7 @@ def cross_entropy(input, target, *, reduction="mean", **kwargs):
 
 
 class _NewEmptyTensorOp(torch.autograd.Function):
+
     @staticmethod
     def forward(ctx, x, new_shape):
         ctx.shape = x.shape

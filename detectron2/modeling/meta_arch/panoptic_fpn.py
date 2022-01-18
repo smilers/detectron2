@@ -57,14 +57,16 @@ class PanopticFPN(GeneralizedRCNN):
     @classmethod
     def from_config(cls, cfg):
         ret = super().from_config(cfg)
-        ret.update(
-            {
-                "combine_overlap_thresh": cfg.MODEL.PANOPTIC_FPN.COMBINE.OVERLAP_THRESH,
-                "combine_stuff_area_thresh": cfg.MODEL.PANOPTIC_FPN.COMBINE.STUFF_AREA_LIMIT,
-                "combine_instances_score_thresh": cfg.MODEL.PANOPTIC_FPN.COMBINE.INSTANCES_CONFIDENCE_THRESH,  # noqa
-            }
-        )
-        ret["sem_seg_head"] = build_sem_seg_head(cfg, ret["backbone"].output_shape())
+        ret.update({
+            "combine_overlap_thresh":
+            cfg.MODEL.PANOPTIC_FPN.COMBINE.OVERLAP_THRESH,
+            "combine_stuff_area_thresh":
+            cfg.MODEL.PANOPTIC_FPN.COMBINE.STUFF_AREA_LIMIT,
+            "combine_instances_score_thresh":
+            cfg.MODEL.PANOPTIC_FPN.COMBINE.INSTANCES_CONFIDENCE_THRESH,  # noqa
+        })
+        ret["sem_seg_head"] = build_sem_seg_head(
+            cfg, ret["backbone"].output_shape())
         logger = logging.getLogger(__name__)
         if not cfg.MODEL.PANOPTIC_FPN.COMBINE.ENABLED:
             logger.warning(
@@ -78,17 +80,15 @@ class PanopticFPN(GeneralizedRCNN):
             )
 
             def update_weight(x):
-                return (
-                    {k: v * w for k, v in x.items()} if isinstance(x, dict) else x * w
-                )
+                return ({k: v * w
+                         for k, v in x.items()} if isinstance(x, dict) else x *
+                        w)
 
             roi_heads = ret["roi_heads"]
             roi_heads.box_predictor.loss_weight = update_weight(
-                roi_heads.box_predictor.loss_weight
-            )
+                roi_heads.box_predictor.loss_weight)
             roi_heads.mask_head.loss_weight = update_weight(
-                roi_heads.mask_head.loss_weight
-            )
+                roi_heads.mask_head.loss_weight)
         return ret
 
     def forward(self, batched_inputs):
@@ -123,26 +123,25 @@ class PanopticFPN(GeneralizedRCNN):
         assert "sem_seg" in batched_inputs[0]
         gt_sem_seg = [x["sem_seg"].to(self.device) for x in batched_inputs]
         gt_sem_seg = ImageList.from_tensors(
-            gt_sem_seg, self.backbone.size_divisibility, self.sem_seg_head.ignore_value
-        ).tensor
-        sem_seg_results, sem_seg_losses = self.sem_seg_head(features, gt_sem_seg)
+            gt_sem_seg, self.backbone.size_divisibility,
+            self.sem_seg_head.ignore_value).tensor
+        sem_seg_results, sem_seg_losses = self.sem_seg_head(
+            features, gt_sem_seg)
 
         gt_instances = [x["instances"].to(self.device) for x in batched_inputs]
         proposals, proposal_losses = self.proposal_generator(
-            images, features, gt_instances
-        )
+            images, features, gt_instances)
         detector_results, detector_losses = self.roi_heads(
-            images, features, proposals, gt_instances
-        )
+            images, features, proposals, gt_instances)
 
         losses = sem_seg_losses
         losses.update(proposal_losses)
         losses.update(detector_losses)
         return losses
 
-    def inference(
-        self, batched_inputs: List[Dict[str, torch.Tensor]], do_postprocess: bool = True
-    ):
+    def inference(self,
+                  batched_inputs: List[Dict[str, torch.Tensor]],
+                  do_postprocess: bool = True):
         """
         Run inference on the given inputs.
 
@@ -165,14 +164,18 @@ class PanopticFPN(GeneralizedRCNN):
             return detector_results, sem_seg_results
         processed_results = []
         for sem_seg_result, detector_result, input_per_image, image_size in zip(
-            sem_seg_results, detector_results, batched_inputs, images.image_sizes
-        ):
+                sem_seg_results, detector_results, batched_inputs,
+                images.image_sizes):
             height = input_per_image.get("height", image_size[0])
             width = input_per_image.get("width", image_size[1])
-            sem_seg_r = sem_seg_postprocess(sem_seg_result, image_size, height, width)
+            sem_seg_r = sem_seg_postprocess(sem_seg_result, image_size, height,
+                                            width)
             detector_r = detector_postprocess(detector_result, height, width)
 
-            processed_results.append({"sem_seg": sem_seg_r, "instances": detector_r})
+            processed_results.append({
+                "sem_seg": sem_seg_r,
+                "instances": detector_r
+            })
 
             panoptic_r = combine_semantic_and_instance_outputs(
                 detector_r,
@@ -215,9 +218,8 @@ def combine_semantic_and_instance_outputs(
     current_segment_id = 0
     segments_info = []
 
-    instance_masks = instance_results.pred_masks.to(
-        dtype=torch.bool, device=panoptic_seg.device
-    )
+    instance_masks = instance_results.pred_masks.to(dtype=torch.bool,
+                                                    device=panoptic_seg.device)
 
     # Add instances one-by-one, check for overlaps with existing ones
     for inst_id in sorted_inds:
@@ -241,15 +243,18 @@ def combine_semantic_and_instance_outputs(
 
         current_segment_id += 1
         panoptic_seg[mask] = current_segment_id
-        segments_info.append(
-            {
-                "id": current_segment_id,
-                "isthing": True,
-                "score": score,
-                "category_id": instance_results.pred_classes[inst_id].item(),
-                "instance_id": inst_id.item(),
-            }
-        )
+        segments_info.append({
+            "id":
+            current_segment_id,
+            "isthing":
+            True,
+            "score":
+            score,
+            "category_id":
+            instance_results.pred_classes[inst_id].item(),
+            "instance_id":
+            inst_id.item(),
+        })
 
     # Add semantic results to remaining empty areas
     semantic_labels = torch.unique(semantic_results).cpu().tolist()
@@ -263,13 +268,11 @@ def combine_semantic_and_instance_outputs(
 
         current_segment_id += 1
         panoptic_seg[mask] = current_segment_id
-        segments_info.append(
-            {
-                "id": current_segment_id,
-                "isthing": False,
-                "category_id": semantic_label,
-                "area": mask_area,
-            }
-        )
+        segments_info.append({
+            "id": current_segment_id,
+            "isthing": False,
+            "category_id": semantic_label,
+            "area": mask_area,
+        })
 
     return panoptic_seg, segments_info

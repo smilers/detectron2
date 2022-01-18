@@ -8,7 +8,10 @@ from detectron2.modeling.roi_heads import FastRCNNConvFCHead
 from detectron2.modeling.roi_heads import FastRCNNOutputLayers
 
 # arguments that don't exist for Cascade R-CNN
-[model.roi_heads.pop(k) for k in ["box_head", "box_predictor", "proposal_matcher"]]
+[
+    model.roi_heads.pop(k)
+    for k in ["box_head", "box_predictor", "proposal_matcher"]
+]
 
 model.roi_heads.update(
     _target_=CascadeROIHeads,
@@ -17,8 +20,7 @@ model.roi_heads.update(
             input_shape=ShapeSpec(channels=256, height=7, width=7),
             conv_dims=[],
             fc_dims=[1024, 1024],
-        )
-        for _ in range(3)
+        ) for _ in range(3)
     ],
     box_predictors=[
         L(FastRCNNOutputLayers)(
@@ -27,11 +29,11 @@ model.roi_heads.update(
             box2box_transform=L(Box2BoxTransform)(weights=(w1, w1, w2, w2)),
             cls_agnostic_bbox_reg=True,
             num_classes="${...num_classes}",
-        )
-        for (w1, w2) in [(10, 5), (20, 10), (30, 15)]
+        ) for (w1, w2) in [(10, 5), (20, 10), (30, 15)]
     ],
     proposal_matchers=[
-        L(Matcher)(thresholds=[th], labels=[0, 1], allow_low_quality_matches=False)
-        for th in [0.5, 0.6, 0.7]
+        L(Matcher)(thresholds=[th],
+                   labels=[0, 1],
+                   allow_low_quality_matches=False) for th in [0.5, 0.6, 0.7]
     ],
 )

@@ -58,7 +58,6 @@ from detectron2.utils.comm import get_world_size
 
 __all__ = ["build_detection_train_loader", "build_detection_test_loader"]
 
-
 Instance = Dict[str, Any]
 InstancePredicate = Callable[[Instance], bool]
 
@@ -69,25 +68,21 @@ def _compute_num_images_per_worker(cfg: CfgNode):
     assert (
         images_per_batch % num_workers == 0
     ), "SOLVER.IMS_PER_BATCH ({}) must be divisible by the number of workers ({}).".format(
-        images_per_batch, num_workers
-    )
+        images_per_batch, num_workers)
     assert (
         images_per_batch >= num_workers
     ), "SOLVER.IMS_PER_BATCH ({}) must be larger than the number of workers ({}).".format(
-        images_per_batch, num_workers
-    )
+        images_per_batch, num_workers)
     return images_per_batch // num_workers
 
 
-def _map_category_id_to_contiguous_id(
-    dataset_name: str, dataset_dicts: Iterable[Instance]
-):
+def _map_category_id_to_contiguous_id(dataset_name: str,
+                                      dataset_dicts: Iterable[Instance]):
     meta = MetadataCatalog.get(dataset_name)
     for dataset_dict in dataset_dicts:
         for ann in dataset_dict["annotations"]:
             ann["category_id"] = meta.thing_dataset_id_to_contiguous_id[
-                ann["category_id"]
-            ]
+                ann["category_id"]]
 
 
 @dataclass
@@ -120,22 +115,22 @@ _MergedCategoriesT = Dict[int, List[_DatasetCategory]]
 
 
 def _add_category_id_to_contiguous_id_maps_to_metadata(
-    merged_categories: _MergedCategoriesT,
-):
+    merged_categories: _MergedCategoriesT, ):
     merged_categories_per_dataset = {}
-    for contiguous_cat_id, cat_id in enumerate(sorted(merged_categories.keys())):
+    for contiguous_cat_id, cat_id in enumerate(sorted(
+            merged_categories.keys())):
         for cat in merged_categories[cat_id]:
             if cat.dataset_name not in merged_categories_per_dataset:
-                merged_categories_per_dataset[cat.dataset_name] = defaultdict(list)
-            merged_categories_per_dataset[cat.dataset_name][cat_id].append(
-                (
-                    contiguous_cat_id,
-                    cat,
-                )
-            )
+                merged_categories_per_dataset[cat.dataset_name] = defaultdict(
+                    list)
+            merged_categories_per_dataset[cat.dataset_name][cat_id].append((
+                contiguous_cat_id,
+                cat,
+            ))
 
     logger = logging.getLogger(__name__)
-    for dataset_name, merged_categories in merged_categories_per_dataset.items():
+    for dataset_name, merged_categories in merged_categories_per_dataset.items(
+    ):
         meta = MetadataCatalog.get(dataset_name)
         if not hasattr(meta, "thing_classes"):
             meta.thing_classes = []
@@ -145,29 +140,33 @@ def _add_category_id_to_contiguous_id_maps_to_metadata(
             meta.thing_classes.clear()
             meta.thing_dataset_id_to_contiguous_id.clear()
             meta.thing_dataset_id_to_merged_id.clear()
-        logger.info(f"Dataset {dataset_name}: category ID to contiguous ID mapping:")
+        logger.info(
+            f"Dataset {dataset_name}: category ID to contiguous ID mapping:")
         for _cat_id, categories in sorted(merged_categories.items()):
             added_to_thing_classes = False
             for contiguous_cat_id, cat in categories:
                 if not added_to_thing_classes:
                     meta.thing_classes.append(cat.mapped_name)
                     added_to_thing_classes = True
-                meta.thing_dataset_id_to_contiguous_id[cat.id] = contiguous_cat_id
+                meta.thing_dataset_id_to_contiguous_id[
+                    cat.id] = contiguous_cat_id
                 meta.thing_dataset_id_to_merged_id[cat.id] = cat.mapped_id
                 logger.info(f"{cat.id} ({cat.name}) -> {contiguous_cat_id}")
 
 
 def _maybe_create_general_keep_instance_predicate(
-    cfg: CfgNode,
-) -> Optional[InstancePredicate]:
+    cfg: CfgNode, ) -> Optional[InstancePredicate]:
+
     def has_annotations(instance: Instance) -> bool:
         return "annotations" in instance
 
     def has_only_crowd_anotations(instance: Instance) -> bool:
-        return all(ann.get("is_crowd", 0) != 0 for ann in instance["annotations"])
+        return all(
+            ann.get("is_crowd", 0) != 0 for ann in instance["annotations"])
 
     def general_keep_instance_predicate(instance: Instance) -> bool:
-        return has_annotations(instance) and not has_only_crowd_anotations(instance)
+        return has_annotations(
+            instance) and not has_only_crowd_anotations(instance)
 
     if not cfg.DATALOADER.FILTER_EMPTY_ANNOTATIONS:
         return None
@@ -175,17 +174,14 @@ def _maybe_create_general_keep_instance_predicate(
 
 
 def _maybe_create_keypoints_keep_instance_predicate(
-    cfg: CfgNode,
-) -> Optional[InstancePredicate]:
+    cfg: CfgNode, ) -> Optional[InstancePredicate]:
 
     min_num_keypoints = cfg.MODEL.ROI_KEYPOINT_HEAD.MIN_KEYPOINTS_PER_IMAGE
 
     def has_sufficient_num_keypoints(instance: Instance) -> bool:
-        num_kpts = sum(
-            (np.array(ann["keypoints"][2::3]) > 0).sum()
-            for ann in instance["annotations"]
-            if "keypoints" in ann
-        )
+        num_kpts = sum((np.array(ann["keypoints"][2::3]) > 0).sum()
+                       for ann in instance["annotations"]
+                       if "keypoints" in ann)
         return num_kpts >= min_num_keypoints
 
     if cfg.MODEL.KEYPOINT_ON and (min_num_keypoints > 0):
@@ -194,8 +190,7 @@ def _maybe_create_keypoints_keep_instance_predicate(
 
 
 def _maybe_create_mask_keep_instance_predicate(
-    cfg: CfgNode,
-) -> Optional[InstancePredicate]:
+    cfg: CfgNode, ) -> Optional[InstancePredicate]:
     if not cfg.MODEL.MASK_ON:
         return None
 
@@ -206,8 +201,7 @@ def _maybe_create_mask_keep_instance_predicate(
 
 
 def _maybe_create_densepose_keep_instance_predicate(
-    cfg: CfgNode,
-) -> Optional[InstancePredicate]:
+    cfg: CfgNode, ) -> Optional[InstancePredicate]:
     if not cfg.MODEL.DENSEPOSE_ON:
         return None
 
@@ -215,9 +209,9 @@ def _maybe_create_densepose_keep_instance_predicate(
 
     def has_densepose_annotations(instance: Instance) -> bool:
         for ann in instance["annotations"]:
-            if all(key in ann for key in DENSEPOSE_IUV_KEYS_WITHOUT_MASK) or all(
-                key in ann for key in DENSEPOSE_CSE_KEYS_WITHOUT_MASK
-            ):
+            if all(key in ann
+                   for key in DENSEPOSE_IUV_KEYS_WITHOUT_MASK) or all(
+                       key in ann for key in DENSEPOSE_CSE_KEYS_WITHOUT_MASK):
                 return True
             if use_masks and "segmentation" in ann:
                 return True
@@ -227,8 +221,7 @@ def _maybe_create_densepose_keep_instance_predicate(
 
 
 def _maybe_create_specific_keep_instance_predicate(
-    cfg: CfgNode,
-) -> Optional[InstancePredicate]:
+    cfg: CfgNode, ) -> Optional[InstancePredicate]:
     specific_predicate_creators = [
         _maybe_create_keypoints_keep_instance_predicate,
         _maybe_create_mask_keep_instance_predicate,
@@ -248,15 +241,14 @@ def _maybe_create_specific_keep_instance_predicate(
 def _get_train_keep_instance_predicate(cfg: CfgNode):
     general_keep_predicate = _maybe_create_general_keep_instance_predicate(cfg)
     combined_specific_keep_predicate = _maybe_create_specific_keep_instance_predicate(
-        cfg
-    )
+        cfg)
 
     def combined_general_specific_keep_predicate(instance: Instance) -> bool:
-        return general_keep_predicate(instance) and combined_specific_keep_predicate(
-            instance
-        )
+        return general_keep_predicate(
+            instance) and combined_specific_keep_predicate(instance)
 
-    if (general_keep_predicate is None) and (combined_specific_keep_predicate is None):
+    if (general_keep_predicate is None) and (combined_specific_keep_predicate
+                                             is None):
         return None
     if general_keep_predicate is None:
         return combined_specific_keep_predicate
@@ -270,8 +262,7 @@ def _get_test_keep_instance_predicate(cfg: CfgNode):
 
 
 def _maybe_filter_and_map_categories(
-    dataset_name: str, dataset_dicts: List[Instance]
-) -> List[Instance]:
+        dataset_name: str, dataset_dicts: List[Instance]) -> List[Instance]:
     meta = MetadataCatalog.get(dataset_name)
     category_id_map = meta.thing_dataset_id_to_contiguous_id
     filtered_dataset_dicts = []
@@ -290,17 +281,14 @@ def _maybe_filter_and_map_categories(
 
 def _add_category_whitelists_to_metadata(cfg: CfgNode):
     for (
-        dataset_name,
-        whitelisted_cat_ids,
+            dataset_name,
+            whitelisted_cat_ids,
     ) in cfg.DATASETS.WHITELISTED_CATEGORIES.items():
         meta = MetadataCatalog.get(dataset_name)
         meta.whitelisted_categories = whitelisted_cat_ids
         logger = logging.getLogger(__name__)
-        logger.info(
-            "Whitelisted categories for dataset {}: {}".format(
-                dataset_name, meta.whitelisted_categories
-            )
-        )
+        logger.info("Whitelisted categories for dataset {}: {}".format(
+            dataset_name, meta.whitelisted_categories))
 
 
 def _add_category_maps_to_metadata(cfg: CfgNode):
@@ -312,29 +300,23 @@ def _add_category_maps_to_metadata(cfg: CfgNode):
         meta = MetadataCatalog.get(dataset_name)
         meta.category_map = category_map
         logger = logging.getLogger(__name__)
-        logger.info(
-            "Category maps for dataset {}: {}".format(dataset_name, meta.category_map)
-        )
+        logger.info("Category maps for dataset {}: {}".format(
+            dataset_name, meta.category_map))
 
 
-def _add_category_info_to_bootstrapping_metadata(
-    dataset_name: str, dataset_cfg: CfgNode
-):
+def _add_category_info_to_bootstrapping_metadata(dataset_name: str,
+                                                 dataset_cfg: CfgNode):
     meta = MetadataCatalog.get(dataset_name)
     meta.category_to_class_mapping = get_category_to_class_mapping(dataset_cfg)
     meta.categories = dataset_cfg.CATEGORIES
     meta.max_count_per_category = dataset_cfg.MAX_COUNT_PER_CATEGORY
     logger = logging.getLogger(__name__)
-    logger.info(
-        "Category to class mapping for dataset {}: {}".format(
-            dataset_name, meta.category_to_class_mapping
-        )
-    )
+    logger.info("Category to class mapping for dataset {}: {}".format(
+        dataset_name, meta.category_to_class_mapping))
 
 
-def _maybe_add_class_to_mesh_name_map_to_metadata(
-    dataset_names: List[str], cfg: CfgNode
-):
+def _maybe_add_class_to_mesh_name_map_to_metadata(dataset_names: List[str],
+                                                  cfg: CfgNode):
     for dataset_name in dataset_names:
         meta = MetadataCatalog.get(dataset_name)
         if not hasattr(meta, "class_to_mesh_name"):
@@ -348,11 +330,8 @@ def _merge_categories(dataset_names: Collection[str]) -> _MergedCategoriesT:
         meta = MetadataCatalog.get(dataset_name)
         whitelisted_categories = meta.get("whitelisted_categories")
         category_map = meta.get("category_map", {})
-        cat_ids = (
-            whitelisted_categories
-            if whitelisted_categories is not None
-            else meta.categories.keys()
-        )
+        cat_ids = (whitelisted_categories if whitelisted_categories is not None
+                   else meta.categories.keys())
         for cat_id in cat_ids:
             cat_name = meta.categories[cat_id]
             cat_id_mapped = category_map.get(cat_id, cat_id)
@@ -371,35 +350,32 @@ def _merge_categories(dataset_names: Collection[str]) -> _MergedCategoriesT:
                     mapped_id=cat_id_mapped,
                     mapped_name=cat_name_mapped,
                     dataset_name=dataset_name,
-                )
-            )
+                ))
     # second pass to assign proper mapped category names
     for cat_id, categories in merged_categories.items():
         for cat in categories:
-            if cat_id in category_names and cat.mapped_name != category_names[cat_id]:
+            if cat_id in category_names and cat.mapped_name != category_names[
+                    cat_id]:
                 cat.mapped_name = category_names[cat_id]
 
     return merged_categories
 
 
-def _warn_if_merged_different_categories(merged_categories: _MergedCategoriesT):
+def _warn_if_merged_different_categories(
+        merged_categories: _MergedCategoriesT):
     logger = logging.getLogger(__name__)
     for cat_id in merged_categories:
         merged_categories_i = merged_categories[cat_id]
         first_cat_name = merged_categories_i[0].name
         if len(merged_categories_i) > 1 and any(
-            cat.name != first_cat_name for cat in merged_categories_i[1:]
-        ):
-            cat_summary_str = ", ".join(
-                [
-                    f"{cat.id} ({cat.name}) from {cat.dataset_name}"
-                    for cat in merged_categories_i
-                ]
-            )
+                cat.name != first_cat_name for cat in merged_categories_i[1:]):
+            cat_summary_str = ", ".join([
+                f"{cat.id} ({cat.name}) from {cat.dataset_name}"
+                for cat in merged_categories_i
+            ])
             logger.warning(
                 f"Merged category {cat_id} corresponds to the following categories: "
-                f"{cat_summary_str}"
-            )
+                f"{cat_summary_str}")
 
 
 def combine_detection_dataset_dicts(
@@ -425,13 +401,15 @@ def combine_detection_dataset_dicts(
     dataset_name_to_dicts = {}
     for dataset_name in dataset_names:
         dataset_name_to_dicts[dataset_name] = DatasetCatalog.get(dataset_name)
-        assert len(dataset_name_to_dicts), f"Dataset '{dataset_name}' is empty!"
+        assert len(
+            dataset_name_to_dicts), f"Dataset '{dataset_name}' is empty!"
     # merge categories, requires category metadata to be loaded
     # cat_id -> [(orig_cat_id, cat_name, dataset_name)]
     merged_categories = _merge_categories(dataset_names)
     _warn_if_merged_different_categories(merged_categories)
     merged_category_names = [
-        merged_categories[cat_id][0].mapped_name for cat_id in sorted(merged_categories)
+        merged_categories[cat_id][0].mapped_name
+        for cat_id in sorted(merged_categories)
     ]
     # map to contiguous category IDs
     _add_category_id_to_contiguous_id_maps_to_metadata(merged_categories)
@@ -440,20 +418,19 @@ def combine_detection_dataset_dicts(
         dataset_dicts = dataset_name_to_dicts[dataset_name]
         assert len(dataset_dicts), f"Dataset '{dataset_name}' is empty!"
         if proposal_file is not None:
-            dataset_dicts = load_proposals_into_dataset(dataset_dicts, proposal_file)
-        dataset_dicts = _maybe_filter_and_map_categories(dataset_name, dataset_dicts)
+            dataset_dicts = load_proposals_into_dataset(
+                dataset_dicts, proposal_file)
+        dataset_dicts = _maybe_filter_and_map_categories(
+            dataset_name, dataset_dicts)
         print_instances_class_histogram(dataset_dicts, merged_category_names)
         dataset_name_to_dicts[dataset_name] = dataset_dicts
 
-    return (
-        [
-            d
-            for d in itertools.chain.from_iterable(dataset_name_to_dicts.values())
-            if keep_instance_predicate(d)
-        ]
-        if keep_instance_predicate is not None
-        else list(itertools.chain.from_iterable(dataset_name_to_dicts.values()))
-    )
+    return ([
+        d
+        for d in itertools.chain.from_iterable(dataset_name_to_dicts.values())
+        if keep_instance_predicate(d)
+    ] if keep_instance_predicate is not None else list(
+        itertools.chain.from_iterable(dataset_name_to_dicts.values())))
 
 
 def build_detection_train_loader(cfg: CfgNode, mapper=None):
@@ -486,12 +463,13 @@ def build_detection_train_loader(cfg: CfgNode, mapper=None):
         cfg.DATASETS.TRAIN,
         keep_instance_predicate=_get_train_keep_instance_predicate(cfg),
         proposal_files=cfg.DATASETS.PROPOSAL_FILES_TRAIN
-        if cfg.MODEL.LOAD_PROPOSALS
-        else None,
+        if cfg.MODEL.LOAD_PROPOSALS else None,
     )
     if mapper is None:
         mapper = DatasetMapper(cfg, True)
-    return d2_build_detection_train_loader(cfg, dataset=dataset_dicts, mapper=mapper)
+    return d2_build_detection_train_loader(cfg,
+                                           dataset=dataset_dicts,
+                                           mapper=mapper)
 
 
 def build_detection_test_loader(cfg, dataset_name, mapper=None):
@@ -518,12 +496,9 @@ def build_detection_test_loader(cfg, dataset_name, mapper=None):
         [dataset_name],
         keep_instance_predicate=_get_test_keep_instance_predicate(cfg),
         proposal_files=[
-            cfg.DATASETS.PROPOSAL_FILES_TEST[
-                list(cfg.DATASETS.TEST).index(dataset_name)
-            ]
-        ]
-        if cfg.MODEL.LOAD_PROPOSALS
-        else None,
+            cfg.DATASETS.PROPOSAL_FILES_TEST[list(
+                cfg.DATASETS.TEST).index(dataset_name)]
+        ] if cfg.MODEL.LOAD_PROPOSALS else None,
     )
     sampler = None
     if not cfg.DENSEPOSE_EVALUATION.DISTRIBUTED_INFERENCE:
@@ -558,14 +533,14 @@ def build_transform(cfg: CfgNode, data_type: str):
     raise ValueError(f"Unknown transform {cfg.TYPE} for data type {data_type}")
 
 
-def build_combined_loader(
-    cfg: CfgNode, loaders: Collection[Loader], ratios: Sequence[float]
-):
+def build_combined_loader(cfg: CfgNode, loaders: Collection[Loader],
+                          ratios: Sequence[float]):
     images_per_worker = _compute_num_images_per_worker(cfg)
     return CombinedDataLoader(loaders, images_per_worker, ratios)
 
 
-def build_bootstrap_dataset(dataset_name: str, cfg: CfgNode) -> Sequence[torch.Tensor]:
+def build_bootstrap_dataset(dataset_name: str,
+                            cfg: CfgNode) -> Sequence[torch.Tensor]:
     """
     Build dataset that provides data to bootstrap on
 
@@ -590,20 +565,19 @@ def build_bootstrap_dataset(dataset_name: str, cfg: CfgNode) -> Sequence[torch.T
     return dataset
 
 
-def build_data_sampler(
-    cfg: CfgNode, sampler_cfg: CfgNode, embedder: Optional[torch.nn.Module]
-):
+def build_data_sampler(cfg: CfgNode, sampler_cfg: CfgNode,
+                       embedder: Optional[torch.nn.Module]):
     if sampler_cfg.TYPE == "densepose_uniform":
         data_sampler = PredictionToGroundTruthSampler()
         # transform densepose pred -> gt
         data_sampler.register_sampler(
             "pred_densepose",
             "gt_densepose",
-            DensePoseUniformSampler(count_per_class=sampler_cfg.COUNT_PER_CLASS),
+            DensePoseUniformSampler(
+                count_per_class=sampler_cfg.COUNT_PER_CLASS),
         )
-        data_sampler.register_sampler(
-            "pred_densepose", "gt_masks", MaskFromDensePoseSampler()
-        )
+        data_sampler.register_sampler("pred_densepose", "gt_masks",
+                                      MaskFromDensePoseSampler())
         return data_sampler
     elif sampler_cfg.TYPE == "densepose_UV_confidence":
         data_sampler = PredictionToGroundTruthSampler()
@@ -617,9 +591,8 @@ def build_data_sampler(
                 search_proportion=0.5,
             ),
         )
-        data_sampler.register_sampler(
-            "pred_densepose", "gt_masks", MaskFromDensePoseSampler()
-        )
+        data_sampler.register_sampler("pred_densepose", "gt_masks",
+                                      MaskFromDensePoseSampler())
         return data_sampler
     elif sampler_cfg.TYPE == "densepose_fine_segm_confidence":
         data_sampler = PredictionToGroundTruthSampler()
@@ -633,9 +606,8 @@ def build_data_sampler(
                 search_proportion=0.5,
             ),
         )
-        data_sampler.register_sampler(
-            "pred_densepose", "gt_masks", MaskFromDensePoseSampler()
-        )
+        data_sampler.register_sampler("pred_densepose", "gt_masks",
+                                      MaskFromDensePoseSampler())
         return data_sampler
     elif sampler_cfg.TYPE == "densepose_coarse_segm_confidence":
         data_sampler = PredictionToGroundTruthSampler()
@@ -649,9 +621,8 @@ def build_data_sampler(
                 search_proportion=0.5,
             ),
         )
-        data_sampler.register_sampler(
-            "pred_densepose", "gt_masks", MaskFromDensePoseSampler()
-        )
+        data_sampler.register_sampler("pred_densepose", "gt_masks",
+                                      MaskFromDensePoseSampler())
         return data_sampler
     elif sampler_cfg.TYPE == "densepose_cse_uniform":
         assert embedder is not None
@@ -667,9 +638,8 @@ def build_data_sampler(
                 count_per_class=sampler_cfg.COUNT_PER_CLASS,
             ),
         )
-        data_sampler.register_sampler(
-            "pred_densepose", "gt_masks", MaskFromDensePoseSampler()
-        )
+        data_sampler.register_sampler("pred_densepose", "gt_masks",
+                                      MaskFromDensePoseSampler())
         return data_sampler
     elif sampler_cfg.TYPE == "densepose_cse_coarse_segm_confidence":
         assert embedder is not None
@@ -687,9 +657,8 @@ def build_data_sampler(
                 search_proportion=0.5,
             ),
         )
-        data_sampler.register_sampler(
-            "pred_densepose", "gt_masks", MaskFromDensePoseSampler()
-        )
+        data_sampler.register_sampler("pred_densepose", "gt_masks",
+                                      MaskFromDensePoseSampler())
         return data_sampler
 
     raise ValueError(f"Unknown data sampler type {sampler_cfg.TYPE}")
@@ -711,7 +680,8 @@ def build_inference_based_loader(
     """
     Constructs data loader based on inference results of a model.
     """
-    dataset = build_bootstrap_dataset(dataset_cfg.DATASET, dataset_cfg.IMAGE_LOADER)
+    dataset = build_bootstrap_dataset(dataset_cfg.DATASET,
+                                      dataset_cfg.IMAGE_LOADER)
     meta = MetadataCatalog.get(dataset_cfg.DATASET)
     training_sampler = TrainingSampler(len(dataset))
     data_loader = torch.utils.data.DataLoader(
@@ -725,7 +695,8 @@ def build_inference_based_loader(
     return InferenceBasedLoader(
         model,
         data_loader=data_loader,
-        data_sampler=build_data_sampler(cfg, dataset_cfg.DATA_SAMPLER, embedder),
+        data_sampler=build_data_sampler(cfg, dataset_cfg.DATA_SAMPLER,
+                                        embedder),
         data_filter=build_data_filter(dataset_cfg.FILTER),
         shuffle=True,
         batch_size=dataset_cfg.INFERENCE.OUTPUT_BATCH_SIZE,
@@ -743,15 +714,17 @@ def has_inference_based_loaders(cfg: CfgNode) -> bool:
 
 
 def build_inference_based_loaders(
-    cfg: CfgNode, model: torch.nn.Module
+        cfg: CfgNode, model: torch.nn.Module
 ) -> Tuple[List[InferenceBasedLoader], List[float]]:
     loaders = []
     ratios = []
-    embedder = build_densepose_embedder(cfg).to(device=model.device)  # pyre-ignore[16]
+    embedder = build_densepose_embedder(cfg).to(
+        device=model.device)  # pyre-ignore[16]
     for dataset_spec in cfg.BOOTSTRAP_DATASETS:
         dataset_cfg = get_bootstrap_dataset_config().clone()
         dataset_cfg.merge_from_other_cfg(CfgNode(dataset_spec))
-        loader = build_inference_based_loader(cfg, dataset_cfg, model, embedder)
+        loader = build_inference_based_loader(cfg, dataset_cfg, model,
+                                              embedder)
         loaders.append(loader)
         ratios.append(dataset_cfg.RATIO)
     return loaders, ratios
@@ -765,12 +738,10 @@ def build_video_list_dataset(meta: Metadata, cfg: CfgNode):
         frame_selector = build_frame_selector(cfg.SELECT)
         transform = build_transform(cfg.TRANSFORM, data_type="image")
         video_list = video_list_from_file(video_list_fpath, video_base_path)
-        keyframe_helper_fpath = (
-            cfg.KEYFRAME_HELPER if hasattr(cfg, "KEYFRAME_HELPER") else None
-        )
-        return VideoKeyframeDataset(
-            video_list, category, frame_selector, transform, keyframe_helper_fpath
-        )
+        keyframe_helper_fpath = (cfg.KEYFRAME_HELPER if hasattr(
+            cfg, "KEYFRAME_HELPER") else None)
+        return VideoKeyframeDataset(video_list, category, frame_selector,
+                                    transform, keyframe_helper_fpath)
 
 
 class _BootstrapDatasetFactoryCatalog(UserDict):
@@ -779,9 +750,8 @@ class _BootstrapDatasetFactoryCatalog(UserDict):
     from metadata and config, for diverse DatasetType
     """
 
-    def register(
-        self, dataset_type: DatasetType, factory: Callable[[Metadata, CfgNode], Dataset]
-    ):
+    def register(self, dataset_type: DatasetType,
+                 factory: Callable[[Metadata, CfgNode], Dataset]):
         """
         Args:
             dataset_type (DatasetType): a DatasetType e.g. DatasetType.VIDEO_LIST
@@ -789,12 +759,10 @@ class _BootstrapDatasetFactoryCatalog(UserDict):
             arguments and returns a dataset object.
         """
         assert dataset_type not in self, "Dataset '{}' is already registered!".format(
-            dataset_type
-        )
+            dataset_type)
         self[dataset_type] = factory
 
 
 BootstrapDatasetFactoryCatalog = _BootstrapDatasetFactoryCatalog()
-BootstrapDatasetFactoryCatalog.register(
-    DatasetType.VIDEO_LIST, build_video_list_dataset
-)
+BootstrapDatasetFactoryCatalog.register(DatasetType.VIDEO_LIST,
+                                        build_video_list_dataset)

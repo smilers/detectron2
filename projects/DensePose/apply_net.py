@@ -49,6 +49,7 @@ _ACTION_REGISTRY: Dict[str, "Action"] = {}
 
 
 class Action(object):
+
     @classmethod
     def add_arguments(cls: type, parser: argparse.ArgumentParser):
         parser.add_argument(
@@ -69,6 +70,7 @@ def register_action(cls: type):
 
 
 class InferenceAction(Action):
+
     @classmethod
     def add_arguments(cls: type, parser: argparse.ArgumentParser):
         super(InferenceAction, cls).add_arguments(parser)
@@ -77,7 +79,8 @@ class InferenceAction(Action):
         parser.add_argument("input", metavar="<input>", help="Input data")
         parser.add_argument(
             "--opts",
-            help="Modify config options using the command-line 'KEY VALUE' pairs",
+            help=
+            "Modify config options using the command-line 'KEY VALUE' pairs",
             default=[],
             nargs=argparse.REMAINDER,
         )
@@ -96,12 +99,14 @@ class InferenceAction(Action):
             return
         context = cls.create_context(args, cfg)
         for file_name in file_list:
-            img = read_image(file_name, format="BGR")  # predictor expects BGR image.
+            img = read_image(file_name,
+                             format="BGR")  # predictor expects BGR image.
             with torch.no_grad():
                 outputs = predictor(img)["instances"]
-                cls.execute_on_outputs(
-                    context, {"file_name": file_name, "image": img}, outputs
-                )
+                cls.execute_on_outputs(context, {
+                    "file_name": file_name,
+                    "image": img
+                }, outputs)
         cls.postexecute(context)
 
     @classmethod
@@ -146,9 +151,8 @@ class DumpAction(InferenceAction):
 
     @classmethod
     def add_parser(cls: type, subparsers: argparse._SubParsersAction):
-        parser = subparsers.add_parser(
-            cls.COMMAND, help="Dump model outputs to a file."
-        )
+        parser = subparsers.add_parser(cls.COMMAND,
+                                       help="Dump model outputs to a file.")
         cls.add_arguments(parser)
         parser.set_defaults(func=cls.execute)
 
@@ -163,9 +167,8 @@ class DumpAction(InferenceAction):
         )
 
     @classmethod
-    def execute_on_outputs(
-        cls: type, context: Dict[str, Any], entry: Dict[str, Any], outputs: Instances
-    ):
+    def execute_on_outputs(cls: type, context: Dict[str, Any],
+                           entry: Dict[str, Any], outputs: Instances):
         image_fpath = entry["file_name"]
         logger.info(f"Processing {image_fpath}")
         result = {"file_name": image_fpath}
@@ -174,11 +177,11 @@ class DumpAction(InferenceAction):
         if outputs.has("pred_boxes"):
             result["pred_boxes_XYXY"] = outputs.get("pred_boxes").tensor.cpu()
             if outputs.has("pred_densepose"):
-                if isinstance(outputs.pred_densepose, DensePoseChartPredictorOutput):
+                if isinstance(outputs.pred_densepose,
+                              DensePoseChartPredictorOutput):
                     extractor = DensePoseResultExtractor()
-                elif isinstance(
-                    outputs.pred_densepose, DensePoseEmbeddingPredictorOutput
-                ):
+                elif isinstance(outputs.pred_densepose,
+                                DensePoseEmbeddingPredictorOutput):
                     extractor = DensePoseOutputsExtractor()
                 result["pred_densepose"] = extractor(outputs)[0]
         context["results"].append(result)
@@ -218,7 +221,8 @@ class ShowAction(InferenceAction):
 
     @classmethod
     def add_parser(cls: type, subparsers: argparse._SubParsersAction):
-        parser = subparsers.add_parser(cls.COMMAND, help="Visualize selected entries")
+        parser = subparsers.add_parser(cls.COMMAND,
+                                       help="Visualize selected entries")
         cls.add_arguments(parser)
         parser.set_defaults(func=cls.execute)
 
@@ -255,7 +259,8 @@ class ShowAction(InferenceAction):
             "--texture_atlases_map",
             metavar="<texture_atlases_map>",
             default=None,
-            help="JSON string of a dict containing texture atlas files for each mesh",
+            help=
+            "JSON string of a dict containing texture atlas files for each mesh",
         )
         parser.add_argument(
             "--output",
@@ -277,14 +282,12 @@ class ShowAction(InferenceAction):
         if args.nms_thresh is not None:
             opts.append("MODEL.ROI_HEADS.NMS_THRESH_TEST")
             opts.append(str(args.nms_thresh))
-        return super(ShowAction, cls).setup_config(
-            config_fpath, model_fpath, args, opts
-        )
+        return super(ShowAction, cls).setup_config(config_fpath, model_fpath,
+                                                   args, opts)
 
     @classmethod
-    def execute_on_outputs(
-        cls: type, context: Dict[str, Any], entry: Dict[str, Any], outputs: Instances
-    ):
+    def execute_on_outputs(cls: type, context: Dict[str, Any],
+                           entry: Dict[str, Any], outputs: Instances):
         import numpy as np
         import cv2
 
@@ -315,15 +318,15 @@ class ShowAction(InferenceAction):
         return base + ".{0:04d}".format(entry_idx) + ext
 
     @classmethod
-    def create_context(
-        cls: type, args: argparse.Namespace, cfg: CfgNode
-    ) -> Dict[str, Any]:
+    def create_context(cls: type, args: argparse.Namespace,
+                       cfg: CfgNode) -> Dict[str, Any]:
         vis_specs = args.visualizations.split(",")
         visualizers = []
         extractors = []
         for vis_spec in vis_specs:
             texture_atlas = get_texture_atlas(args.texture_atlas)
-            texture_atlases_dict = get_texture_atlases(args.texture_atlases_map)
+            texture_atlases_dict = get_texture_atlases(
+                args.texture_atlases_map)
             vis = cls.VISUALIZERS[vis_spec](
                 cfg=cfg,
                 texture_atlas=texture_atlas,
@@ -346,8 +349,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=DOC,
         formatter_class=lambda prog: argparse.HelpFormatter(
-            prog, max_help_position=120
-        ),
+            prog, max_help_position=120),
     )
     parser.set_defaults(func=lambda _: parser.print_help(sys.stdout))
     subparsers = parser.add_subparsers(title="Actions")

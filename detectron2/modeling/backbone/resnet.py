@@ -349,7 +349,12 @@ class ResNet(Backbone):
     Implement :paper:`ResNet`.
     """
 
-    def __init__(self, stem, stages, num_classes=None, out_features=None, freeze_at=0):
+    def __init__(self,
+                 stem,
+                 stages,
+                 num_classes=None,
+                 out_features=None,
+                 freeze_at=0):
         """
         Args:
             stem (nn.Module): a stem module
@@ -376,10 +381,12 @@ class ResNet(Backbone):
         if out_features is not None:
             # Avoid keeping unused layers in this module. They consume extra memory
             # and may cause allreduce to fail
-            num_stages = max(
-                {"res2": 1, "res3": 2, "res4": 3, "res5": 4}.get(f, 0)
-                for f in out_features
-            )
+            num_stages = max({
+                "res2": 1,
+                "res3": 2,
+                "res4": 3,
+                "res5": 4
+            }.get(f, 0) for f in out_features)
 
             stages = stages[:num_stages]
         for i, blocks in enumerate(stages):
@@ -395,10 +402,11 @@ class ResNet(Backbone):
             self.stages.append(stage)
 
             self._out_feature_strides[name] = current_stride = int(
-                current_stride * np.prod([k.stride for k in blocks])
-            )
-            self._out_feature_channels[name] = curr_channels = blocks[-1].out_channels
-        self.stage_names = tuple(self.stage_names)  # Make it static for scripting
+                current_stride * np.prod([k.stride for k in blocks]))
+            self._out_feature_channels[name] = curr_channels = blocks[
+                -1].out_channels
+        self.stage_names = tuple(
+            self.stage_names)  # Make it static for scripting
 
         if num_classes is not None:
             self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
@@ -417,8 +425,7 @@ class ResNet(Backbone):
         children = [x[0] for x in self.named_children()]
         for out_feature in self._out_features:
             assert out_feature in children, "Available children: {}".format(
-                ", ".join(children)
-            )
+                ", ".join(children))
         self.freeze(freeze_at)
 
     def forward(self, x):
@@ -482,7 +489,8 @@ class ResNet(Backbone):
         return self
 
     @staticmethod
-    def make_stage(block_class, num_blocks, *, in_channels, out_channels, **kwargs):
+    def make_stage(block_class, num_blocks, *, in_channels, out_channels,
+                   **kwargs):
         """
         Create a list of blocks of the same type that forms one ResNet stage.
 
@@ -522,9 +530,8 @@ class ResNet(Backbone):
                 if k.endswith("_per_block"):
                     assert len(v) == num_blocks, (
                         f"Argument '{k}' of make_stage should have the "
-                        f"same length as num_blocks={num_blocks}."
-                    )
-                    newk = k[: -len("_per_block")]
+                        f"same length as num_blocks={num_blocks}.")
+                    newk = k[:-len("_per_block")]
                     assert (
                         newk not in kwargs
                     ), f"Cannot call make_stage with both {k} and {newk}!"
@@ -533,10 +540,9 @@ class ResNet(Backbone):
                     curr_kwargs[k] = v
 
             blocks.append(
-                block_class(
-                    in_channels=in_channels, out_channels=out_channels, **curr_kwargs
-                )
-            )
+                block_class(in_channels=in_channels,
+                            out_channels=out_channels,
+                            **curr_kwargs))
             in_channels = out_channels
         return blocks
 
@@ -577,9 +583,8 @@ class ResNet(Backbone):
             in_channels = [64, 256, 512, 1024]
             out_channels = [256, 512, 1024, 2048]
         ret = []
-        for (n, s, i, o) in zip(
-            num_blocks_per_stage, [1, 2, 2, 2], in_channels, out_channels
-        ):
+        for (n, s, i, o) in zip(num_blocks_per_stage, [1, 2, 2, 2],
+                                in_channels, out_channels):
             if depth >= 50:
                 kwargs["bottleneck_channels"] = o // 4
             ret.append(
@@ -590,8 +595,7 @@ class ResNet(Backbone):
                     in_channels=i,
                     out_channels=o,
                     **kwargs,
-                )
-            )
+                ))
         return ret
 
 
@@ -625,21 +629,23 @@ def build_resnet_backbone(cfg, input_shape):
     )
 
     # fmt: off
-    freeze_at           = cfg.MODEL.BACKBONE.FREEZE_AT
-    out_features        = cfg.MODEL.RESNETS.OUT_FEATURES
-    depth               = cfg.MODEL.RESNETS.DEPTH
-    num_groups          = cfg.MODEL.RESNETS.NUM_GROUPS
-    width_per_group     = cfg.MODEL.RESNETS.WIDTH_PER_GROUP
+    freeze_at = cfg.MODEL.BACKBONE.FREEZE_AT
+    out_features = cfg.MODEL.RESNETS.OUT_FEATURES
+    depth = cfg.MODEL.RESNETS.DEPTH
+    num_groups = cfg.MODEL.RESNETS.NUM_GROUPS
+    width_per_group = cfg.MODEL.RESNETS.WIDTH_PER_GROUP
     bottleneck_channels = num_groups * width_per_group
-    in_channels         = cfg.MODEL.RESNETS.STEM_OUT_CHANNELS
-    out_channels        = cfg.MODEL.RESNETS.RES2_OUT_CHANNELS
-    stride_in_1x1       = cfg.MODEL.RESNETS.STRIDE_IN_1X1
-    res5_dilation       = cfg.MODEL.RESNETS.RES5_DILATION
+    in_channels = cfg.MODEL.RESNETS.STEM_OUT_CHANNELS
+    out_channels = cfg.MODEL.RESNETS.RES2_OUT_CHANNELS
+    stride_in_1x1 = cfg.MODEL.RESNETS.STRIDE_IN_1X1
+    res5_dilation = cfg.MODEL.RESNETS.RES5_DILATION
     deform_on_per_stage = cfg.MODEL.RESNETS.DEFORM_ON_PER_STAGE
-    deform_modulated    = cfg.MODEL.RESNETS.DEFORM_MODULATED
-    deform_num_groups   = cfg.MODEL.RESNETS.DEFORM_NUM_GROUPS
+    deform_modulated = cfg.MODEL.RESNETS.DEFORM_MODULATED
+    deform_num_groups = cfg.MODEL.RESNETS.DEFORM_NUM_GROUPS
     # fmt: on
-    assert res5_dilation in {1, 2}, "res5_dilation cannot be {}.".format(res5_dilation)
+    assert res5_dilation in {
+        1, 2
+    }, "res5_dilation cannot be {}.".format(res5_dilation)
 
     num_blocks_per_stage = {
         18: [2, 2, 2, 2],
@@ -650,15 +656,13 @@ def build_resnet_backbone(cfg, input_shape):
     }[depth]
 
     if depth in [18, 34]:
-        assert (
-            out_channels == 64
-        ), "Must set MODEL.RESNETS.RES2_OUT_CHANNELS = 64 for R18/R34"
+        assert (out_channels == 64
+                ), "Must set MODEL.RESNETS.RES2_OUT_CHANNELS = 64 for R18/R34"
         assert not any(
             deform_on_per_stage
         ), "MODEL.RESNETS.DEFORM_ON_PER_STAGE unsupported for R18/R34"
-        assert (
-            res5_dilation == 1
-        ), "Must set MODEL.RESNETS.RES5_DILATION = 1 for R18/R34"
+        assert (res5_dilation == 1
+                ), "Must set MODEL.RESNETS.RES5_DILATION = 1 for R18/R34"
         assert num_groups == 1, "Must set MODEL.RESNETS.NUM_GROUPS = 1 for R18/R34"
 
     stages = []
@@ -666,13 +670,19 @@ def build_resnet_backbone(cfg, input_shape):
     for idx, stage_idx in enumerate(range(2, 6)):
         # res5_dilation is used this way as a convention in R-FCN & Deformable Conv paper
         dilation = res5_dilation if stage_idx == 5 else 1
-        first_stride = 1 if idx == 0 or (stage_idx == 5 and dilation == 2) else 2
+        first_stride = 1 if idx == 0 or (stage_idx == 5
+                                         and dilation == 2) else 2
         stage_kargs = {
-            "num_blocks": num_blocks_per_stage[idx],
-            "stride_per_block": [first_stride] + [1] * (num_blocks_per_stage[idx] - 1),
-            "in_channels": in_channels,
-            "out_channels": out_channels,
-            "norm": norm,
+            "num_blocks":
+            num_blocks_per_stage[idx],
+            "stride_per_block":
+            [first_stride] + [1] * (num_blocks_per_stage[idx] - 1),
+            "in_channels":
+            in_channels,
+            "out_channels":
+            out_channels,
+            "norm":
+            norm,
         }
         # Use BasicBlock for R18 and R34.
         if depth in [18, 34]:
