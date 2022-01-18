@@ -4,8 +4,6 @@
 Implement many useful :class:`Augmentation`.
 """
 import numpy as np
-import sys
-from typing import Tuple
 from fvcore.transforms.transform import (
     BlendTransform,
     CropTransform,
@@ -17,6 +15,9 @@ from fvcore.transforms.transform import (
     VFlipTransform,
 )
 from PIL import Image
+
+import sys
+from typing import Tuple
 
 from .augmentation import Augmentation, _transform_to_aug
 from .transform import ExtentTransform, ResizeTransform, RotationTransform

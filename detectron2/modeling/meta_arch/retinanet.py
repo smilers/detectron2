@@ -1,8 +1,5 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
-import logging
-import math
 import numpy as np
-from typing import Dict, List, Tuple
 import torch
 from fvcore.nn import sigmoid_focal_loss_jit
 from torch import Tensor, nn
@@ -13,6 +10,10 @@ from detectron2.data.detection_utils import convert_image_to_rgb
 from detectron2.layers import ShapeSpec, batched_nms, cat, get_norm, nonzero_tuple
 from detectron2.structures import Boxes, ImageList, Instances, pairwise_iou
 from detectron2.utils.events import get_event_storage
+
+import logging
+import math
+from typing import Dict, List, Tuple
 
 from ..anchor_generator import build_anchor_generator
 from ..backbone import Backbone, build_backbone

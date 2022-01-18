@@ -1,14 +1,5 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
-import contextlib
-import copy
-import io
-import itertools
-import json
-import logging
 import numpy as np
-import os
-import pickle
-from collections import OrderedDict
 import pycocotools.mask as mask_util
 import torch
 from pycocotools.coco import COCO
@@ -23,6 +14,16 @@ from detectron2.evaluation.fast_eval_api import COCOeval_opt
 from detectron2.structures import Boxes, BoxMode, pairwise_iou
 from detectron2.utils.file_io import PathManager
 from detectron2.utils.logger import create_small_table
+
+import contextlib
+import copy
+import io
+import itertools
+import json
+import logging
+import os
+import pickle
+from collections import OrderedDict
 
 from .evaluator import DatasetEvaluator
 

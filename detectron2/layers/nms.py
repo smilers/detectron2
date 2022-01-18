@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Facebook, Inc. and its affiliates.
 
-from typing import List
 import torch
 from torchvision.ops import boxes as box_ops
 from torchvision.ops import nms  # BC-compat
+
+from typing import List
 
 
 def batched_nms(

@@ -1,16 +1,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Facebook, Inc. and its affiliates.
 
-import datetime
-import itertools
-import logging
-import math
-import operator
-import os
-import tempfile
-import time
-import warnings
-from collections import Counter
 import torch
 from fvcore.common.checkpoint import Checkpointer
 from fvcore.common.checkpoint import PeriodicCheckpointer as _PeriodicCheckpointer
@@ -23,6 +13,17 @@ from detectron2.evaluation.testing import flatten_results_dict
 from detectron2.solver import LRMultiplier
 from detectron2.utils.events import EventStorage, EventWriter
 from detectron2.utils.file_io import PathManager
+
+import datetime
+import itertools
+import logging
+import math
+import operator
+import os
+import tempfile
+import time
+import warnings
+from collections import Counter
 
 from .train_loop import HookBase
 

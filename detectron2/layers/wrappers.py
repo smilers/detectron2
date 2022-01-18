@@ -8,9 +8,10 @@ These can be removed once https://github.com/pytorch/pytorch/issues/12013
 is implemented
 """
 
-from typing import List
 import torch
 from torch.nn import functional as F
+
+from typing import List
 
 
 def cat(tensors: List[torch.Tensor], dim: int = 0):

@@ -1,10 +1,11 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 import numpy as np
-from typing import Any, List, Tuple, Union
 import torch
 from torch.nn import functional as F
 
 from detectron2.utils.env import TORCH_VERSION
+
+from typing import Any, List, Tuple, Union
 
 if TORCH_VERSION < (1, 8):
 

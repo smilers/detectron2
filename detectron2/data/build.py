@@ -1,9 +1,5 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
-import itertools
-import logging
 import numpy as np
-import operator
-import pickle
 import torch
 import torch.utils.data as torchdata
 from tabulate import tabulate
@@ -16,13 +12,13 @@ from detectron2.utils.env import seed_all_rng
 from detectron2.utils.file_io import PathManager
 from detectron2.utils.logger import _log_api_usage, log_first_n
 
+import itertools
+import logging
+import operator
+import pickle
+
 from .catalog import DatasetCatalog, MetadataCatalog
-from .common import (
-    AspectRatioGroupedDataset,
-    DatasetFromList,
-    MapDataset,
-    ToIterableDataset,
-)
+from .common import AspectRatioGroupedDataset, DatasetFromList, MapDataset, ToIterableDataset
 from .dataset_mapper import DatasetMapper
 from .detection_utils import check_metadata_consistency
 from .samplers import (
