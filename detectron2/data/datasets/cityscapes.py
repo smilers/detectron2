@@ -39,7 +39,9 @@ def _get_cityscapes_files(image_dir, gt_dir):
             assert basename.endswith(suffix), basename
             basename = basename[: -len(suffix)]
 
-            instance_file = os.path.join(city_gt_dir, basename + "gtFine_instanceIds.png")
+            instance_file = os.path.join(
+                city_gt_dir, basename + "gtFine_instanceIds.png"
+            )
             label_file = os.path.join(city_gt_dir, basename + "gtFine_labelIds.png")
             json_file = os.path.join(city_gt_dir, basename + "gtFine_polygons.json")
 
@@ -76,7 +78,9 @@ def load_cityscapes_instances(image_dir, gt_dir, from_json=True, to_polygons=Tru
     pool = mp.Pool(processes=max(mp.cpu_count() // get_world_size() // 2, 4))
 
     ret = pool.map(
-        functools.partial(_cityscapes_files_to_dict, from_json=from_json, to_polygons=to_polygons),
+        functools.partial(
+            _cityscapes_files_to_dict, from_json=from_json, to_polygons=to_polygons
+        ),
         files,
     )
     logger.info("Loaded {} images from {}".format(len(ret), image_dir))
@@ -105,7 +109,9 @@ def load_cityscapes_semantic(image_dir, gt_dir):
     ret = []
     # gt_dir is small and contain many small files. make sense to fetch to local first
     gt_dir = PathManager.get_local_path(gt_dir)
-    for image_file, _, label_file, json_file in _get_cityscapes_files(image_dir, gt_dir):
+    for image_file, _, label_file, json_file in _get_cityscapes_files(
+        image_dir, gt_dir
+    ):
         label_file = label_file.replace("labelIds", "labelTrainIds")
 
         with PathManager.open(json_file, "r") as f:
@@ -200,15 +206,19 @@ def _cityscapes_files_to_dict(files, from_json, to_polygons):
                 continue
             polygons_union = polygons_union.union(poly)
 
-            anno = {'iscrowd': label_name.endswith("group"), 'category_id': label.id}
+            anno = {"iscrowd": label_name.endswith("group"), "category_id": label.id}
             if isinstance(poly_wo_overlaps, Polygon):
                 poly_list = [poly_wo_overlaps]
             elif isinstance(poly_wo_overlaps, MultiPolygon):
                 poly_list = poly_wo_overlaps.geoms
             else:
-                raise NotImplementedError("Unknown geometric structure {}".format(poly_wo_overlaps))
+                raise NotImplementedError(
+                    "Unknown geometric structure {}".format(poly_wo_overlaps)
+                )
 
-            poly_coord = [list(chain(*poly_el.exterior.coords)) for poly_el in poly_list]
+            poly_coord = [
+                list(chain(*poly_el.exterior.coords)) for poly_el in poly_list
+            ]
             anno["segmentation"] = poly_coord
             (xmin, ymin, xmax, ymax) = poly_wo_overlaps.bounds
 
@@ -239,7 +249,7 @@ def _cityscapes_files_to_dict(files, from_json, to_polygons):
             if not label.hasInstances or label.ignoreInEval:
                 continue
 
-            anno = {'iscrowd': instance_id < 1000, 'category_id': label.id}
+            anno = {"iscrowd": instance_id < 1000, "category_id": label.id}
             mask = np.asarray(inst_image == instance_id, dtype=np.uint8, order="F")
 
             inds = np.nonzero(mask)
@@ -252,9 +262,9 @@ def _cityscapes_files_to_dict(files, from_json, to_polygons):
             if to_polygons:
                 # This conversion comes from D4809743 and D5171122,
                 # when Mask-RCNN was first developed.
-                contours = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)[
-                    -2
-                ]
+                contours = cv2.findContours(
+                    mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE
+                )[-2]
                 polygons = [c.reshape(-1).tolist() for c in contours if len(c) >= 3]
                 # opencv's can produce invalid polygons
                 if not polygons:
@@ -297,7 +307,9 @@ if __name__ == "__main__":
         )
         logger.info("Done loading {} samples.".format(len(dicts)))
 
-        thing_classes = [k.name for k in labels if k.hasInstances and not k.ignoreInEval]
+        thing_classes = [
+            k.name for k in labels if k.hasInstances and not k.ignoreInEval
+        ]
         meta = Metadata().set(thing_classes=thing_classes)
 
     else:

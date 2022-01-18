@@ -77,11 +77,17 @@ class PanopticFPN(GeneralizedRCNN):
             )
 
             def update_weight(x):
-                return {k: v * w for k, v in x.items()} if isinstance(x, dict) else x * w
+                return (
+                    {k: v * w for k, v in x.items()} if isinstance(x, dict) else x * w
+                )
 
             roi_heads = ret["roi_heads"]
-            roi_heads.box_predictor.loss_weight = update_weight(roi_heads.box_predictor.loss_weight)
-            roi_heads.mask_head.loss_weight = update_weight(roi_heads.mask_head.loss_weight)
+            roi_heads.box_predictor.loss_weight = update_weight(
+                roi_heads.box_predictor.loss_weight
+            )
+            roi_heads.mask_head.loss_weight = update_weight(
+                roi_heads.mask_head.loss_weight
+            )
         return ret
 
     def forward(self, batched_inputs):
@@ -121,7 +127,9 @@ class PanopticFPN(GeneralizedRCNN):
         sem_seg_results, sem_seg_losses = self.sem_seg_head(features, gt_sem_seg)
 
         gt_instances = [x["instances"].to(self.device) for x in batched_inputs]
-        proposals, proposal_losses = self.proposal_generator(images, features, gt_instances)
+        proposals, proposal_losses = self.proposal_generator(
+            images, features, gt_instances
+        )
         detector_results, detector_losses = self.roi_heads(
             images, features, proposals, gt_instances
         )
@@ -131,7 +139,9 @@ class PanopticFPN(GeneralizedRCNN):
         losses.update(detector_losses)
         return losses
 
-    def inference(self, batched_inputs: List[Dict[str, torch.Tensor]], do_postprocess: bool = True):
+    def inference(
+        self, batched_inputs: List[Dict[str, torch.Tensor]], do_postprocess: bool = True
+    ):
         """
         Run inference on the given inputs.
 
@@ -204,7 +214,9 @@ def combine_semantic_and_instance_outputs(
     current_segment_id = 0
     segments_info = []
 
-    instance_masks = instance_results.pred_masks.to(dtype=torch.bool, device=panoptic_seg.device)
+    instance_masks = instance_results.pred_masks.to(
+        dtype=torch.bool, device=panoptic_seg.device
+    )
 
     # Add instances one-by-one, check for overlaps with existing ones
     for inst_id in sorted_inds:

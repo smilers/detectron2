@@ -61,7 +61,9 @@ def find_top_rpn_proposals(
     topk_proposals = []
     level_ids = []  # #lvl Tensor, each of shape (topk,)
     batch_idx = torch.arange(num_images, device=device)
-    for level_id, (proposals_i, logits_i) in enumerate(zip(proposals, pred_objectness_logits)):
+    for level_id, (proposals_i, logits_i) in enumerate(
+        zip(proposals, pred_objectness_logits)
+    ):
         Hi_Wi_A = logits_i.shape[1]
         if isinstance(Hi_Wi_A, torch.Tensor):  # it's a tensor in tracing
             num_proposals_i = torch.clamp(Hi_Wi_A, max=pre_nms_topk)
@@ -79,7 +81,9 @@ def find_top_rpn_proposals(
 
         topk_proposals.append(topk_proposals_i)
         topk_scores.append(topk_scores_i)
-        level_ids.append(torch.full((num_proposals_i,), level_id, dtype=torch.int64, device=device))
+        level_ids.append(
+            torch.full((num_proposals_i,), level_id, dtype=torch.int64, device=device)
+        )
 
     # 2. Concat all levels together
     topk_scores = cat(topk_scores, dim=1)
@@ -93,7 +97,9 @@ def find_top_rpn_proposals(
         scores_per_img = topk_scores[n]
         lvl = level_ids
 
-        valid_mask = torch.isfinite(boxes.tensor).all(dim=1) & torch.isfinite(scores_per_img)
+        valid_mask = torch.isfinite(boxes.tensor).all(dim=1) & torch.isfinite(
+            scores_per_img
+        )
         if not valid_mask.all():
             if training:
                 raise FloatingPointError(
@@ -145,7 +151,9 @@ def add_ground_truth_to_proposals(
     assert gt is not None
 
     if len(proposals) != len(gt):
-        raise ValueError("proposals and gt should have the same length as the number of images!")
+        raise ValueError(
+            "proposals and gt should have the same length as the number of images!"
+        )
     if not proposals:
         return proposals
 

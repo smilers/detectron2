@@ -89,10 +89,7 @@ def convert_boxes_to_pooler_format(box_lists: List[Boxes]):
             rotated box (x_ctr, y_ctr, width, height, angle_degrees) comes from.
     """
     return cat(
-        [
-            _fmt_box_list(box_list.tensor, i)
-            for i, box_list in enumerate(box_lists)
-        ],
+        [_fmt_box_list(box_list.tensor, i) for i, box_list in enumerate(box_lists)],
         dim=0,
     )
 
@@ -149,14 +146,20 @@ class ROIPooler(nn.Module):
         if pooler_type == "ROIAlign":
             self.level_poolers = nn.ModuleList(
                 ROIAlign(
-                    output_size, spatial_scale=scale, sampling_ratio=sampling_ratio, aligned=False
+                    output_size,
+                    spatial_scale=scale,
+                    sampling_ratio=sampling_ratio,
+                    aligned=False,
                 )
                 for scale in scales
             )
         elif pooler_type == "ROIAlignV2":
             self.level_poolers = nn.ModuleList(
                 ROIAlign(
-                    output_size, spatial_scale=scale, sampling_ratio=sampling_ratio, aligned=True
+                    output_size,
+                    spatial_scale=scale,
+                    sampling_ratio=sampling_ratio,
+                    aligned=True,
                 )
                 for scale in scales
             )
@@ -166,7 +169,9 @@ class ROIPooler(nn.Module):
             )
         elif pooler_type == "ROIAlignRotated":
             self.level_poolers = nn.ModuleList(
-                ROIAlignRotated(output_size, spatial_scale=scale, sampling_ratio=sampling_ratio)
+                ROIAlignRotated(
+                    output_size, spatial_scale=scale, sampling_ratio=sampling_ratio
+                )
                 for scale in scales
             )
         else:
@@ -222,7 +227,9 @@ class ROIPooler(nn.Module):
         )
         if not box_lists:
             return torch.zeros(
-                (0, x[0].shape[1]) + self.output_size, device=x[0].device, dtype=x[0].dtype
+                (0, x[0].shape[1]) + self.output_size,
+                device=x[0].device,
+                dtype=x[0].dtype,
             )
 
         pooler_fmt_boxes = convert_boxes_to_pooler_format(box_lists)
@@ -231,7 +238,11 @@ class ROIPooler(nn.Module):
             return self.level_poolers[0](x[0], pooler_fmt_boxes)
 
         level_assignments = assign_boxes_to_levels(
-            box_lists, self.min_level, self.max_level, self.canonical_box_size, self.canonical_level
+            box_lists,
+            self.min_level,
+            self.max_level,
+            self.canonical_box_size,
+            self.canonical_level,
         )
 
         num_boxes = pooler_fmt_boxes.size(0)
@@ -240,7 +251,9 @@ class ROIPooler(nn.Module):
 
         dtype, device = x[0].dtype, x[0].device
         output = torch.zeros(
-            (num_boxes, num_channels, output_size, output_size), dtype=dtype, device=device
+            (num_boxes, num_channels, output_size, output_size),
+            dtype=dtype,
+            device=device,
         )
 
         for level, pooler in enumerate(self.level_poolers):

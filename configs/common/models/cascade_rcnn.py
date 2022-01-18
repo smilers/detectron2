@@ -2,7 +2,11 @@ from detectron2.config import LazyCall as L
 from detectron2.layers import ShapeSpec
 from detectron2.modeling.box_regression import Box2BoxTransform
 from detectron2.modeling.matcher import Matcher
-from detectron2.modeling.roi_heads import FastRCNNOutputLayers, FastRCNNConvFCHead, CascadeROIHeads
+from detectron2.modeling.roi_heads import (
+    FastRCNNOutputLayers,
+    FastRCNNConvFCHead,
+    CascadeROIHeads,
+)
 
 from .mask_rcnn_fpn import model
 
@@ -30,9 +34,7 @@ model.roi_heads.update(
         for (w1, w2) in [(10, 5), (20, 10), (30, 15)]
     ],
     proposal_matchers=[
-        L(Matcher)(
-            thresholds=[th], labels=[0, 1], allow_low_quality_matches=False
-        )
+        L(Matcher)(thresholds=[th], labels=[0, 1], allow_low_quality_matches=False)
         for th in [0.5, 0.6, 0.7]
     ],
 )

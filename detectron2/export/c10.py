@@ -68,7 +68,9 @@ class InstancesList(object):
             data_len = len(value)
             assert (
                 len(self) == data_len
-            ), "Adding a field of length {} to a Instances of length {}".format(data_len, len(self))
+            ), "Adding a field of length {} to a Instances of length {}".format(
+                data_len, len(self)
+            )
         self.batch_extra_fields[name] = value
 
     def __setattr__(self, name, val):
@@ -79,7 +81,9 @@ class InstancesList(object):
 
     def __getattr__(self, name):
         if name not in self.batch_extra_fields:
-            raise AttributeError("Cannot find field '{}' in the given Instances!".format(name))
+            raise AttributeError(
+                "Cannot find field '{}' in the given Instances!".format(name)
+            )
         return self.batch_extra_fields[name]
 
     def __len__(self):
@@ -106,7 +110,9 @@ class InstancesList(object):
 
         ret = []
         for i, info in enumerate(instances_list.im_info):
-            instances = Instances(torch.Size([int(info[0].item()), int(info[1].item())]))
+            instances = Instances(
+                torch.Size([int(info[0].item()), int(info[1].item())])
+            )
 
             ids = instances_list.indices == i
             for k, v in instances_list.batch_extra_fields.items():
@@ -160,9 +166,9 @@ class Caffe2RPN(Caffe2Compatible, rpn.RPN):
         if self.tensor_mode:
             im_info = images.image_sizes
         else:
-            im_info = torch.tensor([[im_sz[0], im_sz[1], 1.0] for im_sz in images.image_sizes]).to(
-                images.tensor.device
-            )
+            im_info = torch.tensor(
+                [[im_sz[0], im_sz[1], 1.0] for im_sz in images.image_sizes]
+            ).to(images.tensor.device)
         assert isinstance(im_info, torch.Tensor)
 
         rpn_rois_list = []
@@ -209,7 +215,9 @@ class Caffe2RPN(Caffe2Compatible, rpn.RPN):
             rpn_post_nms_topN = self.post_nms_topk[self.training]
 
             device = rpn_rois_list[0].device
-            input_list = [to_device(x, "cpu") for x in (rpn_rois_list + rpn_roi_probs_list)]
+            input_list = [
+                to_device(x, "cpu") for x in (rpn_rois_list + rpn_roi_probs_list)
+            ]
 
             # TODO remove this after confirming rpn_max_level/rpn_min_level
             # is not needed in CollectRpnProposals.
@@ -233,7 +241,9 @@ class Caffe2RPN(Caffe2Compatible, rpn.RPN):
             rpn_rois = to_device(rpn_rois, device)
             rpn_roi_probs = []
 
-        proposals = self.c2_postprocess(im_info, rpn_rois, rpn_roi_probs, self.tensor_mode)
+        proposals = self.c2_postprocess(
+            im_info, rpn_rois, rpn_roi_probs, self.tensor_mode
+        )
         return proposals, {}
 
     def forward(self, images, features, gt_instances=None):
@@ -386,14 +396,18 @@ class Caffe2FastRCNNOutputsInference:
             class_prob = F.sigmoid(class_logits)
             # BoxWithNMSLimit will infer num_classes from the shape of the class_prob
             # So append a zero column as placeholder for the background class
-            class_prob = torch.cat((class_prob, torch.zeros(class_prob.shape[0], 1)), dim=1)
+            class_prob = torch.cat(
+                (class_prob, torch.zeros(class_prob.shape[0], 1)), dim=1
+            )
 
         assert box_regression.shape[1] % box_dim == 0
         cls_agnostic_bbox_reg = box_regression.shape[1] // box_dim == 1
 
         input_tensor_mode = proposals[0].proposal_boxes.tensor.shape[1] == box_dim + 1
 
-        rois = type(proposals[0].proposal_boxes).cat([p.proposal_boxes for p in proposals])
+        rois = type(proposals[0].proposal_boxes).cat(
+            [p.proposal_boxes for p in proposals]
+        )
         device, dtype = rois.tensor.device, rois.tensor.dtype
         if input_tensor_mode:
             im_info = proposals[0].image_size

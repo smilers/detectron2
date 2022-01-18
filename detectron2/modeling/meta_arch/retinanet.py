@@ -142,7 +142,9 @@ class RetinaNet(nn.Module):
         self.vis_period = vis_period
         self.input_format = input_format
 
-        self.register_buffer("pixel_mean", torch.tensor(pixel_mean).view(-1, 1, 1), False)
+        self.register_buffer(
+            "pixel_mean", torch.tensor(pixel_mean).view(-1, 1, 1), False
+        )
         self.register_buffer("pixel_std", torch.tensor(pixel_std).view(-1, 1, 1), False)
 
         """
@@ -151,7 +153,9 @@ class RetinaNet(nn.Module):
         using it lead to lower performance. Here we maintain an EMA of #foreground to
         stabilize the normalizer.
         """
-        self.loss_normalizer = 100  # initialize with any reasonable #fg that's not too small
+        self.loss_normalizer = (
+            100  # initialize with any reasonable #fg that's not too small
+        )
         self.loss_normalizer_momentum = 0.9
 
     @classmethod
@@ -165,7 +169,9 @@ class RetinaNet(nn.Module):
             "backbone": backbone,
             "head": head,
             "anchor_generator": anchor_generator,
-            "box2box_transform": Box2BoxTransform(weights=cfg.MODEL.RETINANET.BBOX_REG_WEIGHTS),
+            "box2box_transform": Box2BoxTransform(
+                weights=cfg.MODEL.RETINANET.BBOX_REG_WEIGHTS
+            ),
             "anchor_matcher": Matcher(
                 cfg.MODEL.RETINANET.IOU_THRESHOLDS,
                 cfg.MODEL.RETINANET.IOU_LABELS,
@@ -216,9 +222,13 @@ class RetinaNet(nn.Module):
         img = batched_inputs[image_index]["image"]
         img = convert_image_to_rgb(img.permute(1, 2, 0), self.input_format)
         v_gt = Visualizer(img, None)
-        v_gt = v_gt.overlay_instances(boxes=batched_inputs[image_index]["instances"].gt_boxes)
+        v_gt = v_gt.overlay_instances(
+            boxes=batched_inputs[image_index]["instances"].gt_boxes
+        )
         anno_img = v_gt.get_image()
-        processed_results = detector_postprocess(results[image_index], img.shape[0], img.shape[1])
+        processed_results = detector_postprocess(
+            results[image_index], img.shape[0], img.shape[1]
+        )
         predicted_boxes = processed_results.pred_boxes.tensor.detach().cpu().numpy()
 
         v_pred = Visualizer(img, None)
@@ -226,7 +236,9 @@ class RetinaNet(nn.Module):
         prop_img = v_pred.get_image()
         vis_img = np.vstack((anno_img, prop_img))
         vis_img = vis_img.transpose(2, 0, 1)
-        vis_name = f"Top: GT bounding boxes; Bottom: {max_boxes} Highest Scoring Results"
+        vis_name = (
+            f"Top: GT bounding boxes; Bottom: {max_boxes} Highest Scoring Results"
+        )
         storage.put_image(vis_name, vis_img)
 
     def forward(self, batched_inputs: List[Dict[str, Tensor]]):
@@ -260,11 +272,15 @@ class RetinaNet(nn.Module):
 
         if self.training:
             assert not torch.jit.is_scripting(), "Not supported"
-            assert "instances" in batched_inputs[0], "Instance annotations are missing in training!"
+            assert (
+                "instances" in batched_inputs[0]
+            ), "Instance annotations are missing in training!"
             gt_instances = [x["instances"].to(self.device) for x in batched_inputs]
 
             gt_labels, gt_boxes = self.label_anchors(anchors, gt_instances)
-            losses = self.losses(anchors, pred_logits, gt_labels, pred_anchor_deltas, gt_boxes)
+            losses = self.losses(
+                anchors, pred_logits, gt_labels, pred_anchor_deltas, gt_boxes
+            )
 
             if self.vis_period > 0:
                 storage = get_event_storage()
@@ -276,7 +292,9 @@ class RetinaNet(nn.Module):
 
             return losses
         else:
-            results = self.inference(anchors, pred_logits, pred_anchor_deltas, images.image_sizes)
+            results = self.inference(
+                anchors, pred_logits, pred_anchor_deltas, images.image_sizes
+            )
             if torch.jit.is_scripting():
                 return results
             processed_results = []
@@ -318,7 +336,9 @@ class RetinaNet(nn.Module):
         ) * max(num_pos_anchors, 1)
 
         # classification and regression loss
-        gt_labels_target = F.one_hot(gt_labels[valid_mask], num_classes=self.num_classes + 1)[
+        gt_labels_target = F.one_hot(
+            gt_labels[valid_mask], num_classes=self.num_classes + 1
+        )[
             :, :-1
         ]  # no loss for the last (background) class
         loss_cls = sigmoid_focal_loss_jit(
@@ -467,7 +487,9 @@ class RetinaNet(nn.Module):
             box_reg_i = box_reg_i[anchor_idxs]
             anchors_i = anchors_i[anchor_idxs]
             # predict boxes
-            predicted_boxes = self.box2box_transform.apply_deltas(box_reg_i, anchors_i.tensor)
+            predicted_boxes = self.box2box_transform.apply_deltas(
+                box_reg_i, anchors_i.tensor
+            )
 
             boxes_all.append(predicted_boxes)
             scores_all.append(predicted_prob)
@@ -528,7 +550,9 @@ class RetinaNetHead(nn.Module):
         super().__init__()
 
         if norm in ["BN", "SyncBN"]:
-            logger.warning("Shared norm does not work well for BN, SyncBN, expect poor results")
+            logger.warning(
+                "Shared norm does not work well for BN, SyncBN, expect poor results"
+            )
 
         cls_subnet = []
         bbox_subnet = []
@@ -558,7 +582,12 @@ class RetinaNetHead(nn.Module):
         )
 
         # Initialization
-        for modules in [self.cls_subnet, self.bbox_subnet, self.cls_score, self.bbox_pred]:
+        for modules in [
+            self.cls_subnet,
+            self.bbox_subnet,
+            self.cls_score,
+            self.bbox_pred,
+        ]:
             for layer in modules.modules():
                 if isinstance(layer, nn.Conv2d):
                     torch.nn.init.normal_(layer.weight, mean=0, std=0.01)

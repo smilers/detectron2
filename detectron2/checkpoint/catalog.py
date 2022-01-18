@@ -35,7 +35,9 @@ class ModelCatalog(object):
     )
 
     C2_DATASET_COCO = "coco_2014_train%3Acoco_2014_valminusminival"
-    C2_DATASET_COCO_KEYPOINTS = "keypoints_coco_2014_train%3Akeypoints_coco_2014_valminusminival"
+    C2_DATASET_COCO_KEYPOINTS = (
+        "keypoints_coco_2014_train%3Akeypoints_coco_2014_valminusminival"
+    )
 
     # format: {model_name} -> part of the url
     C2_DETECTRON_MODELS = {
@@ -65,13 +67,13 @@ class ModelCatalog(object):
     @staticmethod
     def _get_c2_imagenet_pretrained(name):
         prefix = ModelCatalog.S3_C2_DETECTRON_PREFIX
-        name = name[len("ImageNetPretrained/"):]
+        name = name[len("ImageNetPretrained/") :]
         name = ModelCatalog.C2_IMAGENET_MODELS[name]
         return "/".join([prefix, name])
 
     @staticmethod
     def _get_c2_detectron_baseline(name):
-        name = name[len("Caffe2Detectron/COCO/"):]
+        name = name[len("Caffe2Detectron/COCO/") :]
         url = ModelCatalog.C2_DETECTRON_MODELS[name]
         if "keypoint_rcnn" in name:
             dataset = ModelCatalog.C2_DATASET_COCO_KEYPOINTS
@@ -81,7 +83,10 @@ class ModelCatalog(object):
         type = "rpn" if "35998355/rpn_R-50-C4_1x" in name else "generalized_rcnn"
         # Detectron C2 models are stored in the structure defined in `C2_DETECTRON_PATH_FORMAT`.
         url = ModelCatalog.C2_DETECTRON_PATH_FORMAT.format(
-            prefix=ModelCatalog.S3_C2_DETECTRON_PREFIX, url=url, type=type, dataset=dataset
+            prefix=ModelCatalog.S3_C2_DETECTRON_PREFIX,
+            url=url,
+            type=type,
+            dataset=dataset,
         )
         return url
 
@@ -98,7 +103,7 @@ class ModelCatalogHandler(PathHandler):
 
     def _get_local_path(self, path, **kwargs):
         logger = logging.getLogger(__name__)
-        catalog_path = ModelCatalog.get(path[len(self.PREFIX):])
+        catalog_path = ModelCatalog.get(path[len(self.PREFIX) :])
         logger.info("Catalog entry {} points to {}".format(path, catalog_path))
         return PathManager.get_local_path(catalog_path, **kwargs)
 

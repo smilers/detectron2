@@ -46,7 +46,9 @@ class RotatedCOCOeval(COCOeval):
         input_box_dim = box_tensor.shape[1]
         if input_box_dim != output_box_dim:
             if input_box_dim == 4 and output_box_dim == 5:
-                box_tensor = BoxMode.convert(box_tensor, BoxMode.XYWH_ABS, BoxMode.XYWHA_ABS)
+                box_tensor = BoxMode.convert(
+                    box_tensor, BoxMode.XYWH_ABS, BoxMode.XYWHA_ABS
+                )
             else:
                 raise Exception(
                     "Unable to convert from {}-dim box to {}-dim box".format(
@@ -78,7 +80,7 @@ class RotatedCOCOeval(COCOeval):
         inds = np.argsort([-d["score"] for d in dt], kind="mergesort")
         dt = [dt[i] for i in inds]
         if len(dt) > p.maxDets[-1]:
-            dt = dt[:p.maxDets[-1]]
+            dt = dt[: p.maxDets[-1]]
 
         assert p.iouType == "bbox", "unsupported iouType for iou computation"
 
@@ -113,7 +115,9 @@ class RotatedCOCOEvaluator(COCOEvaluator):
             if "instances" in output:
                 instances = output["instances"].to(self._cpu_device)
 
-                prediction["instances"] = self.instances_to_json(instances, input["image_id"])
+                prediction["instances"] = self.instances_to_json(
+                    instances, input["image_id"]
+                )
             if "proposals" in output:
                 prediction["proposals"] = output["proposals"].to(self._cpu_device)
             self._predictions.append(prediction)
@@ -142,7 +146,7 @@ class RotatedCOCOEvaluator(COCOEvaluator):
             results.append(result)
         return results
 
-    def _eval_predictions(self, predictions, img_ids=None):    # img_ids: unused
+    def _eval_predictions(self, predictions, img_ids=None):  # img_ids: unused
         """
         Evaluate predictions on the given tasks.
         Fill self._results with the metrics of the tasks.
@@ -153,7 +157,8 @@ class RotatedCOCOEvaluator(COCOEvaluator):
         # unmap the category ids for COCO
         if hasattr(self._metadata, "thing_dataset_id_to_contiguous_id"):
             reverse_id_mapping = {
-                v: k for k, v in self._metadata.thing_dataset_id_to_contiguous_id.items()
+                v: k
+                for k, v in self._metadata.thing_dataset_id_to_contiguous_id.items()
             }
             for result in coco_results:
                 result["category_id"] = reverse_id_mapping[result["category_id"]]

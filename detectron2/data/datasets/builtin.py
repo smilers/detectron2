@@ -33,7 +33,7 @@ from .pascal_voc import register_pascal_voc
 # ==== Predefined datasets and splits for COCO ==========
 
 _PREDEFINED_SPLITS_COCO = {
-    'coco': {
+    "coco": {
         "coco_2014_train": (
             "coco/train2014",
             "coco/annotations/instances_train2014.json",
@@ -75,7 +75,7 @@ _PREDEFINED_SPLITS_COCO = {
             "coco/annotations/instances_val2017_100.json",
         ),
     },
-    'coco_person': {
+    "coco_person": {
         "keypoints_coco_2014_train": (
             "coco/train2014",
             "coco/annotations/person_keypoints_train2014.json",
@@ -185,7 +185,10 @@ _PREDEFINED_SPLITS_LVIS = {
         "lvis_v1_train": ("coco/", "lvis/lvis_v1_train.json"),
         "lvis_v1_val": ("coco/", "lvis/lvis_v1_val.json"),
         "lvis_v1_test_dev": ("coco/", "lvis/lvis_v1_image_info_test_dev.json"),
-        "lvis_v1_test_challenge": ("coco/", "lvis/lvis_v1_image_info_test_challenge.json"),
+        "lvis_v1_test_challenge": (
+            "coco/",
+            "lvis/lvis_v1_image_info_test_challenge.json",
+        ),
     },
     "lvis_v0.5": {
         "lvis_v0.5_train": ("coco/", "lvis/lvis_v0.5_train.json"),
@@ -213,9 +216,18 @@ def register_all_lvis(root):
 
 # ==== Predefined splits for raw cityscapes images ===========
 _RAW_CITYSCAPES_SPLITS = {
-    "cityscapes_fine_{task}_train": ("cityscapes/leftImg8bit/train/", "cityscapes/gtFine/train/"),
-    "cityscapes_fine_{task}_val": ("cityscapes/leftImg8bit/val/", "cityscapes/gtFine/val/"),
-    "cityscapes_fine_{task}_test": ("cityscapes/leftImg8bit/test/", "cityscapes/gtFine/test/"),
+    "cityscapes_fine_{task}_train": (
+        "cityscapes/leftImg8bit/train/",
+        "cityscapes/gtFine/train/",
+    ),
+    "cityscapes_fine_{task}_val": (
+        "cityscapes/leftImg8bit/val/",
+        "cityscapes/gtFine/val/",
+    ),
+    "cityscapes_fine_{task}_test": (
+        "cityscapes/leftImg8bit/test/",
+        "cityscapes/gtFine/test/",
+    ),
 }
 
 
@@ -233,7 +245,10 @@ def register_all_cityscapes(root):
             ),
         )
         MetadataCatalog.get(inst_key).set(
-            image_dir=image_dir, gt_dir=gt_dir, evaluator_type="cityscapes_instance", **meta
+            image_dir=image_dir,
+            gt_dir=gt_dir,
+            evaluator_type="cityscapes_instance",
+            **meta,
         )
 
         sem_key = key.format(task="sem_seg")
@@ -273,7 +288,10 @@ def register_all_ade20k(root):
         gt_dir = os.path.join(root, "annotations_detectron2", dirname)
         name = f"ade20k_sem_seg_{name}"
         DatasetCatalog.register(
-            name, lambda x=image_dir, y=gt_dir: load_sem_seg(y, x, gt_ext="png", image_ext="jpg")
+            name,
+            lambda x=image_dir, y=gt_dir: load_sem_seg(
+                y, x, gt_ext="png", image_ext="jpg"
+            ),
         )
         MetadataCatalog.get(name).set(
             stuff_classes=ADE20K_SEM_SEG_CATEGORIES[:],

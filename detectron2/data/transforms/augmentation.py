@@ -25,9 +25,9 @@ __all__ = [
 
 
 def _check_img_dtype(img):
-    assert isinstance(img, np.ndarray), "[Augmentation] Needs an numpy array, but got a {}!".format(
-        type(img)
-    )
+    assert isinstance(
+        img, np.ndarray
+    ), "[Augmentation] Needs an numpy array, but got a {}!".format(type(img))
     assert not isinstance(img.dtype, np.integer) or (
         img.dtype == np.uint8
     ), "[Augmentation] Got image of type {}, use uint8 or floating points instead!".format(
@@ -51,7 +51,10 @@ def _get_aug_input_args(aug, aug_input) -> List[Any]:
         else:
             names = []
             for name, prm in prms:
-                if prm.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
+                if prm.kind in (
+                    inspect.Parameter.VAR_POSITIONAL,
+                    inspect.Parameter.VAR_KEYWORD,
+                ):
                     raise TypeError(
                         f""" \
 The default implementation of `{type(aug)}.__call__` does not allow \
@@ -197,7 +200,9 @@ class Augmentation:
 
                 assert hasattr(self, name), (
                     "Attribute {} not found! "
-                    "Default __repr__ only works if attributes match the constructor.".format(name)
+                    "Default __repr__ only works if attributes match the constructor.".format(
+                        name
+                    )
                 )
                 attr = getattr(self, name)
                 default = param.default

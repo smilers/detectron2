@@ -22,7 +22,10 @@ class Matcher(object):
     """
 
     def __init__(
-        self, thresholds: List[float], labels: List[int], allow_low_quality_matches: bool = False
+        self,
+        thresholds: List[float],
+        labels: List[int],
+        allow_low_quality_matches: bool = False,
     ):
         """
         Args:
@@ -93,7 +96,9 @@ class Matcher(object):
 
         match_labels = matches.new_full(matches.size(), 1, dtype=torch.int8)
 
-        for (l, low, high) in zip(self.labels, self.thresholds[:-1], self.thresholds[1:]):
+        for (l, low, high) in zip(
+            self.labels, self.thresholds[:-1], self.thresholds[1:]
+        ):
             low_high = (matched_vals >= low) & (matched_vals < high)
             match_labels[low_high] = l
 

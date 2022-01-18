@@ -125,9 +125,7 @@ def _patch_import():
         if (
             level == 0
             or globals is None
-            or not (globals.get("__package__", "") or "").startswith(
-                _CFG_PACKAGE_NAME
-            )
+            or not (globals.get("__package__", "") or "").startswith(_CFG_PACKAGE_NAME)
         ):
             return old_import(name, globals, locals, fromlist=fromlist, level=level)
         cur_file = find_relative_file(globals["__file__"], name, level)
@@ -260,7 +258,9 @@ class LazyConfig:
         try:
             with PathManager.open(filename, "w") as f:
                 dict = OmegaConf.to_container(cfg, resolve=False)
-                dumped = yaml.dump(dict, default_flow_style=None, allow_unicode=True, width=9999)
+                dumped = yaml.dump(
+                    dict, default_flow_style=None, allow_unicode=True, width=9999
+                )
                 f.write(dumped)
         except Exception:
             logger.exception("Unable to serialize the config to yaml. Error:")
@@ -341,7 +341,10 @@ class LazyConfig:
             if isinstance(obj, abc.Mapping) and "_target_" in obj:
                 # Dict representing a function call
                 target = _convert_target_to_string(obj.pop("_target_"))
-                args = [f"{k}={_to_str(v, inside_call=True)}" for k, v in sorted(obj.items())]
+                args = [
+                    f"{k}={_to_str(v, inside_call=True)}"
+                    for k, v in sorted(obj.items())
+                ]
                 args = ", ".join(args)
                 call = f"{target}({args})"
                 return "".join(prefix) + call
@@ -367,7 +370,11 @@ class LazyConfig:
                     + "}"
                 )
             elif isinstance(obj, list):
-                return "[" + ",".join(_to_str(x, inside_call=inside_call) for x in obj) + "]"
+                return (
+                    "["
+                    + ",".join(_to_str(x, inside_call=inside_call) for x in obj)
+                    + "]"
+                )
             else:
                 return repr(obj)
 
